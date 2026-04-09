@@ -12,8 +12,9 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
+    "lint:convention": "node scripts/checkNamingConvention.mjs",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm lint && pnpm typecheck && pnpm build"
+    "check": "pnpm lint && pnpm lint:convention && pnpm typecheck && pnpm build"
   },
   "dependencies": {
     "next": "16.2.3",
