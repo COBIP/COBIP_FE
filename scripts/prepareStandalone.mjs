@@ -26,7 +26,7 @@ async function pathExists(targetPath) {
 
 async function prepareStandalone() {
   if (!(await pathExists(standaloneRoot))) {
-    throw new Error("Standalone output is missing. Run `pnpm build` first.");
+    throw new Error("Standalone output is missing. Run `npm run build` first.");
   }
 
   for (const copyTarget of copyTargets) {

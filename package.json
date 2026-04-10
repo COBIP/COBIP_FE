@@ -2,7 +2,7 @@
   "name": "cobip-fe",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.32.0",
+  "packageManager": "npm@11.11.0",
   "engines": {
     "node": ">=20.9.0"
   },

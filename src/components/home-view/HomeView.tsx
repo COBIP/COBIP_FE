@@ -66,7 +66,7 @@ export default function HomeView() {
                 Tailwind CSS v4
               </span>
               <span className="rounded-full border border-border px-4 py-2">
-                pnpm
+                npm
               </span>
             </div>
           </div>

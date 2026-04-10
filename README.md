@@ -10,18 +10,18 @@ Next.js 16, TypeScript, App Router, `src` 디렉터리 구조, Tailwind CSS v4 �
 - Tailwind CSS 4
 - App Router
 - `src` directory
-- pnpm
+- npm
 
 ## Scripts
 
 ```bash
-pnpm dev
-pnpm lint
-pnpm lint:convention
-pnpm check
-pnpm typecheck
-pnpm build
-pnpm build:standalone
+npm run dev
+npm run lint
+npm run lint:convention
+npm run check
+npm run typecheck
+npm run build
+npm run build:standalone
 ```
 
 ## Directory
@@ -56,8 +56,8 @@ src/
 
 ## Convention Lint
 
-- `pnpm lint`: ESLint + TypeScript naming rules
-- `pnpm lint:convention`: file and folder naming validation
+- `npm run lint`: ESLint + TypeScript naming rules
+- `npm run lint:convention`: file and folder naming validation
 - Next.js reserved files such as `page.tsx`, `layout.tsx`, and dynamic route folders such as `[id]` are treated as allowed exceptions
 
 ## CI/CD
