@@ -7,6 +7,7 @@ const appRoot = path.join(sourceRoot, "app");
 
 const kebabCasePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const pascalCasePattern = /^[A-Z][A-Za-z0-9]*$/;
+const hookFilePattern = /^use[A-Z][A-Za-z0-9]*$/;
 
 const nextReservedFileNames = new Set([
   "page",
@@ -65,6 +66,10 @@ function isAllowedFileName(filePath, fileName) {
   }
 
   if (isInsideAppDirectory(filePath) && nextReservedFileNames.has(baseName)) {
+    return true;
+  }
+
+  if (filePath.startsWith(path.join(sourceRoot, "hooks")) && hookFilePattern.test(baseName)) {
     return true;
   }
 
