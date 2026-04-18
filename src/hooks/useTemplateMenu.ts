@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export function useTemplateMenu(initialMenu: string = 'design-intent') {
+export const useTemplateMenu = (initialMenu: string = 'design-intent') => {
   const [activeMenu, setActiveMenu] = useState(initialMenu);
 
   const menus = [
@@ -15,4 +15,4 @@ export function useTemplateMenu(initialMenu: string = 'design-intent') {
   ];
 
   return { activeMenu, setActiveMenu, menus };
-}
+};

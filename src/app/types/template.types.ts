@@ -8,6 +8,3 @@ export interface TemplateSidebarProps {
   onMenuChange: (menu: string) => void;
   progress: number;
 }
-
-export interface TemplateSectionProps {
-}
