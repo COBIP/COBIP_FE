@@ -1,9 +1,10 @@
+"use client";
+
 import { TemplateSidebarProps } from '@/app/types/template.types';
 
 export function FunctionalTemplateSidebar({
   activeMenu,
   onMenuChange,
-  progress,
 }: TemplateSidebarProps) {
   const menus = [
     { id: 'design-intent', label: '설계 의도' },
@@ -31,16 +32,6 @@ export function FunctionalTemplateSidebar({
           </button>
         ))}
       </nav>
-
-      <div className="border-t pt-4">
-        <p className="text-xs text-gray-600 mb-2">진행률: {progress}%</p>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div
-            className="bg-purple-600 h-2 rounded-full transition-all"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
     </aside>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { Layers } from 'lucide-react';
 
 export function StructureSection() {

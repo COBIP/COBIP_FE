@@ -1,3 +1,5 @@
+"use client";
+
 import { Code } from 'lucide-react';
 import { useState } from 'react';
 
