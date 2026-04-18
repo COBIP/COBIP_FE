@@ -1,4 +1,3 @@
-import React from 'react';
 import LoginForm from '@/features/auth/components/LoginForm';
 import LeftPage from "@/features/auth/components/LeftPage";
 

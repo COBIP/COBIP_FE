@@ -1,4 +1,3 @@
-import React from 'react';
 
 import LoginHeader from "@/features/auth/components/LoginHeader";
 import LoginAuth from "@/features/auth/components/LoginAuth";

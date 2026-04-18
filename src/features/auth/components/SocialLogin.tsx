@@ -1,6 +1,4 @@
 
-import Image from 'next/image';
-
 export default function SocialLogin(){
     return (
         <div className="grid grid-cols-1 gap -3">

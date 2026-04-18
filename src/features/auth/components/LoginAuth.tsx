@@ -1,4 +1,4 @@
-// 'use clinet'
+
 import Input from "@/features/auth/components/common/Input";
 import LButton from "@/features/auth/components/common/Button"
 
