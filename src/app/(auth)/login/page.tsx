@@ -1,5 +1,6 @@
 import React from 'react';
 import LoginForm from '@/features/auth/components/LoginForm';
+import LeftPage from "@/features/auth/components/LeftPage";
 
 const LoginPage = () => {
     const meshBackgroundStyle = {
@@ -17,7 +18,7 @@ const LoginPage = () => {
                 className="hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden"
                 style={meshBackgroundStyle}
             >
-                {/* <LeftPage /> */}
+                <LeftPage />
             </div>
 
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
