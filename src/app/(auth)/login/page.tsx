@@ -2,7 +2,7 @@ import React from 'react';
 import LoginForm from '@/features/auth/components/LoginForm';
 import LeftPage from "@/features/auth/components/LeftPage";
 
-const LoginPage = () => {
+const loginPage = () => {
     const meshBackgroundStyle = {
         backgroundColor: "#f6f6f8",
         backgroundImage: `
@@ -28,4 +28,4 @@ const LoginPage = () => {
     );
 }
 
-export default LoginPage;
+export default loginPage;

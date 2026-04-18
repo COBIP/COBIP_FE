@@ -1,5 +1,5 @@
 interface Props {
-    text: String;
+    text: string;
 }
 
 export default function Button(props: Props){
