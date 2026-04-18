@@ -1,4 +1,5 @@
-// import React from 'react';
+import React from 'react';
+import LoginForm from '@/features/auth/components/LoginForm';
 
 const LoginPage = () => {
     const meshBackgroundStyle = {
@@ -20,7 +21,7 @@ const LoginPage = () => {
             </div>
 
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-                {/* <LoginForm /> */}
+                <LoginForm />
             </div>
         </div>
     );
