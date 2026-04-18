@@ -1,6 +1,6 @@
 "use client";
 
-import type { TemplateSidebarProps } from '@/app/types/template.types';
+import type { TemplateSidebarProps } from '@/app/types/TemplateTypes';
 
 export function FunctionalTemplateSidebar({
   activeMenu,
