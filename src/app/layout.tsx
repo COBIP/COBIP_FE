@@ -13,7 +13,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full antialiased">
-      <body className="min-h-full bg-background text-foreground font-sans">
+      <body
+        suppressHydrationWarning
+        className="min-h-full bg-background text-foreground font-sans"
+      >
         {children}
       </body>
     </html>
