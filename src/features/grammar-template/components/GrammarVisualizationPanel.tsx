@@ -1,5 +1,3 @@
-import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
-
 interface GrammarVisualizationPanelProps {
   currentStep?: number;
   totalSteps?: number;
@@ -16,14 +14,6 @@ interface GrammarVisualizationPanelProps {
 export function GrammarVisualizationPanel({
   currentStep = 2,
   totalSteps = 4,
-  isPlaying = false,
-  speed = 1,
-  onPlay = () => {},
-  onPause = () => {},
-  onReset = () => {},
-  onNext = () => {},
-  onPrev = () => {},
-  onSpeedChange = () => {},
 }: GrammarVisualizationPanelProps) {
   const variables = [
     { name: 'total', value: '10', type: 'int' },
@@ -37,9 +27,8 @@ export function GrammarVisualizationPanel({
   ];
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col overflow-hidden">
-      {/* 변수 상태 - 고정 높이 */}
-      <div className="border-b border-gray-200 p-3 shrink-0">
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="shrink-0 border-b border-gray-200 p-3">
         <h3 className="mb-2 text-xs font-bold text-gray-900">변수 상태</h3>
         <div className="max-h-36 space-y-1.5 overflow-y-auto pr-1">
           {variables.map((variable) => (
@@ -57,19 +46,18 @@ export function GrammarVisualizationPanel({
         </div>
       </div>
 
-      {/* 출력 결과 - 유동적 높이 (스크롤 가능) */}
-      <div className="flex-1 flex flex-col border-b border-gray-200 p-3 min-h-0">
-        <h3 className="mb-2 text-xs font-bold text-gray-900 shrink-0">출력 결과</h3>
-        <div className="flex-1 overflow-y-auto rounded-lg bg-gray-900 p-2.5 font-mono text-[11px] text-green-400 min-h-0">
+      <div className="min-h-0 flex flex-1 flex-col border-b border-gray-200 p-3">
+        <h3 className="mb-2 shrink-0 text-xs font-bold text-gray-900">출력 결과</h3>
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-lg bg-gray-900 p-2.5 font-mono text-[11px] text-green-400">
           {output.map((line, idx) => (
-            <div key={idx} className="mb-1 last:mb-0">{line}</div>
+            <div key={idx} className="mb-1 last:mb-0">
+              {line}
+            </div>
           ))}
         </div>
       </div>
 
-      {/* 플레이어 컨트롤 - 고정 높이 */}
-      <div className="border-t border-gray-200 bg-gray-50 p-3 shrink-0">
-        {/* 진행률 */}
+      <div className="shrink-0 border-t border-gray-200 bg-gray-50 p-3">
         <div className="mb-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs text-gray-600">진행률</span>
@@ -84,7 +72,7 @@ export function GrammarVisualizationPanel({
             />
           </div>
         </div>
-        </div>
       </div>
+    </div>
   );
 }
