@@ -1,6 +1,6 @@
 import type { GrammarLevel } from '@/app/types/GrammarTypes';
 
-export function useGrammarData() {
+export function getGrammarData() {
   const levels: GrammarLevel[] = [
     {
       id: 'level-1',
