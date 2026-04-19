@@ -1,6 +1,6 @@
 
 import LeftPage from "@/features/auth/components/LeftPage";
-
+import SignUpForm from "@/features/auth/components/SignUpForm";
 
 export default function SignupPage() {
     const meshBackgroundStyle = {
@@ -22,7 +22,7 @@ export default function SignupPage() {
             </div>
 
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-                
+                <SignUpForm></SignUpForm>
             </div>
         </div>
     );
