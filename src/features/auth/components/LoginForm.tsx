@@ -8,7 +8,9 @@ export default function LoginPage() {
     <main className="w-full max-w-[440px] flex flex-col">
       <LoginHeader />
       <LoginAuth />
-      <SocialLogin />
+      <div className="mt-6">
+        <SocialLogin />
+      </div>
     </main>
   );
 }
