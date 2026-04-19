@@ -184,7 +184,7 @@ function SlideCard({ t }: { t: typeof dummyTemplates[number] }) {
 export default function Home() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [showModal, setShowModal] = useState(false);
+  const [isShowModal, setIsShowModal] = useState(false);
   const [page, setPage] = useState(1);
   const [popularIndex, setPopularIndex] = useState(0);
   const [recommendIndex, setRecommendIndex] = useState(0);
@@ -325,7 +325,7 @@ export default function Home() {
 
         {/* ── 카테고리 버튼 ── */}
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setIsShowModal(true)}
           className="border px-4 py-2 mb-4 rounded-lg text-sm hover:bg-purple-50 hover:border-purple-400 hover:text-purple-700 transition cursor-pointer"
         >
           카테고리
@@ -394,8 +394,8 @@ export default function Home() {
 
       {/* ── 카테고리 모달 ── */}
       <CategoryModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        isOpen={isShowModal}
+        onClose={() => setIsShowModal(false)}
         selectedCategories={selectedCategories}
         onSelectCategories={setSelectedCategories}
       />
