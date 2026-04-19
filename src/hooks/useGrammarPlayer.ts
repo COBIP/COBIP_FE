@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { GrammarPlayerState } from '@/app/types/grammar.types';
+import type { GrammarPlayerState } from '@/app/types/GrammarTypes';
 
-export function useGrammarPlayer() {
+export const useGrammarPlayer = () => {
   const [playerState, setPlayerState] = useState<GrammarPlayerState>({
     isPlaying: false,
     currentStep: 1,
@@ -51,4 +51,4 @@ export function useGrammarPlayer() {
     prevStep,
     setSpeed,
   };
-}
+};
