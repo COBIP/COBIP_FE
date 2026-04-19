@@ -1,51 +1,59 @@
-import { BookOpen, Target } from 'lucide-react';
+import { CheckCircle2, Circle } from 'lucide-react';
 
 interface GrammarLeftSidebarProps {
-  currentTopic: string;
+  currentTopic?: string;
+  activeLevel?: string;
+  onLevelChange?: (level: string) => void;
 }
 
-export function GrammarLeftSidebar({ currentTopic }: GrammarLeftSidebarProps) {
+export function GrammarLeftSidebar({
+  currentTopic = 'variables',
+  activeLevel,
+  onLevelChange,
+}: GrammarLeftSidebarProps) {
+  const selectedTopic = activeLevel || currentTopic;
   const topics = [
-    { id: 'variables', title: '변수 선언' },
-    { id: 'conditions', title: '조건문' },
-    { id: 'loops', title: '반복문' },
-    { id: 'functions', title: '함수' },
+    { id: 'variables', label: '변수 선언', completed: true },
+    { id: 'conditions', label: '조건문', completed: true },
+    { id: 'loops', label: '반복문', completed: false },
+    { id: 'functions', label: '함수', completed: false },
   ];
 
-  const currentTopicData = topics.find((t) => t.id === currentTopic);
-
   return (
-    <div className="w-40 bg-white border-r border-gray-200 p-3 flex flex-col h-full overflow-y-auto">
-      <div className="mb-4">
-        <div className="mb-3 flex items-center gap-1.5">
-          <BookOpen size={16} className="text-blue-600" />
-          <h3 className="text-xs font-bold text-gray-900">학습 목차</h3>
-        </div>
-        <nav className="space-y-1.5">
+    <div className="flex h-full w-56 flex-col space-y-6 border-r border-gray-200 bg-white p-6">
+      <div className="space-y-4">
+        <h3 className="text-sm font-bold text-gray-900">학습 목차</h3>
+        <nav className="space-y-2">
           {topics.map((topic) => (
             <button
               key={topic.id}
-              className={`w-full text-left px-2.5 py-2 rounded-lg transition text-xs ${
-                currentTopic === topic.id
-                  ? 'bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600'
+              onClick={() => onLevelChange?.(topic.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
+                selectedTopic === topic.id
+                  ? 'border-l-4 border-blue-500 bg-blue-50 text-blue-700 font-semibold'
                   : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              {topic.title}
+              {topic.completed ? (
+                <CheckCircle2 size={18} className="text-green-500 shrink-0" />
+              ) : (
+                <Circle size={18} className="text-gray-400 shrink-0" />
+              )}
+              <span className="text-sm">{topic.label}</span>
             </button>
           ))}
         </nav>
       </div>
 
-      <div className="border-t pt-3">
-        <div className="mb-3 flex items-center gap-1.5">
-          <Target size={16} className="text-blue-600" />
-          <h3 className="text-xs font-bold text-gray-900">현재 목표</h3>
-        </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <p className="text-xs text-blue-900 leading-relaxed">
-            {currentTopicData?.title}에 대해 배우고 실습합니다. 코드를 직접 작성하고 실행 결과를 확인해보세요.
-          </p>
+      <div className="space-y-3 border-t border-gray-200 pt-6">
+        <h3 className="text-sm font-bold text-gray-900">현재 단계 목표</h3>
+        <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <p className="text-xs font-semibold text-blue-900">반복문 기초</p>
+          <ul className="space-y-1 text-xs text-blue-800">
+            <li>• for 루프 이해</li>
+            <li>• 변수 상태 추적</li>
+            <li>• 배열 순회</li>
+          </ul>
         </div>
       </div>
     </div>
