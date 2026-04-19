@@ -1,0 +1,92 @@
+import type { DashboardData } from '@/app/types/DashboardTypes';
+
+export const dashboardData: DashboardData = {
+  statistics: [
+    {
+      id: 'completed',
+      title: '완료한 문제',
+      value: '128',
+      unit: '/ 200',
+      percentage: 10,
+      trend: 'up',
+      color: 'blue',
+    },
+    {
+      id: 'completion-rate',
+      title: '평균 정답률',
+      value: '85',
+      unit: '%',
+      percentage: 5,
+      trend: 'up',
+      color: 'green',
+    },
+    {
+      id: 'study-time',
+      title: '총 학습 시간',
+      value: '42.5',
+      unit: '시간',
+      percentage: 0,
+      trend: 'stable',
+      color: 'orange',
+    },
+    {
+      id: 'streak',
+      title: '현재 연속 학습',
+      value: '12',
+      unit: '일',
+      percentage: 0,
+      trend: 'stable',
+      color: 'purple',
+    },
+  ],
+  learningActivities: [
+    { day: '월', count: 5 },
+    { day: '화', count: 3 },
+    { day: '수', count: 7 },
+    { day: '목', count: 4 },
+    { day: '금', count: 6 },
+    { day: '토', count: 2 },
+    { day: '일', count: 3 },
+  ],
+  recentLearnings: [
+    {
+      id: 'recent-1',
+      title: '인덱스 최적화',
+      category: 'Database',
+      completionRate: 88,
+      lastStudiedDate: '2시간 전',
+    },
+    {
+      id: 'recent-2',
+      title: '로드 밸런싱',
+      category: 'System Design',
+      completionRate: 30,
+      lastStudiedDate: '1시간 전',
+    },
+    {
+      id: 'recent-3',
+      title: '기본 구조',
+      category: 'Data Structure',
+      completionRate: 0,
+      lastStudiedDate: '준비중',
+    },
+  ],
+  recommendedCourses: [
+    {
+      id: 'course-1',
+      title: 'CS 아키텍처101',
+      description: '소프트 아키텍처',
+      category: 'Architecture',
+      releaseDate: '2023년 10월 출시',
+      difficulty: 'intermediate',
+    },
+    {
+      id: 'course-2',
+      title: '쉽운 시스템 디자인',
+      description: '시스템 설계',
+      category: 'System Design',
+      releaseDate: '2024년 1월 출시',
+      difficulty: 'beginner',
+    },
+  ],
+};
