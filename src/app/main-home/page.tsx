@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, ChevronLeft, ChevronRight, X } from "lucide-react";
+import Link from "next/link";
 
 /* ------------------ 더미 데이터 ------------------ */
 const purpleShades = [
@@ -222,9 +223,19 @@ export default function Home() {
       <header className="border-b shadow-sm bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center h-14">
-            <div className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-              COBIZ
-            </div>
+            
+            {/* ✨ 수정된 로고 부분 (LoginHero의 SVG 로고 적용) */}
+            <Link href="/main-home" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition">
+                <div className="w-8 h-8 bg-[#D7C9FB] rounded-lg flex items-center justify-center text-slate-900 shadow-sm">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <rect fill="currentColor" height="16" rx="3" width="16" x="4" y="4"></rect>
+                        <circle cx="12" cy="12" fill="#f6f6f8" r="3"></circle>
+                    </svg>
+                </div>
+                <span className="text-slate-900 text-xl font-bold tracking-tight">COBIP</span>
+            </Link>
+
+            {/* ── 네비게이션 ── */}
             <nav className="hidden md:flex gap-6">
               {["문법 템플릿", "기능 템플릿", "자료구조", "코테집", "커뮤니티"].map((item) => (
                 <a key={item} href="#" className="text-sm text-gray-600 hover:text-purple-700 transition">
@@ -232,17 +243,26 @@ export default function Home() {
                 </a>
               ))}
             </nav>
+
+            {/* ── 로그인/회원가입 버튼 ── */}
             <div className="flex gap-2">
-              <button className="border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50 transition cursor-pointer">
+              <Link 
+                href="/login" 
+                className="border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50 transition cursor-pointer flex items-center justify-center"
+              >
                 로그인
-              </button>
-              <button className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-purple-700 transition cursor-pointer">
+              </Link>
+              <Link 
+                href="/signup" 
+                className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-purple-700 transition cursor-pointer flex items-center justify-center"
+              >
                 회원가입
-              </button>
+              </Link>
             </div>
           </div>
 
-        <div className="pb-3 flex justify-center">
+          {/* ── 검색창 ── */}
+          <div className="pb-3 flex justify-center">
             <div className="relative w-1/2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
@@ -250,9 +270,9 @@ export default function Home() {
                     placeholder="템플릿 검색..."
                 />
             </div>
+          </div>
         </div>
-    </div>
-    </header>
+      </header>
 
       {/* ── 히어로 ── */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-8 px-8 py-12 bg-gradient-to-br from-purple-50 to-indigo-100 items-center">
