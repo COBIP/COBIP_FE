@@ -8,6 +8,14 @@ export interface StatisticCard {
   color: 'blue' | 'green' | 'orange' | 'purple';
 }
 
+export type DashboardPeriod = '7d' | '30d' | '90d';
+
+export interface DashboardPeriodOption {
+  value: DashboardPeriod;
+  label: string;
+  description: string;
+}
+
 export interface LearningActivity {
   day: string;
   count: number;
