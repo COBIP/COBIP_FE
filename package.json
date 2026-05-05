@@ -18,6 +18,15 @@
     "check": "eslint . --max-warnings=0 && node scripts/checkNamingConvention.mjs && tsc --noEmit && next build"
   },
   "dependencies": {
+    "@tiptap/extension-color": "^3.22.5",
+    "@tiptap/extension-file-handler": "^3.22.5",
+    "@tiptap/extension-highlight": "^3.22.5",
+    "@tiptap/extension-image": "^3.22.5",
+    "@tiptap/extension-text-align": "^3.22.5",
+    "@tiptap/extension-text-style": "^3.22.5",
+    "@tiptap/pm": "^3.22.5",
+    "@tiptap/react": "^3.22.5",
+    "@tiptap/starter-kit": "^3.22.5",
     "lucide-react": "^1.8.0",
     "next": "16.2.3",
     "react": "19.2.4",
