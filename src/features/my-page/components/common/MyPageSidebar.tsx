@@ -14,16 +14,27 @@ import {
     User
 } from "lucide-react";
 
-export default function MyPageSidebar() {
+interface MyPageSidebarProps {
+    user: {
+        nickName: string;
+        image?: string;
+    };
+}
+
+export default function MyPageSidebar({ user }: MyPageSidebarProps) {
     return (
         <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 border-r border-[#e5e2e1] bg-white flex flex-col p-6 z-40 hidden md:flex">
             
             {/* 프로필 출력 */}
             <div className="flex flex-col items-center pb-6 border-b border-[#e5e2e1]">
-                <div className="w-16 h-16 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-3 shadow-md border-4 border-[#e5e2e1]">
-                    <User size={20} className="text-gray-600" />
+                <div className="w-16 h-16 bg-[#f0edec] rounded-full flex items-center justify-center mb-3 shadow-md border-4 border-[#e5e2e1] overflow-hidden">
+                    {user.image ? (
+                        <img src={user.image} alt={user.nickName} className="w-full h-full object-cover" />
+                    ) : (
+                        <User size={20} className="text-gray-600" />
+                    )}
                 </div>
-                <h2 className="text-lg font-bold text-[#1c1b1b]">순규</h2>
+                <h2 className="text-lg font-bold text-[#1c1b1b]">{user.nickName}</h2>
             </div>
 
             {/* 사이드바 */}
