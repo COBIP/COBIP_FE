@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Play, MessageCircle, Save, History } from 'lucide-react';
 
 interface CodeEditorProps {
@@ -63,12 +63,6 @@ export function CodeEditor({
   const [internalCode, setInternalCode] = useState(DEFAULT_CODE);
   const [isRunning, setIsRunning] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState('');
-
-  useEffect(() => {
-    if (code !== undefined) {
-      setInternalCode(code);
-    }
-  }, [code]);
 
   const editorCode = code ?? internalCode;
   const lineNumbers = Array.from({ length: editorCode.split('\n').length }, (_, i) => i + 1);

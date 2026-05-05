@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, BookOpen, Layers3, Sparkles } from 'lucide-react';
 import { Header } from './Header';
 import { TabNav } from './TabNav';
@@ -9,12 +9,10 @@ import { CodeEditor } from './CodeEditor';
 import { MemoPanel } from './MemoPanel';
 import { SettingsModal } from './SettingsModal';
 import { DesignIntentSection } from './DesignIntentSection';
-import { SourceCodeSection } from './SourceCodeSection';
 import { MissionSection } from './MissionSection';
 import { RequirementsSection } from './RequirementsSection';
 import { StructureSection } from './StructureSection';
 import { InterviewSection } from './InterviewSection';
-import { MissionChecklist } from './MissionChecklist';
 
 type EditorMode = 'exploration' | 'mission';
 
@@ -159,31 +157,27 @@ const missionFiles: Record<string, string> = {
       consecutiveDays?: number;
     }
 
-    export function FunctionalTemplateLayout({
-      templateTitle,
-      consecutiveDays = 0,
-    }: FunctionalTemplateLayoutProps) {
+    export function FunctionalTemplateLayout({}: FunctionalTemplateLayoutProps) {
       // 상태 관리
       const [activeTab, setActiveTab] = useState('design-intent');
       const [isEditorOpen, setIsEditorOpen] = useState(false);
       const [isMemoOpen, setIsMemoOpen] = useState(false);
-      const [showSettings, setShowSettings] = useState(false);
+      const [isShowSettings, setIsShowSettings] = useState(false);
       const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
       const [isAiGuruHintMode, setIsAiGuruHintMode] = useState(true);
       const [editorMode, setEditorMode] = useState<EditorMode>('exploration');
       const [activeFile, setActiveFile] = useState('main.ts');
-      const [editorCode, setEditorCode] = useState(explorationFiles['main.ts']);
 
       const isDarkMode = themeMode === 'dark';
 
-      useEffect(() => {
-        const targetFile = editorMode === 'mission' ? activeFile : activeFile;
-        const nextCode = editorMode === 'mission'
-          ? missionFiles[targetFile] ?? missionFiles['auth.ts']
-          : explorationFiles[targetFile] ?? explorationFiles['main.ts'];
-
-        setEditorCode(nextCode);
-      }, [activeFile, editorMode]);
+      // 현재 에디터 코드 계산 (useMemo로 메모이제이션)
+      const editorCode = useMemo(
+        () =>
+          editorMode === 'mission'
+            ? missionFiles[activeFile] ?? missionFiles['auth.ts']
+            : explorationFiles[activeFile] ?? explorationFiles['main.ts'],
+        [activeFile, editorMode]
+      );
 
       // 콘텐츠 렌더링
       const renderContent = () => {
@@ -206,14 +200,12 @@ const missionFiles: Record<string, string> = {
       const openExplorationEditor = () => {
         setEditorMode('exploration');
         setActiveFile('main.ts');
-        setEditorCode(explorationFiles['main.ts']);
         setIsEditorOpen(true);
       };
 
       const openMissionEditor = (fileName = 'auth.ts') => {
         setEditorMode('mission');
         setActiveFile(fileName);
-        setEditorCode(missionFiles[fileName] ?? missionFiles['auth.ts']);
         setIsEditorOpen(true);
       };
 
@@ -221,12 +213,9 @@ const missionFiles: Record<string, string> = {
 
       const handleEditorFileSelect = (fileName: string) => {
         setActiveFile(fileName);
-        setEditorCode(editorMode === 'mission'
-          ? missionFiles[fileName] ?? missionFiles['auth.ts']
-          : explorationFiles[fileName] ?? explorationFiles['main.ts']);
       };
 
-      const LessonSidebar = () => (
+      const renderLessonSidebar = () => (
         <aside
           className={`w-72 shrink-0 border-l transition-colors duration-300 ${
             isDarkMode ? 'bg-[#0F172A] border-[#334155]' : 'bg-[#FAFBFC] border-[#F1F5F9]'
@@ -284,7 +273,7 @@ const missionFiles: Record<string, string> = {
         >
           {/* 헤더 */}
           <Header
-            onSettingsClick={() => setShowSettings(true)}
+            onSettingsClick={() => setIsShowSettings(true)}
             onMemoToggle={() => setIsMemoOpen(!isMemoOpen)}
             onEditorToggle={() => {
               if (isEditorOpen) {
@@ -325,7 +314,7 @@ const missionFiles: Record<string, string> = {
                     <CodeEditor
                       fileName={activeFile}
                       code={editorCode}
-                      onCodeChange={setEditorCode}
+                      onCodeChange={() => {}}
                       fileTabs={currentTabs}
                       activeFile={activeFile}
                       onFileSelect={handleEditorFileSelect}
@@ -341,7 +330,7 @@ const missionFiles: Record<string, string> = {
                     {renderContent()}
                   </div>
                 </section>
-                <LessonSidebar />
+                {renderLessonSidebar()}
               </div>
             )}
 
@@ -413,14 +402,14 @@ const missionFiles: Record<string, string> = {
       </div>
 
       {/* 설정 모달 */}
-      {showSettings && (
+      {isShowSettings && (
         <SettingsModal
           isDarkMode={isDarkMode}
           themeMode={themeMode}
           onThemeModeChange={setThemeMode}
           isAiGuruHintMode={isAiGuruHintMode}
           onAiGuruHintModeChange={setIsAiGuruHintMode}
-          onClose={() => setShowSettings(false)}
+          onClose={() => setIsShowSettings(false)}
         />
       )}
     </div>

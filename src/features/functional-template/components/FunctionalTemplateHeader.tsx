@@ -1,25 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Bookmark, MessageSquare, Settings, Flame, Code2 } from 'lucide-react';
+import React from 'react';
+import { Settings, Code2 } from 'lucide-react';
 
 interface FunctionalTemplateHeaderProps {
-  templateTitle: string;
   breadcrumb: string;
-  consecutiveDays: number;
-  onBookmarkClick: () => void;
   onSettingsClick: () => void;
 }
 
 export function FunctionalTemplateHeader({
-  templateTitle,
   breadcrumb,
-  consecutiveDays,
-  onBookmarkClick,
   onSettingsClick,
 }: FunctionalTemplateHeaderProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false);
-
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 shrink-0">
       <div className="flex items-center justify-between">
@@ -27,16 +19,6 @@ export function FunctionalTemplateHeader({
         <div className="flex items-center gap-2">
           <span className="text-gray-900 font-semibold">{breadcrumb}</span>
           <span className="text-gray-400 text-xl">›</span>
-        </div>
-
-        {/* 중앙: 연속학습 표시 */}
-        <div className="flex items-center gap-3 flex-1 justify-center">
-          {consecutiveDays > 0 && (
-            <div className="flex items-center gap-1 px-3 py-1 bg-orange-50 rounded-full">
-              <Flame className="w-4 h-4 text-orange-500" />
-              <span className="text-sm font-semibold text-orange-600">{consecutiveDays}일 연속</span>
-            </div>
-          )}
         </div>
 
         {/* 오른쪽: 액션 버튼들 */}
