@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
     LayoutDashboard, 
-    Activity, 
+    BookOpen, 
+    FileEdit, 
+    Archive, 
+    FileText, 
+    CreditCard, 
     UserCog, 
-    Settings, 
-    HelpCircle, 
-    LogOut,
+    Settings,
     User
 } from "lucide-react";
 
@@ -26,25 +28,15 @@ export default function MyPageSidebar() {
 
 
             <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
-                <div className="text-[11px] font-bold text-[#7a7486] mb-2 px-4 tracking-wider">내 학습</div>
+                <SidebarLink href="/profile" icon={<UserCog size={20} />} title="프로필" />
                 <SidebarLink href="/dashboard" icon={<LayoutDashboard size={20} />} title="대시보드" />
-                <SidebarLink href="#" icon={<Activity size={20} />} title="최근 활동" />
-
-                <div className="text-[11px] font-bold text-[#7a7486] mb-2 px-4 mt-6 tracking-wider">설정 및 관리</div>
-                <SidebarLink href="#" icon={<UserCog size={20} />} title="프로필 설정" />
-                <SidebarLink href="#" icon={<Settings size={20} />} title="계정 관리" />
-
-                <div className="text-[11px] font-bold text-[#7a7486] mb-2 px-4 mt-6 tracking-wider">고객 지원</div>
-                <SidebarLink href="#" icon={<HelpCircle size={20} />} title="문의하기" />
+                <SidebarLink href="/my-learning" icon={<BookOpen size={20} />} title="내학습" />
+                <SidebarLink href="/subscription" icon={<CreditCard size={20} />} title="구독관리" />
+                <SidebarLink href="/review-note" icon={<FileEdit size={20} />} title="오답노트" />
+                <SidebarLink href="/archive" icon={<Archive size={20} />} title="보관함" />
+                <SidebarLink href="/posts" icon={<FileText size={20} />} title="작성한 게시글" />
+                <SidebarLink href="/settings" icon={<Settings size={20} />} title="계정관리" />
             </nav>
-
-
-            <div className="mt-auto pt-4 border-t border-[#e5e2e1] space-y-2">
-                <button className="w-full flex items-center gap-3 text-[#494454] px-4 py-3 hover:bg-[#f6f3f2] rounded-xl transition-colors text-sm font-medium">
-                    <LogOut size={20} />
-                    <span>로그아웃</span>
-                </button>
-            </div>
             
         </aside>
     );
