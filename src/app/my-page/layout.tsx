@@ -1,5 +1,5 @@
-import MyPageHeader from "@/features/my-page/components/MyPageHeader"; 
-import MyPageSidebar from "@/features/my-page/components/MyPageSidebar";
+import MyPageHeader from "@/features/my-page/components/common/MyPageHeader"; 
+import MyPageSidebar from "@/features/my-page/components/common/MyPageSidebar";
 
 export default function MyPageLayout({ children }: { children: React.ReactNode }) {
   return (
