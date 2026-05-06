@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signUpApi } from '@/api/services/Auth';
-import { SignUpFormData } from '@/types/Auth.type';
+import { type SignUpFormData } from '@/types/AuthTypes';
 
 export const useSignUp = () => {
     const router = useRouter();

@@ -1,8 +1,8 @@
-import { SignUpRequest, ApiResponse } from '@/types/Auth.type';
+import { type SignUpRequest, type ApiResponse } from '@/types/AuthTypes';
 
 const BASE_URL = 'http://localhost:8080/api/v1/auth';
 
-export const signUpApi = async (data: SignUpRequest): Promise<ApiResponse<any>> => {
+export const signUpApi = async (data: SignUpRequest): Promise<ApiResponse<unknown>> => {
     const response = await fetch(`${BASE_URL}/signup`, {
         method: 'POST',
         headers: {

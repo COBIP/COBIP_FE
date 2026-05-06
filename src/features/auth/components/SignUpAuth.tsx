@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useSignUp } from '@/features/auth/hooks/useSignUp'; // Hook 가져오기
+import { useSignUp } from '@/hooks/useSignUp'; // Hook 가져오기
 import Input from '@/features/auth/components/common/Input';
 import Button from '@/features/auth/components/common/Button';
 
