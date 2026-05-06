@@ -40,7 +40,7 @@ export default function Home() {
               <Link href="/grammar-template" className="text-sm text-gray-600 hover:text-purple-700 transition">
                 문법 템플릿
               </Link>
-              <Link href="/functional-template" className="text-sm text-gray-600 hover:text-purple-700 transition">
+              <Link href="/functional-template-hub" className="text-sm text-gray-600 hover:text-purple-700 transition">
                 기능 템플릿
               </Link>
               <a href="#" className="text-sm text-gray-600 hover:text-purple-700 transition">
