@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -29,7 +30,13 @@ export default function MyPageSidebar({ user }: MyPageSidebarProps) {
             <div className="flex flex-col items-center pb-6 border-b border-[#e5e2e1]">
                 <div className="w-16 h-16 bg-[#f0edec] rounded-full flex items-center justify-center mb-3 shadow-md border-4 border-[#e5e2e1] overflow-hidden">
                     {user.image ? (
-                        <img src={user.image} alt={user.nickName} className="w-full h-full object-cover" />
+                        <Image 
+                            src={user.image || "/default-profile.png"} 
+                            alt="프로필 이미지" 
+                            width={40} 
+                            height={40} 
+                            className="rounded-full"
+                        />                    
                     ) : (
                         <User size={20} className="text-gray-600" />
                     )}
