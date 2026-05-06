@@ -28,10 +28,10 @@ export const useSignUp = () => {
         }
 
         try {
-        // 폼 데이터를 API 요청 스펙에 맞게 변환하여 전송
             const result = await signUpApi({
                 email: formData.email,
                 password: formData.password,
+                confirmPassword: formData.passwordConfirm, // ✨ 프론트엔드 상태 -> 백엔드 변수명으로 매핑!
                 nickname: formData.nickname,
             });
 
