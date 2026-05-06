@@ -33,8 +33,8 @@ export default function MyPageSidebar({ user }: MyPageSidebarProps) {
                         <Image 
                             src={user.image || "/default-profile.png"} 
                             alt="프로필 이미지" 
-                            width={40} 
-                            height={40} 
+                            width={60} 
+                            height={60} 
                             className="rounded-full"
                         />                    
                     ) : (

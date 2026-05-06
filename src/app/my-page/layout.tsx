@@ -4,7 +4,7 @@ import MyPageSidebar from "@/features/my-page/components/common/MyPageSidebar";
 export default function MyPageLayout({ children }: { children: React.ReactNode }) {
   const user = {
     nickName: "nickName",
-    image: "https://placehold.jp/150x150.png" 
+    image: "/test.png" 
   };
 
   return (

@@ -5,7 +5,7 @@ import ProfileTabs  from '@/features/my-page/components/profile/ProfileTabs';
 export default function MyPage() {
     const user = {
         nickName : "nickName",
-        image: "https://placehold.jp/150x150.png"
+        image: "/test.png"
     };
 
     return (
