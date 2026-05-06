@@ -9,7 +9,13 @@ export default function ProfileHeader({ nickName, profileImage }: ProfileHeaderP
             <div className="flex items-center gap-6">
                 <div className="relative">
                     <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-violet-100 ring-4 ring-white">
-                        <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                        <img 
+                            src={profileImage || "/default-avatar.png"} 
+                            alt="프로필"
+                            onError={(e) => {
+                                e.currentTarget.src = "[https://placehold.jp/150x150.png](https://placehold.jp/150x150.png)"; // 이미지 로드 실패 시 대체
+                            }}
+                        />                        
                     </div>
                     <div className="absolute bottom-1 right-1 flex items-center justify-center w-8 h-8 bg-[#6938d6] text-white rounded-full border-2 border-white cursor-pointer hover:bg-[#8255f0]">
                         <span className="material-symbols-outlined text-[18px]">photo_camera</span>
