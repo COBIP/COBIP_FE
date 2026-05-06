@@ -1,4 +1,4 @@
-export default function Clip() {
+export default function ClipTab() {
     return (
         <div className="flex flex-col flex-1 p-6">
             <div className="flex items-center justify-between mb-6 shrink-0">
