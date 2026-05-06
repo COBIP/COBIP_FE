@@ -43,7 +43,13 @@ export const useSignUp = () => {
             }
         } catch (error) {
             console.error('SignUp Error:', error);
-            alert('서버와 연결할 수 없습니다.');
+      
+            // ✨ Error 객체인지 확인하고, 백엔드에서 던진 진짜 메시지를 alert로 띄워줍니다.
+            if (error instanceof Error) {
+                alert(error.message);
+            } else {
+                alert('회원가입 처리 중 알 수 없는 오류가 발생했습니다.');
+            }
         }
     };
 
