@@ -1,38 +1,61 @@
 'use client';
 import { useState } from 'react';
-import Input from '@/features/auth/components/common/Input'
+import { useSignUp } from '@/hooks/useSignUp'; // Hook 가져오기
+import Input from '@/features/auth/components/common/Input';
 import Button from '@/features/auth/components/common/Button';
 
-export default function SignUpAuth(){
+export default function SignUpAuth() {
+  // Hook에서 필요한 상태와 함수만 쏙 뽑아옵니다.
+    const { formData, handleChange, handleSignUp } = useSignUp();
+    
     const [isEmailSent, setIsEmailSent] = useState(false);
+
     const handleSendCode = () => {
         alert('인증 번호가 발송되었습니다.');
         setIsEmailSent(true);
     };
 
-    return(
-        <form className="flex flex-col gap-5 mb-10">
-            <Input id='nickName' text='닉네임' type='text' label='닉네임' className='mb-4'/>
-            <div className="flex items-end gap-2">
-                <div className="flex-[4]"> {/* 입력창 비중을 높임 (기존 flex-1보다 강력) */}
-                    <Input id='email' text='*******@email.com' type='email' label='이메일' className=''/>
-                </div>
-                
-                <button type="button" onClick={handleSendCode}
-                    className="h-[40px] px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shrink-0">
-                    확인
-                </button>
+    return (
+        // 폼 제출 이벤트 연결
+        <form onSubmit={handleSignUp} className="flex flex-col gap-5 mb-10">
+        <Input
+            id="nickname" text="닉네임" type="text" label="닉네임" className="mb-4"
+            value={formData.nickname} onChange={handleChange}
+        />
+
+        <div className="flex items-end gap-2">
+            <div className="flex-[4]">
+            <Input
+                id="email" text="*******@email.com" type="email" label="이메일"
+                value={formData.email} onChange={handleChange}
+            />
             </div>
-            {isEmailSent && (
-                <EmailCodeSent></EmailCodeSent>
-            )}
-            <Input id='password' text='비밀번호' type='password' label='비밀번호' className='mb-4'/>
-            <Input id='passwordConfirm' text='비밀번호 확인' type='password' label='비밀번호 확인' className='mb-4'/>
-            
-            <Terms id="terms1" content="이용약관"/>
-            <Terms id="terms2" content="이용약관"/>
-            <Button text='회원가입'/>
-        </form >
+
+            <button
+            type="button" onClick={handleSendCode}
+            className="h-[40px] px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shrink-0"
+            >
+            확인
+            </button>
+        </div>
+
+        {isEmailSent && <EmailCodeSent />}
+
+        <Input
+            id="password" text="비밀번호" type="password" label="비밀번호" className="mb-4"
+            value={formData.password} onChange={handleChange}
+        />
+        <Input
+            id="passwordConfirm" text="비밀번호 확인" type="password" label="비밀번호 확인" className="mb-4"
+            value={formData.passwordConfirm} onChange={handleChange}
+        />
+
+        <Terms id="terms1" content="이용약관" />
+        <Terms id="terms2" content="이용약관" />
+
+        {/* Button 타입 지정 필수 (type="submit") */}
+        <Button text="회원가입" type="submit" />
+        </form>
     );
 }
 
