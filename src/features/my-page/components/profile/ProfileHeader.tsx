@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Camera, Edit2 } from 'lucide-react'; // 1. Lucide 아이콘 임포트
 
 interface ProfileHeaderProps {
     nickName: string;
@@ -14,21 +15,23 @@ export default function ProfileHeader({ nickName, profileImage }: ProfileHeaderP
                         <Image 
                             src={profileImage || "https://placehold.jp/150x150.png"} 
                             alt="프로필 이미지"
-                            width={150} // 실제 표시될 가로 크기
-                            height={150} // 실제 표시될 세로 크기
-                            className="rounded-full" // 기존 스타일 유지
+                            width={150}
+                            height={150}
+                            className="rounded-full"
                         />                      
                     </div>
+                    {/* 2. 카메라 아이콘 교체 */}
                     <div className="absolute bottom-1 right-1 flex items-center justify-center w-8 h-8 bg-[#6938d6] text-white rounded-full border-2 border-white cursor-pointer hover:bg-[#8255f0]">
-                        <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                        <Camera size={16} /> 
                     </div>
                 </div>
                 <div>
                     <h1 className="text-[32px] font-bold tracking-tight text-[#1c1b1b]">{nickName}</h1>
                 </div>
             </div>
+            {/* 3. 수정(Edit) 아이콘 교체 */}
             <button className="flex items-center gap-2 px-6 h-12 bg-[#6938d6] text-white rounded-[12px] text-[14px] font-semibold tracking-wide hover:bg-[#8255f0] transition-all active:scale-95">
-                <span className="material-symbols-outlined text-[20px]">edit</span>
+                <Edit2 size={18} />
                 프로필 수정
             </button>
         </section>
