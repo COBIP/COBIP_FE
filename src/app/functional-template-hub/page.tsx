@@ -7,48 +7,59 @@ import {
   InfoSection,
 } from '@/features/functional-template-hub/components/Index';
 
-export default function FunctionalTemplates() {
+/**
+ * 기능 템플릿 탐색 메인 페이지 (Hub)
+ */
+export default function FunctionalTemplatesPage() {
   const router = useRouter();
 
-  // AI 생성 핸들러
-  const handleAIGeneration = (input: string) => {
-    // 실제로는 AI 서버에 요청하고 결과를 받음
-    console.log('AI 생성 요청:', input);
+  // AI 기반 맞춤 기능 설계 요청 핸들러
+  const handleAIDesign = (requirements: string) => {
+    // TODO: AI API 연동 로직
+    console.log('AI 맞춤 설계 요구사항:', requirements);
   };
 
-  // 템플릿 클릭 핸들러
+  // 템플릿 카드 클릭 핸들러
   const handleTemplateClick = (templateId: string) => {
     if (templateId === 'user-auth') {
-      router.push('/functional-template');
+      router.push('/functional-template'); 
     } else {
-      alert('이 템플릿은 준비 중입니다.');
+      alert('더 정교한 실습 환경을 위해 준비 중인 템플릿입니다. AI 설계를 이용해보세요!');
     }
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* 헤더 */}
-      <header className="bg-white border-b border-gray-200 px-8 py-6">
+    <div className="min-h-screen bg-[#F9FAFB]">
+      {/* 상단 헤더 섹션 */}
+      <header className="bg-white border-b border-gray-200 px-8 py-10">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
             기능 템플릿 탐색
           </h1>
-          <p className="text-gray-600">
-            다양한 기술 스택으로 실습하고 학습하세요
+          <p className="text-lg text-gray-600 max-w-2xl">
+            다양한 기술 스택을 선택하고, 비즈니스 로직을 실습하고 학습하세요.
           </p>
         </div>
       </header>
 
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-8 py-12">
-        {/* AI 섹션 */}
-        <AISection onGenerate={handleAIGeneration} />
+      {/* 메인 콘텐츠 영역 */}
+      <main className="max-w-7xl mx-auto px-8 py-12 space-y-20">
+        
+        {/* AI 커스텀 기능 설계 섹션 */}
+        <section>
+          <AISection onGenerate={handleAIDesign} />
+        </section>
 
-        {/* 템플릿 그리드 */}
-        <TemplateGrid onTemplateClick={handleTemplateClick} />
+        {/* 베스트 실습 템플릿 그리드 */}
+        <section>
+          <TemplateGrid onTemplateClick={handleTemplateClick} />
+        </section>
 
-        {/* 정보 섹션 */}
-        <InfoSection />
+        {/* 서비스 통계 및 가이드 섹션 */}
+        <section className="pt-10 border-t border-gray-100">
+          <InfoSection />
+        </section>
+        
       </main>
     </div>
   );
