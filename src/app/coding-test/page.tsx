@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ProblemGrid } from '@/features/coding-test/components/ProblemGrid';
-import { CodingTestFilter } from '@/features/coding-test/components/CodingTestFilter';
+import CodingTestFilter from '@/features/coding-test/components/CodingTestFilter';
 import { useCodingTest } from '@/hooks/useCodingTest';
 import { Header } from '@/features/main-home/components/Header';
 

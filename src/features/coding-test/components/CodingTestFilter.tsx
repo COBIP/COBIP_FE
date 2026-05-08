@@ -21,7 +21,7 @@ const getBorderColor = (id: string) => {
     }
 };
 
-export const CodingTestFilter = ({ selectedFilters, onFilterChange }: CodingTestFilterProps) => {
+export default function CodingTestFilter({ selectedFilters, onFilterChange }: CodingTestFilterProps){
     return (
         <>
             {/* 상단 헤더 & 검색 바 */}
