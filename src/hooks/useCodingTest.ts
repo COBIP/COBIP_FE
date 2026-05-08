@@ -1,7 +1,6 @@
 import { BaseProblem, UserProgress, Problem } from '@/types/CodingTestTypes';
 
 export const useCodingTest = () => {
-    // 1. API로 받아온 순수 문제 목록이라고 가정
     const dummyBaseProblems: BaseProblem[] = [
         { id: 1, title: '가장 긴 팰린드롬', description: '문자열 처리 및 동적 계획법 기초', language: 'Java', solveCount: 12453, testType: '기본 코딩테스트', difficulty: '중급', type: '문자열' },
         { id: 2, title: '두 수의 합', description: '해시맵을 활용한 O(n) 탐색', language: 'Python', solveCount: 45120, testType: '대기업 코딩 테스트', difficulty: '초급', type: '배열' },
@@ -29,7 +28,7 @@ export const useCodingTest = () => {
         { id: 23, title: '정수 삼각형', description: '위에서 아래로 내려오는 DP 최적해', language: 'Java', solveCount: 21300, testType: '기본 코딩테스트', difficulty: '중급', type: 'DP' },
         { id: 24, title: '구명보트', description: '투포인터와 그리디 알고리즘 조합', language: 'C++', solveCount: 29800, testType: '실무 코드테스트', difficulty: '초급', type: '배열' }
     ];
-    
+
     const dummyUserProgress: UserProgress[] = [
         { userId: 123, problemId: 1, status: 'completed' }, //현재 유저 기록
         { userId: 123, problemId: 2, status: 'in-progress' },
