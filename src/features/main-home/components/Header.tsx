@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from 'next/image';
 import { Menu, Globe, HelpCircle, Key, UserCheck } from "lucide-react";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // 임시 로그인 상태 (나중에 auth로 대체)
+  const [isLoggedIn] = useState(false); // 임시 로그인 상태 (나중에 auth로 대체)
   const menuRef = useRef<HTMLDivElement>(null);
 
   // 외부 클릭 시 메뉴 닫기
@@ -46,7 +47,7 @@ export function Header() {
             </button>
           ) : (
             <button aria-label="프로필" className="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
-              <img src="/profile-placeholder.png" alt="profile" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <Image src="/profile-placeholder.png" alt="profile" width={32} height={32} className="w-full h-full object-cover" />
             </button>
           )}
 
