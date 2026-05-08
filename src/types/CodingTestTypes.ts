@@ -4,9 +4,8 @@ export interface BaseProblem {
     id: number;
     title: string;
     description: string;
-    language: string;
     solveCount: number;
-    progress?: number;
+    language: string;
     testType: string;
     difficulty: string;
     type: string;
