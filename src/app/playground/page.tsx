@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { type Language, type ProjectTemplate, type File, type RightPanelTab, type TerminalLog } from '@/app/types/Playground';
+import { type Language, type ProjectTemplate, type File, type Folder, type RightPanelTab, type TerminalLog } from '@/app/types/Playground';
 import { LANGUAGE_CONFIGS } from '@/data/Languages';
 import { PROJECT_TEMPLATES } from '@/data/Templates';
 import { Toolbar } from '@/features/playground-ide/components/Toolbar';
@@ -12,11 +12,17 @@ import { RightPanel } from '@/features/playground-ide/components/RightPanel';
 
 export default function PlaygroundPage() {
 
+  // 다크 모드
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
   // 선택된 언어
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('javascript');
 
   // 선택된 템플릿
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate>('none');
+
+  // 폴더 목록
+  const [folders, setFolders] = useState<Folder[]>([]);
 
   // 파일 목록
   const [files, setFiles] = useState<File[]>([
@@ -160,6 +166,48 @@ export default function PlaygroundPage() {
   };
 
   /**
+   * 폴더 추가
+   */
+  const handleAddFolder = () => {
+    const newFolderId = Date.now().toString();
+    const newFolder: Folder = {
+      id: newFolderId,
+      name: `folder${folders.length + 1}`,
+      expanded: true,
+    };
+    setFolders([...folders, newFolder]);
+  };
+
+  /**
+   * 폴더 삭제
+   */
+  const handleDeleteFolder = (folderId: string) => {
+    const newFolders = folders.filter((f) => f.id !== folderId);
+    const filesInFolder = files.filter((f) => f.parentId === folderId);
+    const newFiles = files.filter((f) => f.parentId !== folderId);
+    
+    setFolders(newFolders);
+    setFiles(newFiles);
+    
+    if (filesInFolder.some((f) => f.id === activeFileId)) {
+      setActiveFileId(files.find((f) => f.parentId !== folderId)?.id || '1');
+    }
+  };
+
+  /**
+   * 폴더 확장/축소
+   */
+  const handleToggleFolderExpansion = (folderId: string) => {
+    setFolders((prevFolders) =>
+      prevFolders.map((folder) =>
+        folder.id === folderId
+          ? { ...folder, expanded: !folder.expanded }
+          : folder
+      )
+    );
+  };
+
+  /**
    * 실행 시뮬레이션
    */
   const handleRun = () => {
@@ -234,15 +282,20 @@ export default function PlaygroundPage() {
   // ===== 렌더링 =====
 
   return (
-    <div className="flex h-screen bg-gray-900 text-gray-100">
+    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
       {/* 좌측: 파일 탐색기 */}
       <FileExplorer
         files={files}
+        folders={folders}
         activeFileId={activeFileId}
         selectedTemplate={selectedTemplate}
         onFileSelect={handleFileSelect}
         onFileDelete={handleDeleteFile}
         onAddFile={handleAddFile}
+        onAddFolder={handleAddFolder}
+        onDeleteFolder={handleDeleteFolder}
+        onToggleFolderExpansion={handleToggleFolderExpansion}
+        isDarkMode={isDarkMode}
       />
 
       {/* 중앙: 에디터 + 터미널 */}
@@ -256,13 +309,15 @@ export default function PlaygroundPage() {
           onTemplateChange={handleTemplateChange}
           onRun={handleRun}
           onDownload={handleDownloadCode}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         />
 
         {/* 에디터 */}
-        <Editor activeFile={activeFile} onCodeChange={handleCodeChange} />
+        <Editor activeFile={activeFile} onCodeChange={handleCodeChange} isDarkMode={isDarkMode} />
 
         {/* 터미널 */}
-        <Terminal logs={terminalLogs} onClear={handleClearTerminal} />
+        <Terminal logs={terminalLogs} onClear={handleClearTerminal} isDarkMode={isDarkMode} />
       </div>
 
       {/* 우측: 패널 (Cheat Sheet & Notes) */}
@@ -273,6 +328,7 @@ export default function PlaygroundPage() {
         notes={notes}
         onTabChange={setRightPanelTab}
         onNotesChange={setNotes}
+        isDarkMode={isDarkMode}
       />
     </div>
   );

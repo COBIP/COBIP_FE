@@ -21,6 +21,14 @@ export interface File {
   name: string;
   language: Language;
   content: string;
+  parentId?: string; // 폴더 ID (폴더 내 파일의 경우)
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string; // 상위 폴더 ID
+  expanded?: boolean; // 폴더 확장 상태
 }
 
 export interface TerminalLog {
