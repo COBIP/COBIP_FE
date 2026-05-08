@@ -8,4 +8,7 @@ export interface Problem {
     status: ProblemStatus;
     solveCount: number;
     progress?: number;
+    testType: string;
+    difficulty: string;
+    type: string;
 }
