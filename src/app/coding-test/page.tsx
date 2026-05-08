@@ -30,11 +30,11 @@ export default function CodingTestPage() {
 
     // 필터링 적용
     const filteredProblems = problems.filter(problem => {
-        const matchTestType = filters.testType === '전체' || problem.testType === filters.testType;
-        const matchDifficulty = filters.difficulty === '전체' || problem.difficulty === filters.difficulty;
-        const matchLanguage = filters.language === '전체' || problem.language === filters.language;
-        const matchType = filters.type === '전체' || problem.type === filters.type;
-        return matchTestType && matchDifficulty && matchLanguage && matchType;
+        const isMatchTestType = filters.testType === '전체' || problem.testType === filters.testType;
+        const isMatchDifficulty = filters.difficulty === '전체' || problem.difficulty === filters.difficulty;
+        const isMatchLanguage = filters.language === '전체' || problem.language === filters.language;
+        const isMatchType = filters.type === '전체' || problem.type === filters.type;
+        return isMatchTestType && isMatchDifficulty && isMatchLanguage && isMatchType;
     });
 
     // 2. 페이징 계산 로직
