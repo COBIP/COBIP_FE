@@ -5,7 +5,7 @@ interface ProblemCardProps {
     problem: Problem;
 }
 
-export const ProblemCard = ({ problem }: ProblemCardProps) => {
+export default function ProblemCard({ problem }: ProblemCardProps){
     // 4가지 속성 모두 가져오기
     const { id, title, description, language, status, solveCount, testType, difficulty, type } = problem;
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ProblemGrid } from '@/features/coding-test/components/ProblemGrid';
+import ProblemGrid from '@/features/coding-test/components/ProblemGrid';
 import CodingTestFilter from '@/features/coding-test/components/CodingTestFilter';
 import { useCodingTest } from '@/hooks/useCodingTest';
 
