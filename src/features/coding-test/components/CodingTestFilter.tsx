@@ -11,6 +11,16 @@ interface CodingTestFilterProps {
     onFilterChange: (categoryId: string, option: string) => void;
 }
 
+const getBorderColor = (id: string) => {
+    switch (id) {
+        case 'testType': return 'border-blue-500';
+        case 'difficulty': return 'border-emerald-500';
+        case 'language': return 'border-violet-500';
+        case 'type': return 'border-amber-500';
+        default: return 'border-gray-300';
+    }
+};
+
 export const CodingTestFilter = ({ selectedFilters, onFilterChange }: CodingTestFilterProps) => {
     return (
         <>
@@ -39,11 +49,15 @@ export const CodingTestFilter = ({ selectedFilters, onFilterChange }: CodingTest
                         key={category.id} 
                         className={`flex flex-col md:flex-row md:items-center gap-4 ${index !== FILTER_CATEGORIES.length - 1 ? 'pb-4 border-b border-gray-100' : ''}`}
                     >
-                        <span className="text-sm font-bold text-gray-800 w-24 flex-shrink-0">{category.label}</span>
-                        
+
+                        {/* 카테고리 제목: 좌측 보더 포인트 추가 */}
+                        <div className={`w-32 flex-shrink-0 border-l-4 pl-3 ${getBorderColor(category.id)}`}>
+                            <span className="text-sm font-bold text-gray-800">{category.label}</span>
+                        </div>
+                                                
                         <div className="flex flex-wrap gap-2">
                             {category.options.map((option) => {
-                                
+
                                 // 현재 내 카테고리의 선택된 값이 이 버튼의 값과 같은지 확인
                                 const isSelected = selectedFilters[category.id] === option;
                                 

@@ -47,13 +47,24 @@ export const ProblemCard = ({ problem }: ProblemCardProps) => {
                 </div>
             </div>
 
-            {/* 2. 다중 태그 렌더링 (구분, 난이도, 언어, 유형) */}
+            {/* 카테고리별 파스텔 톤 태그 (Option 1 적용) */}
             <div className="flex flex-wrap gap-1.5 mb-3">
-                {[testType, difficulty, language, type].map((tag, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-violet-50 text-violet-700 border border-violet-100 rounded text-[10px] font-bold">
-                        {tag}
-                    </span>
-                ))}
+                {/* 테스트 구분: 블루 */}
+                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-[10px] font-bold">
+                    {testType}
+                </span>
+                {/* 난이도: 에메랄드 */}
+                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-[10px] font-bold">
+                    {difficulty}
+                </span>
+                {/* 언어: 보라 */}
+                <span className="px-2 py-0.5 bg-violet-50 text-violet-700 border border-violet-100 rounded text-[10px] font-bold">
+                    {language}
+                </span>
+                {/* 유형: 오렌지/앰버 */}
+                <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded text-[10px] font-bold">
+                    {type}
+                </span>
             </div>
 
             <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">{title}</h3>
