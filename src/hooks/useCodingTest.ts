@@ -1,4 +1,4 @@
-import { BaseProblem, UserProgress, Problem } from '@/types/CodingTestTypes';
+import type { BaseProblem, UserProgress, Problem } from '@/types/CodingTestTypes';
 
 export const useCodingTest = () => {
     const dummyBaseProblems: BaseProblem[] = [
