@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ProblemGrid } from '@/features/coding-test/components/ProblemGrid';
 import { CodingTestFilter } from '@/features/coding-test/components/CodingTestFilter';
 import { useCodingTest } from '@/hooks/useCodingTest';
-import Header from '@/features/coding-test/components/Header';
+import { Header } from '@/features/main-home/components/Header';
 
 // 한 페이지에 보여줄 문제 개수 상수 선언
 const ITEMS_PER_PAGE = 16;
