@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, BookOpen, Layers3, Sparkles } from 'lucide-react';
 import { Header } from './Header';
 import { TabNav } from './TabNav';
@@ -169,6 +170,7 @@ const missionFiles: Record<string, string> = {
       const [activeFile, setActiveFile] = useState('main.ts');
 
       const isDarkMode = themeMode === 'dark';
+      const router = useRouter();
 
       // 현재 에디터 코드 계산 (useMemo로 메모이제이션)
       const editorCode = useMemo(
@@ -293,6 +295,9 @@ const missionFiles: Record<string, string> = {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             isDarkMode={isDarkMode}
+            onMarkComplete={() => {
+              // 학습 완료 처리 로직
+            }}
           />
 
           <div className={`relative flex flex-1 min-h-0 overflow-hidden ${isMemoOpen ? 'pr-80' : ''}`}>
@@ -344,22 +349,38 @@ const missionFiles: Record<string, string> = {
 
       {/* 바텀 네비게이션 */}
       <div
-        className={`h-16 border-t transition-colors duration-300 px-6 flex items-center justify-between ${
+        className={`h-16 border-t transition-colors duration-300 px-6 flex items-center ${
           isDarkMode
             ? 'bg-[#0F172A] border-[#334155]'
             : 'bg-white border-[#F1F5F9]'
         }`}
       >
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => router.push('/functional-template-hub')}
+          className={`flex items-center gap-2 p-2 rounded transition-colors duration-300 ${
+            isDarkMode
+              ? 'text-[#94A3B8] hover:bg-[#334155]'
+              : 'text-[#64748B] hover:bg-[#F8FAFC]'
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className={`text-sm font-medium ${isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>
+            뒤로가기
+          </span>
+        </button>
+
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-3">
           <button
-            className={`p-2 rounded transition-colors duration-300 ${
-              isDarkMode
-                ? 'text-[#94A3B8] hover:bg-[#334155]'
-                : 'text-[#64748B] hover:bg-[#F8FAFC]'
+            aria-label="이전 레슨"
+            className={`p-1 rounded transition-colors duration-300 ${
+              isDarkMode ? 'text-[#94A3B8] hover:bg-[#334155]' : 'text-[#64748B] hover:bg-[#F8FAFC]'
             }`}
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
+
           <span
             className={`text-sm font-medium transition-colors duration-300 ${
               isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'
@@ -367,6 +388,7 @@ const missionFiles: Record<string, string> = {
           >
             01. 인증의 기초
           </span>
+
           <span
             className={`text-sm transition-colors duration-300 ${
               isDarkMode ? 'text-[#64748B]' : 'text-[#94A3B8]'
@@ -374,6 +396,7 @@ const missionFiles: Record<string, string> = {
           >
             |
           </span>
+
           <span
             className={`text-sm font-medium transition-colors duration-300 ${
               isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'
@@ -381,24 +404,16 @@ const missionFiles: Record<string, string> = {
           >
             03. Refresh Token 구현
           </span>
+
           <button
-            className={`p-2 rounded transition-colors duration-300 ${
-              isDarkMode
-                ? 'text-[#94A3B8] hover:bg-[#334155]'
-                : 'text-[#64748B] hover:bg-[#F8FAFC]'
+            aria-label="다음 레슨"
+            className={`p-1 rounded transition-colors duration-300 ${
+              isDarkMode ? 'text-[#94A3B8] hover:bg-[#334155]' : 'text-[#64748B] hover:bg-[#F8FAFC]'
             }`}
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-
-        <button className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
-          isDarkMode
-            ? 'bg-[#7C3AED] text-white hover:bg-[#6D28D9]'
-            : 'bg-[#7C3AED] text-white hover:bg-[#6D28D9]'
-        }`}>
-          레슨 완료
-        </button>
       </div>
 
       {/* 설정 모달 */}
