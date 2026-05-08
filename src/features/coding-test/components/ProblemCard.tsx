@@ -1,4 +1,5 @@
 import { Problem } from '@/types/CodingTestTypes';
+import Link from 'next/link'; // 링크 이동을 위해 추가
 
 interface ProblemCardProps {
     problem: Problem;
@@ -6,7 +7,7 @@ interface ProblemCardProps {
 
 export const ProblemCard = ({ problem }: ProblemCardProps) => {
     // 4가지 속성 모두 가져오기
-    const { title, description, language, status, solveCount, testType, difficulty, type } = problem;
+    const { id, title, description, language, status, solveCount, testType, difficulty, type } = problem;
 
     const isCompleted = status === 'completed';
     const isInProgress = status === 'in-progress';
@@ -78,15 +79,15 @@ export const ProblemCard = ({ problem }: ProblemCardProps) => {
                     {solveCount.toLocaleString()}명 해결
                 </div>
                 
-                {isCompleted ? (
-                    <button className="px-4 py-2 border-2 border-emerald-500 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-50 transition-colors">
-                        다시 풀기
-                    </button>
-                ) : (
-                    <button className="px-4 py-2 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold hover:bg-violet-600 hover:text-white transition-colors">
-                        {isInProgress ? '이어서 풀기' : '문제 풀이'}
-                    </button>
-                )}
+                <Link href={`/coding-test/${id}`}>
+                    {isCompleted ? (
+                        <button className="px-4 py-2 border-2 border-emerald-500 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-50 transition-colors w-full">다시 풀기</button>
+                    ) : (
+                        <button className="px-4 py-2 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold hover:bg-violet-600 hover:text-white transition-colors w-full">
+                            {isInProgress ? '이어서 풀기' : '문제 풀이'}
+                        </button>
+                    )}
+                </Link>
             </div>
         </div>
     );
