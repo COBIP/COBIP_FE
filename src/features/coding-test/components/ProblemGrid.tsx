@@ -1,4 +1,4 @@
-import { Problem } from '@/types/CodingTestTypes';
+import type { Problem } from '@/types/CodingTestTypes';
 import { ProblemCard } from '@/features/coding-test/components/ProblemCard';
 
 interface ProblemGridProps {

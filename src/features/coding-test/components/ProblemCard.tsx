@@ -1,4 +1,4 @@
-import { Problem } from '@/types/CodingTestTypes';
+import type { Problem } from '@/types/CodingTestTypes';
 import Link from 'next/link'; // 링크 이동을 위해 추가
 
 interface ProblemCardProps {
