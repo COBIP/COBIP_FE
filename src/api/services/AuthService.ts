@@ -1,10 +1,11 @@
-import { type SignUpRequest, type ApiResponse } from '@/types/AuthTypes';
+import { 
+    type SignUpRequest, 
+    type ApiResponse,
+    type EmailVerificationSendRequest, 
+    type EmailVerificationConfirmRequest
+} from '@/types/AuthTypes';
 
 import axiosInstance from '@/api/AxiosInstance';
-import {
-    EmailVerificationSendRequest,
-    EmailVerificationConfirmRequest
-} from '@/types/AuthTypes';
 
 const BASE_URL = 'http://localhost:8080/api/v1/auth';
 
