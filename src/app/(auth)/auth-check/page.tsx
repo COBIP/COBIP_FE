@@ -1,78 +1,115 @@
 'use client';
 
-import { useUserStore } from '@/store/useUserStore'; // 
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 
 export default function AuthCheckPage() {
-    const { isLoggedIn, accessToken, clearSession } = useUserStore();
-    const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+
+  // 로그아웃 처리 함수
+  const handleLogout = () => {
+    // 1. 로컬 스토리지에서 토큰 삭제
+    localStorage.removeItem('accessToken');
     
-    // Next.js 하이드레이션(서버-클라이언트 불일치) 에러 방지용 상태
-    const [isMounted, setIsMounted] = useState(false);
+    // 2. 유저 상태 초기화
+    setUser(null);
+    
+    // 3. 페이지 새로고침 또는 메인 페이지로 이동
+    window.location.href = '/'; 
+  };
 
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
 
-    const handleLogout = () => {
-        // Zustand 스토어와 localStorage에서 정보를 삭제합니다 
-        clearSession();
-        alert("로그아웃 되었습니다. 메인 페이지로 이동합니다.");
-        // 메인(랜딩) 페이지로 이동 
-        router.push("/"); 
-    };
+    if (!token) {
+      setError("로그인 정보가 없습니다.");
+      setLoading(false);
+      return;
+    }
 
-    // 마운트 전에는 아무것도 렌더링하지 않음 (localStorage 접근 때문)
-    if (!isMounted) return null;
+    // 백엔드 v1 API 호출 (순규 님의 UserController 경로 반영)
+    axios.get('http://localhost:8080/api/v1/users/me', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    .then(res => {
+      // MyProfileResponse 규격 데이터 저장
+      setUser(res.data.data); 
+    })
+    .catch(err => {
+      console.error("인증 실패:", err);
+      setError("인증 세션이 만료되었습니다.");
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+  }, []);
 
-    return (
-        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <h1>🔐 인증 상태 확인 테스트</h1>
-            <hr />
-            
-            <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ccc' }}>
-                <p>
-                    <strong>로그인 메시지:</strong> {isLoggedIn ? "✅ 로그인 상태입니다." : "❌ 로그인되지 않았습니다."}
-                </p>
-                <p style={{ wordBreak: 'break-all' }}>
-                    <strong>현재 Access Token:</strong> <br />
-                    <code style={{ backgroundColor: '#f0f0f0', display: 'block', padding: '10px', marginTop: '5px' }}>
-                        {accessToken || "토큰 없음"}
-                    </code>
-                </p>
-            </div>
+  if (loading) return <div className="p-10 text-center text-gray-500">인증 상태 확인 중...</div>;
 
-            {isLoggedIn ? (
-                <button 
-                    onClick={handleLogout}
-                    style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#ff4d4d',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    로그아웃 및 메인으로 이동
-                </button>
+  return (
+    <div className="p-10 max-w-2xl mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">COBIP 인증 시스템</h1>
+        {user && (
+          <button 
+            onClick={handleLogout}
+            className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md transition"
+          >
+            로그아웃
+          </button>
+        )}
+      </div>
+
+      {user ? (
+        <div className="bg-white shadow-xl rounded-xl p-8 border border-gray-100">
+          <div className="flex items-center gap-6 mb-8">
+            {user.profileImageUrl ? (
+              <img src={user.profileImageUrl} alt="프로필" className="w-20 h-20 rounded-full object-cover border-2 border-blue-100" />
             ) : (
-                <button 
-                    onClick={() => router.push("/login")}
-                    style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    로그인 페이지로 이동
-                </button>
+              <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-2xl text-white font-bold shadow-inner">
+                {user.nickname?.charAt(0)}
+              </div>
             )}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">{user.nickname} 님</h2>
+              <p className="text-blue-500 font-medium">{user.email}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 bg-gray-50 p-4 rounded-lg text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-400">계정 고유 번호</span>
+              <span className="font-mono text-gray-700">{user.id}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">COBIP 가입 일자</span>
+              <span className="text-gray-700">{new Date(user.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              ● 보안 연결 활성화됨
+            </span>
+          </div>
         </div>
-    );
+      ) : (
+        <div className="bg-white shadow-lg rounded-xl p-8 text-center border border-red-50">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">로그인이 필요합니다</h2>
+          <p className="text-gray-500 mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.href = '/login'}
+            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition"
+          >
+            로그인 하러 가기
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
