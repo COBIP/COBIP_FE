@@ -357,8 +357,8 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                               </div>
 
                               {/* 리사이즈 핸들 (파일트리 ↔ 코드) */}
-                              <div
-                                className="w-1 cursor-col-resize shrink-0 relative group"
+                                                            <div
+                                className="w-0.5 cursor-col-resize shrink-0 relative group"
                                 onMouseDown={handleExplorerResizeStart}
                               >
                                 <div className="absolute inset-0 -left-1 -right-1" />
@@ -368,7 +368,7 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                               {/* 오른쪽: 코드 편집 + 실행 */}
                               <div className="flex-1 flex flex-col overflow-hidden">
                                 {/* 파일 타이틀 바 */}
-                                <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200">
+                                                                <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 shrink-0">
                                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white rounded-t border border-gray-200 border-b-0 text-xs text-gray-700 font-medium">
                                     <span className="text-[10px]">🐍</span>
                                     main.py
@@ -377,21 +377,21 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                                 </div>
 
                                                                 {/* 코드 에디터 */}
-                                <div className="flex-1 bg-[#1e1e1e] overflow-hidden">
-                                  <textarea
-                                    className="w-full h-full bg-transparent text-gray-200 p-4 text-sm font-mono resize-none outline-none leading-relaxed"
-                                    defaultValue={currentLesson.code || ''}
-                                    placeholder="# 여기에 코드를 입력하세요"
-                                  />
-                                </div>
+                                                                <div className="flex-1 bg-gray-50 overflow-hidden">
+                                                                  <textarea
+                                                                    className="w-full h-full bg-gray-50 text-gray-800 p-4 text-sm font-mono resize-none outline-none leading-relaxed"
+                                                                    defaultValue={currentLesson.code || ''}
+                                                                    placeholder="# 여기에 코드를 입력하세요"
+                                                                  />
+                                                                </div>
 
                                 {/* 가로 리사이즈 핸들 (코드 에디터 아래 ↔ 도구모음 위) */}
-                                <div
-                                  className="h-1 cursor-row-resize shrink-0 relative group"
+                                                                <div
+                                  className="h-0.5 cursor-row-resize shrink-0 relative group"
                                   onMouseDown={handleOutputResizeStart}
                                 >
                                   <div className="absolute inset-0 -top-1 -bottom-1" />
-                                  <div className="w-full h-full bg-gray-700 group-hover:bg-purple-500 transition-colors" />
+                                  <div className="w-full h-full bg-gray-200 group-hover:bg-purple-500 transition-colors" />
                                 </div>
 
                                 {/* 하단 도구 모음 (실행 버튼 + 실행흐름) */}
@@ -411,16 +411,16 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                                   <span className="text-[10px] text-gray-400">{'// 실행 결과'}</span>
                                 </div>
 
-                                {/* 출력 영역 */}
+                                                                {/* 출력 영역 */}
                                 <div
-                                  className="border-t border-gray-200 bg-[#1e1e1e] overflow-y-auto shrink-0"
+                                  className="border-t border-gray-200 bg-gray-50 overflow-y-auto shrink-0"
                                   style={{ height: `${outputHeight}px` }}
                                 >
-                                  <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-800 sticky top-0">
-                                    <span className="text-[10px] text-gray-400 font-medium">출력</span>
+                                  <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 sticky top-0">
+                                    <span className="text-[10px] text-gray-500 font-medium">출력</span>
                                   </div>
                                   <div className="p-3">
-                                    <p className="text-xs text-gray-500 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
+                                    <p className="text-xs text-gray-400 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
                                   </div>
                                 </div>
                               </div>
