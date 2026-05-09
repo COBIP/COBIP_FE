@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginAPI } from '@/api/services/LoginService';
 import { useUserStore } from '@/store/useUserStore';
-import { LoginRequest } from '@/types/LoginType';
+import { type LoginRequest } from '@/types/LoginType';
 
 export const useAuthMutation = () => {
     const router = useRouter();

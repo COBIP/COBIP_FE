@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuthMutation } from "@/hooks/useAuthMutation"; //
 
 export default function LoginAuth() {
-    const { mutateLogin, isLoading } = useAuthMutation(); //
+    const { mutateLogin } = useAuthMutation(); //
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 

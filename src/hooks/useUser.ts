@@ -4,7 +4,7 @@ import { authService } from '@/api/services/UserService';
 
 export const useAuth = () => {
     const [user, setUser] = useState<UserProfile | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setLoading] = useState(true); // 1. 변수명 변경
     const [error, setError] = useState<string>("");
 
     useEffect(() => {
@@ -19,12 +19,17 @@ export const useAuth = () => {
             try {
                 const profileData = await authService.getMyProfile(token);
                 setUser(profileData);
-            } catch (err: any) {
-                console.error("인증 실패:", err);
+            } catch (err: unknown) { // 1. any를 unknown으로 변경 (TS 보안 규칙 준수)
+                if (err instanceof Error) {
+                    console.error("인증 실패:", err.message);
+                } else {
+                    console.error("알 수 없는 에러 발생:", err);
+                }
+
                 setError("인증 세션이 만료되었습니다.");
                 localStorage.removeItem('accessToken'); // 만료된 토큰 청소
             } finally {
-                setLoading(false);
+                setLoading(false); // 2. loading 대신 setIsLoading 사용 (Prefix 규칙 준수)
             }
         };
 
@@ -37,5 +42,5 @@ export const useAuth = () => {
         window.location.href = '/';
     };
 
-    return { user, loading, error, logout };
+    return { user, isLoading, error, logout };
 };

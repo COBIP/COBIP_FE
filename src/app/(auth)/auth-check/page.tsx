@@ -4,9 +4,10 @@ import { useAuth } from '@/hooks/useUser'; // 방금 만든 훅 가져오기
 
 export default function AuthCheckPage() {
   // 로직은 훅에게 맡기고 결과만 받아옵니다!
-  const { user, loading, error, logout } = useAuth();
+  const { user, isLoading, error, logout } = useAuth();
 
-  if (loading) return <div>인증 상태 확인 중...</div>;
+  // 2. 조건문에서도 변경된 이름을 사용합니다.
+  if (isLoading) return <div>인증 상태 확인 중...</div>;
 
   return (
     <div className="p-10 max-w-2xl mx-auto">
