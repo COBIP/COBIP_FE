@@ -27,72 +27,59 @@ export function TemplateCard({
   return (
     <div
       onClick={() => isClickable && onClick(id)}
-      className={`group ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+      className={`group ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
     >
-      <div className={`h-full bg-white rounded-2xl p-6 border border-gray-200 backdrop-blur-sm transition-all duration-300 ${
-        isReady
-          ? 'hover:border-purple-400 hover:shadow-xl hover:shadow-purple-200/50 hover:-translate-y-1'
-          : 'relative'
+      <div className={`relative bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 ${
+        isReady ? 'hover:border-purple-300 hover:shadow-md hover:shadow-purple-100 hover:-translate-y-0.5' : 'opacity-75'
       }`}>
         {/* 준비 중 오버레이 */}
         {!isReady && (
-          <div className="absolute inset-0 bg-white/50 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+          <div className="absolute inset-0 bg-white/60 rounded-xl flex items-center justify-center z-10">
             <div className="text-center">
-              <Lock size={32} className="text-gray-400 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-gray-600">준비 중</p>
+              <Lock size={24} className="text-gray-400 mx-auto mb-1" />
+              <p className="text-xs font-semibold text-gray-500">준비 중</p>
             </div>
           </div>
         )}
+        {/* 상단 컬러 바 */}
+        <div className={`h-1 ${isReady ? 'bg-gradient-to-r from-purple-400 to-blue-400' : 'bg-gray-100'}`} />
 
-        {/* 헤더 */}
-        <div className="flex items-start justify-between mb-4">
-          <div className={`p-3 rounded-lg ${
-            isReady
-              ? 'bg-gradient-to-br from-purple-100 to-blue-100 group-hover:from-purple-200 group-hover:to-blue-200'
-              : 'bg-gradient-to-br from-gray-100 to-gray-100'
-          } transition`}>
-            <span className="text-2xl">{icon}</span>
-          </div>
-          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-            isReady
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-700'
-          }`}>
-            {isReady ? '준비 완료' : '준비 중'}
-          </span>
-        </div>
+        <div className="p-4">
+          {/* 헤더: 아이콘 + 상태 배지 */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-lg">
+              {icon}
+            </div>
 
-        {/* 제목 및 설명 */}
-        <h3 className="text-lg font-bold text-gray-900 mb-2">
-          {title}
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          {description}
-        </p>
-
-        {/* 태그 */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-lg font-medium"
-            >
-              {tag}
+            <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border ${
+              isReady ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-100 text-gray-500 border-gray-200'
+            }`}>
+              {isReady ? '준비 완료' : '준비 중'}
             </span>
-          ))}
-        </div>
+          </div>
 
-        {/* 푸터 */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <span className="text-xs text-gray-500">⏱️ {duration}</span>
-          {isReady ? (
-            <ArrowRight
-              size={18}
-              className="text-purple-600 group-hover:translate-x-1 transition"
-            />
-          ) : (
-            <Lock size={18} className="text-gray-400" />
-          )}
+          {/* 제목 */}
+          <h3 className="text-sm font-bold text-gray-900 mb-1">{title}</h3>
+          <p className="text-xs text-gray-500 line-clamp-2 mb-3">{description}</p>
+
+          {/* 토픽 태그 */}
+          <div className="flex flex-wrap gap-1 mb-3">
+            {tags.map((tag) => (
+              <span key={tag} className="px-1.5 py-0.5 bg-purple-50 text-purple-600 text-[10px] rounded-md border border-purple-100">
+                {tag}
+              </span>
+            ))}
+          </div>
+
+          {/* 푸터 */}
+          <div className="pt-2.5 border-t border-gray-50 flex items-center justify-between">
+            <span className="text-xs text-gray-500">⏱️ {duration}</span>
+            {isReady ? (
+              <ArrowRight size={16} className="text-purple-600" />
+            ) : (
+              <Lock size={16} className="text-gray-400" />
+            )}
+          </div>
         </div>
       </div>
     </div>
