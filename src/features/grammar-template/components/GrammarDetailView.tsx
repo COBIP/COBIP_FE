@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Play } from 'lucide-react';
 import { PYTHON_LESSONS } from '@/features/grammar-template/Constants';
 
@@ -28,15 +28,52 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(1); // 변수부터 시작
+  const [runnerWidth, setRunnerWidth] = useState(480); // 실행기 기본 너비
+  const resizingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(480);
 
   const currentLesson = PYTHON_LESSONS[currentLessonIndex];
   const totalLessons = PYTHON_LESSONS.length;
 
-  const goToLesson = (index: number) => {
+    const goToLesson = (index: number) => {
     if (index >= 0 && index < totalLessons) {
       setCurrentLessonIndex(index);
     }
   };
+
+  // ===== Resize 핸들러 =====
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    resizingRef.current = true;
+    startXRef.current = e.clientX;
+    startWidthRef.current = runnerWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [runnerWidth]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const delta = startXRef.current - e.clientX;
+      const newWidth = Math.min(Math.max(startWidthRef.current + delta, 320), 800);
+      setRunnerWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+        resizingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -140,11 +177,13 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                       {/* 책갈피 버튼 */}
                       <button
                         onClick={() => setIsRunnerOpen(!isRunnerOpen)}
-                                                className={`absolute top-14 z-20 flex items-center justify-center bg-purple-50 px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 shadow-sm transition-all duration-200 cursor-pointer group ${
+                    
+                                                className={`absolute top-14 z-20 flex items-center justify-center bg-purple-50 px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 shadow-sm cursor-pointer group ${
                                                   isRunnerOpen
-                                                    ? 'right-[480px] border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' // 실행기 열림: 왼/위/아래만 border
-                                                    : 'right-0 border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' // 실행기 닫힘
+                                                    ? 'border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg'
+                                                    : 'right-0 border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg'
                                                 }`}
+                                                style={isRunnerOpen ? { right: `${runnerWidth}px` } : undefined}
                       >
                         <ChevronLeft className={`w-5 h-5 transition-transform duration-200 ${isRunnerOpen ? 'rotate-180' : ''}`} />
                         <span className={`absolute whitespace-nowrap text-[11px] font-medium text-purple-600 bg-white px-2 py-1 rounded-md border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm ${
@@ -227,14 +266,24 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
             </div>
                     </main>
 
-                    {/* 실행 환경 패널 */}
+                                        {/* 실행 환경 패널 */}
           <aside
-            className={`border-l border-gray-200 bg-gray-50 transition-all duration-300 overflow-hidden shrink-0 relative ${
-              isRunnerOpen ? 'w-[480px]' : 'w-0'
-            }`}
-                    >
+            className={`border-l border-gray-200 bg-gray-50 overflow-hidden shrink-0 relative ${
+              isRunnerOpen ? '' : 'w-0'
+            } ${isRunnerOpen ? '' : ''}`}
+            style={isRunnerOpen ? { width: `${runnerWidth}px` } : { width: '0px' }}
+          >
+            {/* 리사이즈 핸들 */}
             {isRunnerOpen && (
-              <div className="w-[480px] h-full flex flex-col">
+              <div
+                className="absolute -left-1 top-0 bottom-0 w-3 z-30 cursor-col-resize flex items-center justify-center group"
+                onMouseDown={handleMouseDown}
+              >
+                <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-purple-400 transition-colors" />
+              </div>
+            )}
+                        {isRunnerOpen && (
+              <div className="h-full flex flex-col" style={{ width: `${runnerWidth}px` }}>
                 {/* 실행 환경 헤더 */}
                                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
                   <div className="flex items-center gap-2">
