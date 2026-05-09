@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Play } from 'lucide-react';
 import { PYTHON_LESSONS } from '@/features/grammar-template/Constants';
 
 interface GrammarDetailViewProps {
@@ -26,6 +26,7 @@ function renderContent(text: string) {
 
 export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(1); // 변수부터 시작
 
   const currentLesson = PYTHON_LESSONS[currentLessonIndex];
@@ -132,80 +133,149 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
           )}
         </aside>
 
-        {/* ===== 메인 콘텐츠 ===== */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-8 py-10">
-            {/* 레슨 제목 */}
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">
-              {currentLesson.title}
-            </h1>
+                {/* ===== 메인 콘텐츠 영역 ===== */}
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* 콘텐츠 */}
+          <main className={`overflow-y-auto transition-all duration-300 ${isRunnerOpen ? 'flex-1' : 'flex-1'}`}>
+            <div className="max-w-4xl mx-auto px-8 py-10">
+              {/* 레슨 제목 */}
+              <h1 className="text-2xl font-bold text-gray-900 mb-6">
+                {currentLesson.title}
+              </h1>
 
-            {/* 콘텐츠 단락 */}
-            <div className="space-y-4 mb-8">
-              {currentLesson.contentParagraphs.map((paragraph, i) => (
-                <p key={i} className="text-gray-700 leading-relaxed">
-                  {renderContent(paragraph)}
-                </p>
-              ))}
-            </div>
-
-            {/* 하이라이트 박스 */}
-            {currentLesson.highlights?.map((h, i) => (
-              <div key={i} className={`${h.bgColor || 'bg-blue-50'} border ${h.borderColor || 'border-blue-200'} rounded-lg p-4 mb-8`}>
-                <h4 className="text-sm font-bold text-gray-900 mb-2">{h.title}</h4>
-                <ul className={`text-sm ${h.textColor || 'text-blue-800'} space-y-1`}>
-                  {h.lines.map((line, j) => (
-                    <li key={j}>{line}</li>
-                  ))}
-                </ul>
+              {/* 콘텐츠 단락 */}
+              <div className="space-y-4 mb-8">
+                {currentLesson.contentParagraphs.map((paragraph, i) => (
+                  <p key={i} className="text-gray-700 leading-relaxed">
+                    {renderContent(paragraph)}
+                  </p>
+                ))}
               </div>
-            ))}
 
-            {/* 코드 예제 */}
-            {currentLesson.code && (
-              <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">
-                <div className="flex items-center gap-2 bg-gray-900 px-4 py-2.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                  <span className="ml-2 text-xs text-gray-400 font-mono">
-                    {currentLesson.codeLanguage === 'python' ? 'example.py' : 'example.js'}
-                  </span>
+              {/* 하이라이트 박스 */}
+              {currentLesson.highlights?.map((h, i) => (
+                <div key={i} className={`${h.bgColor || 'bg-blue-50'} border ${h.borderColor || 'border-blue-200'} rounded-lg p-4 mb-8`}>
+                  <h4 className="text-sm font-bold text-gray-900 mb-2">{h.title}</h4>
+                  <ul className={`text-sm ${h.textColor || 'text-blue-800'} space-y-1`}>
+                    {h.lines.map((line, j) => (
+                      <li key={j}>{line}</li>
+                    ))}
+                  </ul>
                 </div>
-                <pre className="bg-[#1e1e1e] text-gray-200 p-5 text-sm font-mono leading-relaxed overflow-x-auto">
-                  <code>{currentLesson.code}</code>
-                </pre>
+              ))}
+
+              {/* 코드 예제 */}
+              {currentLesson.code && (
+                <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">
+                  <div className="flex items-center gap-2 bg-gray-900 px-4 py-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                    <span className="ml-2 text-xs text-gray-400 font-mono">
+                      {currentLesson.codeLanguage === 'python' ? 'example.py' : 'example.js'}
+                    </span>
+                  </div>
+                  <pre className="bg-[#1e1e1e] text-gray-200 p-5 text-sm font-mono leading-relaxed overflow-x-auto">
+                    <code>{currentLesson.code}</code>
+                  </pre>
+                </div>
+              )}
+
+              {/* 페이지 네비게이션 */}
+              <div className="flex items-center justify-between pt-8 border-t border-gray-200">
+                <button
+                  onClick={() => goToLesson(currentLessonIndex - 1)}
+                  disabled={currentLessonIndex === 0}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 disabled:text-gray-300 disabled:cursor-not-allowed transition cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  이전 레슨
+                </button>
+
+                {/* 진행 단계 표시 */}
+                <span className="text-xs text-gray-400">
+                  {currentLessonIndex + 1} / {totalLessons}
+                </span>
+
+                <button
+                  onClick={() => goToLesson(currentLessonIndex + 1)}
+                  disabled={currentLessonIndex === totalLessons - 1}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 disabled:text-gray-300 disabled:cursor-not-allowed transition cursor-pointer"
+                >
+                  다음 레슨
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </main>
+
+                    {/* 책갈피 버튼 (실행기 열기) */}
+                    <button
+                      onClick={() => setIsRunnerOpen(!isRunnerOpen)}
+                      className="absolute right-0 top-14 z-20 flex items-center justify-center bg-purple-50 border border-purple-200 border-r-0 rounded-bl-lg px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 hover:border-purple-300 shadow-sm transition-all cursor-pointer group"
+                    >
+                      <ChevronLeft className={`w-5 h-5 transition-transform duration-200 ${isRunnerOpen ? 'rotate-180' : ''}`} />
+                      <span className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] font-medium text-purple-600 bg-white px-2 py-1 rounded-md border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm">
+                        실행기 열기
+                      </span>
+                    </button>
+
+          {/* 실행 환경 패널 */}
+          <aside
+            className={`border-l border-gray-200 bg-gray-50 transition-all duration-300 overflow-hidden shrink-0 ${
+              isRunnerOpen ? 'w-[480px]' : 'w-0'
+            }`}
+          >
+            {isRunnerOpen && (
+              <div className="w-[480px] h-full flex flex-col">
+                {/* 실행 환경 헤더 */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+                  <div className="flex items-center gap-2">
+                    <Play className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-semibold text-gray-800">Python 실행기</span>
+                  </div>
+                                    <button
+                    onClick={() => setIsRunnerOpen(false)}
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    닫기
+                  </button>
+                </div>
+
+                {/* 코드 에디터 영역 */}
+                <div className="flex-1 flex flex-col p-4 space-y-3">
+                  <div className="flex-1 rounded-lg border border-gray-200 bg-[#1e1e1e] overflow-hidden">
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-800">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="ml-2 text-[10px] text-gray-400 font-mono">main.py</span>
+                    </div>
+                    <textarea
+                      className="w-full h-full bg-transparent text-gray-200 p-3 text-sm font-mono resize-none outline-none"
+                      defaultValue={currentLesson.code || ''}
+                      placeholder="# 여기에 코드를 입력하세요"
+                    />
+                  </div>
+
+                  {/* 실행 버튼 */}
+                  <button className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition cursor-pointer">
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                    실행
+                  </button>
+
+                  {/* 출력 영역 */}
+                  <div className="h-28 rounded-lg border border-gray-200 bg-[#1e1e1e] p-3 overflow-y-auto">
+                    <p className="text-xs text-gray-500 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
+                  </div>
+                </div>
               </div>
             )}
-
-            {/* 페이지 네비게이션 */}
-            <div className="flex items-center justify-between pt-8 border-t border-gray-200">
-              <button
-                onClick={() => goToLesson(currentLessonIndex - 1)}
-                disabled={currentLessonIndex === 0}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 disabled:text-gray-300 disabled:cursor-not-allowed transition cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                이전 레슨
-              </button>
-
-              {/* 진행 단계 표시 */}
-              <span className="text-xs text-gray-400">
-                {currentLessonIndex + 1} / {totalLessons}
-              </span>
-
-              <button
-                onClick={() => goToLesson(currentLessonIndex + 1)}
-                disabled={currentLessonIndex === totalLessons - 1}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 disabled:text-gray-300 disabled:cursor-not-allowed transition cursor-pointer"
-              >
-                다음 레슨
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
+                    </aside>
+        </div>
+      </div> {/* 👈 flex-1 overflow-hidden */}
     </div>
   );
 }
+
