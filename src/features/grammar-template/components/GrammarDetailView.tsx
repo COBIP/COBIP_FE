@@ -135,8 +135,26 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
 
                 {/* ===== 메인 콘텐츠 영역 ===== */}
         <div className="flex flex-1 overflow-hidden relative">
-          {/* 콘텐츠 */}
-          <main className={`overflow-y-auto transition-all duration-300 ${isRunnerOpen ? 'flex-1' : 'flex-1'}`}>
+                    {/* 콘텐츠 */}
+                    <main className={`overflow-y-auto transition-all duration-300 ${isRunnerOpen ? 'flex-1' : 'flex-1'}`}>
+                      {/* 책갈피 버튼 */}
+                      <button
+                        onClick={() => setIsRunnerOpen(!isRunnerOpen)}
+                                                className={`absolute top-14 z-20 flex items-center justify-center bg-purple-50 px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 shadow-sm transition-all duration-200 cursor-pointer group ${
+                                                  isRunnerOpen
+                                                    ? 'right-[480px] border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' // 실행기 열림: 왼/위/아래만 border
+                                                    : 'right-0 border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' // 실행기 닫힘
+                                                }`}
+                      >
+                        <ChevronLeft className={`w-5 h-5 transition-transform duration-200 ${isRunnerOpen ? 'rotate-180' : ''}`} />
+                        <span className={`absolute whitespace-nowrap text-[11px] font-medium text-purple-600 bg-white px-2 py-1 rounded-md border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm ${
+                          isRunnerOpen
+                            ? 'right-full mr-2 top-1/2 -translate-y-1/2'
+                            : 'right-full mr-1.5 top-1/2 -translate-y-1/2'
+                        }`}>
+                          {isRunnerOpen ? '실행기 닫기' : '실행기 열기'}
+                        </span>
+                      </button>
             <div className="max-w-4xl mx-auto px-8 py-10">
               {/* 레슨 제목 */}
               <h1 className="text-2xl font-bold text-gray-900 mb-6">
@@ -207,40 +225,22 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                 </button>
               </div>
             </div>
-          </main>
+                    </main>
 
-                    {/* 책갈피 버튼 (실행기 열기) */}
-                    <button
-                      onClick={() => setIsRunnerOpen(!isRunnerOpen)}
-                      className="absolute right-0 top-14 z-20 flex items-center justify-center bg-purple-50 border border-purple-200 border-r-0 rounded-bl-lg px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 hover:border-purple-300 shadow-sm transition-all cursor-pointer group"
-                    >
-                      <ChevronLeft className={`w-5 h-5 transition-transform duration-200 ${isRunnerOpen ? 'rotate-180' : ''}`} />
-                      <span className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] font-medium text-purple-600 bg-white px-2 py-1 rounded-md border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm">
-                        실행기 열기
-                      </span>
-                    </button>
-
-          {/* 실행 환경 패널 */}
+                    {/* 실행 환경 패널 */}
           <aside
-            className={`border-l border-gray-200 bg-gray-50 transition-all duration-300 overflow-hidden shrink-0 ${
+            className={`border-l border-gray-200 bg-gray-50 transition-all duration-300 overflow-hidden shrink-0 relative ${
               isRunnerOpen ? 'w-[480px]' : 'w-0'
             }`}
-          >
+                    >
             {isRunnerOpen && (
               <div className="w-[480px] h-full flex flex-col">
                 {/* 실행 환경 헤더 */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
                   <div className="flex items-center gap-2">
                     <Play className="w-4 h-4 text-purple-600" />
                     <span className="text-sm font-semibold text-gray-800">Python 실행기</span>
                   </div>
-                                    <button
-                    onClick={() => setIsRunnerOpen(false)}
-                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    닫기
-                  </button>
                 </div>
 
                 {/* 코드 에디터 영역 */}
