@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signUpApi, sendEmailCodeApi, verifyEmailCodeApi } from '@/api/services/Auth';
+import { signUpApi, sendEmailCodeApi, verifyEmailCodeApi } from '@/api/services/AuthService';
 import { type SignUpFormData } from '@/types/AuthTypes';
 
 export const useSignUp = () => {

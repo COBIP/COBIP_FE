@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginAPI } from '@/api/services/Login';
+import { loginAPI } from '@/api/services/LoginService';
 import { useUserStore } from '@/store/useUserStore';
 import { LoginRequest } from '@/types/LoginType';
 
