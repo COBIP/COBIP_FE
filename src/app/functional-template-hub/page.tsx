@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import { useRouter } from 'next/navigation';
+import { Header } from '@/features/main-home/components/Header';
 import {
   AISection,
   TemplateGrid,
@@ -30,17 +31,8 @@ export default function FunctionalTemplatesPage() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
-      {/* 상단 헤더 섹션 */}
-      <header className="bg-white border-b border-gray-200 px-8 py-10">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
-            기능 템플릿 탐색
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl">
-            다양한 기술 스택을 선택하고, 비즈니스 로직을 실습하고 학습하세요.
-          </p>
-        </div>
-      </header>
+      {/* 상단 헤더 섹션: 메인 헤더 컴포넌트 재사용 */}
+      <Header />
 
       {/* 메인 콘텐츠 영역 */}
       <main className="max-w-7xl mx-auto px-8 py-12 space-y-20">
