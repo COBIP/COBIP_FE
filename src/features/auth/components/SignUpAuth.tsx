@@ -1,19 +1,10 @@
 'use client';
-import { useState } from 'react';
 import { useSignUp } from '@/hooks/useSignUp'; // Hook 가져오기
 import Input from '@/features/auth/components/common/Input';
 import Button from '@/features/auth/components/common/Button';
 
 export default function SignUpAuth() {
-  // Hook에서 필요한 상태와 함수만 쏙 뽑아옵니다.
-    // const { formData, handleChange, handleSignUp } = useSignUp();
-    
-    // const [isEmailSent, setIsEmailSent] = useState(false);
 
-    // const handleSendCode = () => {
-    //     alert('인증 번호가 발송되었습니다.');
-    //     setIsEmailSent(true);
-    // };
 
     const { 
         formData, handleChange, handleSignUp,
