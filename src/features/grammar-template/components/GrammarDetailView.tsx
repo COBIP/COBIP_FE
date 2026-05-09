@@ -25,13 +25,17 @@ function renderContent(text: string) {
 }
 
 export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(1); // 변수부터 시작
   const [runnerWidth, setRunnerWidth] = useState(480); // 실행기 기본 너비
-  const resizingRef = useRef(false);
+  const [explorerWidth, setExplorerWidth] = useState(160); // 파일 탐색기 기본 너비
+  const [outputHeight, setOutputHeight] = useState(140); // 출력 영역 기본 높이
+  const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
   const startWidthRef = useRef(480);
+  const startHeightRef = useRef(140);
 
   const currentLesson = PYTHON_LESSONS[currentLessonIndex];
   const totalLessons = PYTHON_LESSONS.length;
@@ -42,26 +46,54 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
     }
   };
 
-  // ===== Resize 핸들러 =====
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    resizingRef.current = true;
+    // ===== Resize 핸들러 =====
+  const handleRunnerResizeStart = useCallback((e: React.MouseEvent) => {
+    resizingRef.current = 'runner';
     startXRef.current = e.clientX;
     startWidthRef.current = runnerWidth;
+    startHeightRef.current = outputHeight;
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-  }, [runnerWidth]);
+  }, [runnerWidth, outputHeight]);
+
+  const handleExplorerResizeStart = useCallback((e: React.MouseEvent) => {
+    resizingRef.current = 'explorer';
+    startXRef.current = e.clientX;
+    startWidthRef.current = explorerWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [explorerWidth]);
+
+  const handleOutputResizeStart = useCallback((e: React.MouseEvent) => {
+    resizingRef.current = 'output';
+    startYRef.current = e.clientY;
+    startHeightRef.current = outputHeight;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  }, [outputHeight]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizingRef.current) return;
-      const delta = startXRef.current - e.clientX;
-      const newWidth = Math.min(Math.max(startWidthRef.current + delta, 320), 800);
-      setRunnerWidth(newWidth);
+
+      if (resizingRef.current === 'runner') {
+        const delta = startXRef.current - e.clientX;
+        const newWidth = Math.min(Math.max(startWidthRef.current + delta, 320), 800);
+        setRunnerWidth(newWidth);
+      } else if (resizingRef.current === 'explorer') {
+        const delta = e.clientX - startXRef.current;
+        const newWidth = Math.min(Math.max(startWidthRef.current + delta, 100), 300);
+        setExplorerWidth(newWidth);
+      } else if (resizingRef.current === 'output') {
+        const delta = startYRef.current - e.clientY;
+        const newHeight = Math.min(Math.max(startHeightRef.current + delta, 60), 400);
+        setOutputHeight(newHeight);
+      }
     };
 
     const handleMouseUp = () => {
       if (resizingRef.current) {
-        resizingRef.current = false;
+        resizingRef.current = null;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
       }
@@ -277,50 +309,124 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
             {isRunnerOpen && (
               <div
                 className="absolute -left-1 top-0 bottom-0 w-3 z-30 cursor-col-resize flex items-center justify-center group"
-                onMouseDown={handleMouseDown}
+                onMouseDown={handleRunnerResizeStart}
               >
                 <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-purple-400 transition-colors" />
               </div>
             )}
                         {isRunnerOpen && (
-              <div className="h-full flex flex-col" style={{ width: `${runnerWidth}px` }}>
-                {/* 실행 환경 헤더 */}
-                                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-semibold text-gray-800">Python 실행기</span>
-                  </div>
-                </div>
+                          <div className="h-full flex flex-col" style={{ width: `${runnerWidth}px` }}>
+                            {/* 실행 환경 헤더 */}
+                            <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-white shrink-0">
+                              <div className="flex items-center gap-2">
+                                <Play className="w-4 h-4 text-purple-600" />
+                                <span className="text-sm font-semibold text-gray-800">Python 실행기</span>
+                              </div>
+                            </div>
 
-                {/* 코드 에디터 영역 */}
-                <div className="flex-1 flex flex-col p-4 space-y-3">
-                  <div className="flex-1 rounded-lg border border-gray-200 bg-[#1e1e1e] overflow-hidden">
-                    <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-800">
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
-                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <span className="ml-2 text-[10px] text-gray-400 font-mono">main.py</span>
-                    </div>
-                    <textarea
-                      className="w-full h-full bg-transparent text-gray-200 p-3 text-sm font-mono resize-none outline-none"
-                      defaultValue={currentLesson.code || ''}
-                      placeholder="# 여기에 코드를 입력하세요"
-                    />
-                  </div>
+                            {/* 본문: 파일트리 + 코드 영역 */}
+                            <div className="flex flex-1 overflow-hidden">
+                              {/* 왼쪽: 파일 탐색기 */}
+                              <div
+                                className="flex flex-col shrink-0 overflow-hidden"
+                                style={{ width: `${explorerWidth}px` }}
+                              >
+                                <div className="px-3 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-100/50 shrink-0">
+                                  탐색기
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+                                  {/* 파일 트리 아이템들 */}
+                                  {[
+                                    { name: 'main.py', icon: '🐍', active: true },
+                                    { name: 'variables.py', icon: '📄', active: false },
+                                    { name: 'functions.py', icon: '📄', active: false },
+                                  ].map((file) => (
+                                    <div
+                                      key={file.name}
+                                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition ${
+                                        file.active
+                                          ? 'bg-purple-100 text-purple-700 font-medium'
+                                          : 'text-gray-600 hover:bg-gray-100'
+                                      }`}
+                                    >
+                                      <span>{file.icon}</span>
+                                      <span>{file.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
 
-                  {/* 실행 버튼 */}
-                  <button className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition cursor-pointer">
-                    <Play className="w-3.5 h-3.5 fill-white" />
-                    실행
-                  </button>
+                              {/* 리사이즈 핸들 (파일트리 ↔ 코드) */}
+                              <div
+                                className="w-1 cursor-col-resize shrink-0 relative group"
+                                onMouseDown={handleExplorerResizeStart}
+                              >
+                                <div className="absolute inset-0 -left-1 -right-1" />
+                                <div className="w-full h-full bg-gray-200 group-hover:bg-purple-400 transition-colors" />
+                              </div>
 
-                  {/* 출력 영역 */}
-                  <div className="h-28 rounded-lg border border-gray-200 bg-[#1e1e1e] p-3 overflow-y-auto">
-                    <p className="text-xs text-gray-500 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
+                              {/* 오른쪽: 코드 편집 + 실행 */}
+                              <div className="flex-1 flex flex-col overflow-hidden">
+                                {/* 파일 타이틀 바 */}
+                                <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200">
+                                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white rounded-t border border-gray-200 border-b-0 text-xs text-gray-700 font-medium">
+                                    <span className="text-[10px]">🐍</span>
+                                    main.py
+                                    <button className="ml-1 text-gray-400 hover:text-gray-600 text-[10px] leading-none">✕</button>
+                                  </div>
+                                </div>
+
+                                                                {/* 코드 에디터 */}
+                                <div className="flex-1 bg-[#1e1e1e] overflow-hidden">
+                                  <textarea
+                                    className="w-full h-full bg-transparent text-gray-200 p-4 text-sm font-mono resize-none outline-none leading-relaxed"
+                                    defaultValue={currentLesson.code || ''}
+                                    placeholder="# 여기에 코드를 입력하세요"
+                                  />
+                                </div>
+
+                                {/* 가로 리사이즈 핸들 (코드 에디터 아래 ↔ 도구모음 위) */}
+                                <div
+                                  className="h-1 cursor-row-resize shrink-0 relative group"
+                                  onMouseDown={handleOutputResizeStart}
+                                >
+                                  <div className="absolute inset-0 -top-1 -bottom-1" />
+                                  <div className="w-full h-full bg-gray-700 group-hover:bg-purple-500 transition-colors" />
+                                </div>
+
+                                {/* 하단 도구 모음 (실행 버튼 + 실행흐름) */}
+                                <div className="flex items-center gap-2 px-4 py-2 bg-white shrink-0">
+                                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-[11px] font-medium rounded-md hover:bg-purple-700 transition cursor-pointer">
+                                    <Play className="w-3 h-3 fill-white" />
+                                    실행
+                                  </button>
+                                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-[11px] font-medium rounded-md border border-gray-200 hover:bg-gray-50 hover:border-purple-200 hover:text-purple-600 transition cursor-pointer">
+                                    <span>▶</span>
+                                    실행흐름
+                                  </button>
+
+                                  <div className="flex-1" />
+
+                                                                    {/* 출력 결과 간략 표시 */}
+                                  <span className="text-[10px] text-gray-400">{'// 실행 결과'}</span>
+                                </div>
+
+                                {/* 출력 영역 */}
+                                <div
+                                  className="border-t border-gray-200 bg-[#1e1e1e] overflow-y-auto shrink-0"
+                                  style={{ height: `${outputHeight}px` }}
+                                >
+                                  <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-800 sticky top-0">
+                                    <span className="text-[10px] text-gray-400 font-medium">출력</span>
+                                  </div>
+                                  <div className="p-3">
+                                    <p className="text-xs text-gray-500 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                     </aside>
         </div>
       </div> {/* 👈 flex-1 overflow-hidden */}
