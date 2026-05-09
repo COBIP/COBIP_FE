@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useUserStore } from '@/store/useUserStore';
+import { useUserStore } from '@/store/UseUserStore';
 
 const axiosInstance = axios.create({
     // 실제 서버 주소나 환경 변수로 변경하세요
