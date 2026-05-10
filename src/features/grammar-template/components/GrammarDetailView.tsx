@@ -264,18 +264,8 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                   <pre className="bg-[#1e1e1e] text-gray-200 p-5 text-sm font-mono leading-relaxed overflow-x-auto"><code>{currentLesson.code}</code></pre>
                 </div>
               )}
-              <div className="flex items-center justify-between pt-8 border-t border-gray-200">
-                <button onClick={() => goToLesson(currentLessonIndex - 1)} disabled={currentLessonIndex === 0} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 disabled:text-gray-300 disabled:cursor-not-allowed transition cursor-pointer">
-                  <ChevronLeft className="w-4 h-4" /> 이전 레슨
-                </button>
-                <span className="text-xs text-gray-400">{currentLessonIndex + 1} / {totalLessons}</span>
-                <button onClick={() => goToLesson(currentLessonIndex + 1)} disabled={currentLessonIndex === totalLessons - 1} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 disabled:text-gray-300 disabled:cursor-not-allowed transition cursor-pointer">
-                  다음 레슨 <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           </main>
-
           {/* 실행 환경 패널 */}
           {isRunnerOpen && (
             <CodeRunner
@@ -298,8 +288,47 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
           )}
         </div>
       </div>
+
+      {/* 하단 고정바 */}
+      <footer className="h-14 border-t border-gray-200 bg-white flex items-center justify-between px-6 shrink-0 relative z-10">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {currentLessonIndex > 0 && (
+            <button
+            onClick={() => goToLesson(currentLessonIndex - 1)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
+          >
+              <ChevronLeft className="w-4 h-4 shrink-0" />
+              <span className="truncate">{PYTHON_LESSONS[currentLessonIndex - 1].title}</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center shrink-0">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span>홈</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+          {currentLessonIndex < totalLessons - 1 && (
+            <button
+              onClick={() => goToLesson(currentLessonIndex + 1)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
+            >
+              <span className="truncate">{PYTHON_LESSONS[currentLessonIndex + 1].title}</span>
+              <ChevronRight className="w-4 h-4 shrink-0" />
+            </button>
+          )}
+    </div>
+      </footer>
     </div>
   );
 }
-
 
