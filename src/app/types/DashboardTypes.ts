@@ -1,5 +1,7 @@
+// src/app/types/DashboardTypes.ts
+
 export interface StatisticCard {
-  id: string;
+  id?: string | number; // 백엔드 연동을 위해 선택 및 number 허용
   title: string;
   value: string | number;
   unit?: string;
@@ -22,7 +24,7 @@ export interface LearningActivity {
 }
 
 export interface RecentLearning {
-  id: string;
+  id: string | number; // 백엔드의 Long 타입 ID(number) 처리를 위해 허용
   title: string;
   category: string;
   completionRate: number;
@@ -30,12 +32,12 @@ export interface RecentLearning {
 }
 
 export interface RecommendedCourse {
-  id: string;
+  id: string | number; // 백엔드 ID 연동
   title: string;
   description: string;
-  category: string;
+  category?: string; // 백엔드 데이터에 없을 수 있으므로 선택(?) 처리
   releaseDate: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced'; // 선택(?) 처리
 }
 
 export interface DashboardData {
