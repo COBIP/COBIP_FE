@@ -56,7 +56,6 @@ export function AISection({ onGenerate }: AISectionProps) {
           66% { transform: translate(-20px, 20px) scale(0.9); }
         }
         .animate-blob { animation: blob 7s infinite; }
-        /* ... 기존 애니메이션 코드 ... */
       `}</style>
 
       {/* 배경 애니메이션 */}
@@ -65,19 +64,15 @@ export function AISection({ onGenerate }: AISectionProps) {
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-blob animation-delay-2000" />
       </div>
 
-      {/* 콘텐츠 */}
+      {/* 콘텐츠 (박스 없이 배경 위에 자연스럽게 노출) */}
       <div className="relative">
-        <div className="flex items-start gap-4 mb-12">
-          <div className="p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl shadow-lg shadow-purple-500/20">
-            <BrainCircuit size={24} className="text-white" />
+        <div className="flex items-start gap-4 mb-4">
+          <div className="p-3 bg-purple-100 rounded-lg">
+            <BrainCircuit size={20} className="text-purple-600" />
           </div>
           <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              원하는 학습 주제가 없나요?
-            </h2>
-            <p className="text-gray-600 mt-1 text-base">
-              사용하실 기술 스택과 학습하고 싶은 로직을 입력하면 AI가 맞춤형 환경을 설계해드립니다.
-            </p>
+            <h2 className="text-2xl font-extrabold text-gray-900">원하는 학습 주제가 없나요?</h2>
+            <p className="text-sm text-gray-500 mt-1">사용하실 기술 스택과 학습하고 싶은 로직을 입력하면 AI가 맞춤형 환경을 설계해드립니다.</p>
           </div>
         </div>
 
@@ -85,10 +80,9 @@ export function AISection({ onGenerate }: AISectionProps) {
         <div className="space-y-3">
           <div className="relative flex gap-3 items-center">
             <div className="flex-1 relative">
-              <Sparkles size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-600" />
+              <Sparkles size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500" />
               <input
                 type="text"
-                // 플레이스홀더 수정
                 placeholder="구현하고 싶은 기능을 입력하세요... (예: Redis 기반 실시간 재고 관리)"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
@@ -97,14 +91,14 @@ export function AISection({ onGenerate }: AISectionProps) {
                     handleGenerate();
                   }
                 }}
-                className="w-full pl-12 pr-4 py-4 bg-white/70 border border-purple-200 hover:border-purple-400 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent rounded-xl transition-all text-base font-medium backdrop-blur-sm"
+                className="w-full pl-10 pr-4 py-3 bg-white border border-purple-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-200 rounded-full transition text-sm"
                 disabled={isLoading}
               />
             </div>
             <button
               onClick={handleGenerate}
               disabled={isLoading}
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl whitespace-nowrap"
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl whitespace-nowrap"
             >
               {isLoading ? (
                 <>
