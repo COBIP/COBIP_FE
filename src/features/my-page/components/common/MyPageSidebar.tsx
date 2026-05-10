@@ -24,7 +24,7 @@ interface MyPageSidebarProps {
 
 export default function MyPageSidebar({ user }: MyPageSidebarProps) {
     return (
-        <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 border-r border-[#e5e2e1] bg-white flex flex-col p-6 z-40 hidden md:flex">
+        <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 border-r border-t border-[#e5e2e1] bg-white flex flex-col p-6 z-40 hidden md:flex ">
             
             {/* 프로필 출력 */}
             <div className="flex flex-col items-center pb-6 border-b border-[#e5e2e1]">
@@ -47,7 +47,7 @@ export default function MyPageSidebar({ user }: MyPageSidebarProps) {
             {/* 사이드바 */}
             <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
                 <SidebarLink href="/my-page/profile" icon={<UserCog size={20} />} title="프로필" />
-                <SidebarLink href="/dashboard" icon={<LayoutDashboard size={20} />} title="대시보드" />
+                <SidebarLink href="/my-page/dashboard" icon={<LayoutDashboard size={20} />} title="대시보드" />
                 <SidebarLink href="/my-page/my-learning" icon={<BookOpen size={20} />} title="내학습" />
                 <SidebarLink href="/my-page/subscription" icon={<CreditCard size={20} />} title="구독관리" />
                 <SidebarLink href="/my-page/review-note" icon={<FileEdit size={20} />} title="오답노트" />
