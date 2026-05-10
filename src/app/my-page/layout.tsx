@@ -12,10 +12,7 @@ const manrope = Manrope({
 });
 
 export default function MyPageLayout({ children }: { children: React.ReactNode }) {
-  const user = {
-    nickName: "nickName",
-    image: "/test.png" 
-  };
+  
 
   return (
     // 2. 최상위 div에 폰트 클래스 삽입
@@ -24,7 +21,7 @@ export default function MyPageLayout({ children }: { children: React.ReactNode }
     <div className={`flex min-h-screen bg-[#fcf9f8] ${manrope.className}`}>
         {/* <MyPageHeader /> */}
         
-        <MyPageSidebar user={user} />
+        <MyPageSidebar />
     
         <div className="flex flex-col flex-1 min-w-0 pt-5 md:pl-64">
             <main className="flex flex-col flex-1 p-4 md:p-8">{children}</main>
