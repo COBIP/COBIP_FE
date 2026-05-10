@@ -5,6 +5,9 @@ import type {
   AdminGrammarTemplateResponse,
   AdminGrammarTemplateStatus,
 } from '@/types/AdminGrammarTemplateTypes';
+import { API_BASE_URL } from '@/api/services/ApiConfig';
+
+const ADMIN_GRAMMAR_TEMPLATE_API_URL = `${API_BASE_URL}/api/v1/admin/grammar-templates`;
 
 async function parseResponseJson<TResponse>(response: Response): Promise<TResponse> {
   const contentType = response.headers.get('content-type') ?? '';
@@ -26,7 +29,7 @@ async function parseResponseJson<TResponse>(response: Response): Promise<TRespon
 export async function createAdminGrammarTemplate(
   payload: AdminGrammarTemplatePayload,
 ): Promise<AdminGrammarTemplateResponse> {
-  const response = await fetch('/api/v1/admin/grammar-templates', {
+  const response = await fetch(ADMIN_GRAMMAR_TEMPLATE_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -41,7 +44,7 @@ export async function updateAdminGrammarTemplate(
   templateId: string,
   payload: AdminGrammarTemplatePayload,
 ): Promise<AdminGrammarTemplateResponse> {
-  const response = await fetch(`/api/v1/admin/grammar-templates/${templateId}`, {
+  const response = await fetch(`${ADMIN_GRAMMAR_TEMPLATE_API_URL}/${templateId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -56,7 +59,7 @@ export async function updateAdminGrammarTemplateStatus(
   templateId: string,
   status: AdminGrammarTemplateStatus,
 ): Promise<AdminGrammarTemplateResponse> {
-  const response = await fetch(`/api/v1/admin/grammar-templates/${templateId}/status`, {
+  const response = await fetch(`${ADMIN_GRAMMAR_TEMPLATE_API_URL}/${templateId}/status`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -76,7 +79,7 @@ export async function createAdminGrammarTemplateMedia(
   formData.append('file', file);
 
   const response = await fetch(
-    `/api/v1/admin/grammar-templates/${templateId}/media?type=${mediaType}`,
+    `${ADMIN_GRAMMAR_TEMPLATE_API_URL}/${templateId}/media?type=${mediaType}`,
     {
       method: 'POST',
       body: formData,

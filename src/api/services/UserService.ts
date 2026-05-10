@@ -1,12 +1,10 @@
-import axios from 'axios';
+import axiosInstance from '@/api/AxiosInstance';
 import { type UserProfile } from '@/types/UserTypes';
-
-const API_URL = 'http://localhost:8080/api/v1/users';
 
 export const authService = {
     // 내 프로필 가져오기
     getMyProfile: async (token: string): Promise<UserProfile> => {
-        const response = await axios.get(`${API_URL}/me`, {
+        const response = await axiosInstance.get('/api/v1/users/me', {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data.data;

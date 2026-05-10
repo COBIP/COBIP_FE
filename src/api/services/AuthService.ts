@@ -1,16 +1,17 @@
-import { 
-    type SignUpRequest, 
+﻿import {
+    type SignUpRequest,
     type ApiResponse,
-    type EmailVerificationSendRequest, 
+    type EmailVerificationSendRequest,
     type EmailVerificationConfirmRequest
 } from '@/types/AuthTypes';
 
 import axiosInstance from '@/api/AxiosInstance';
+import { API_BASE_URL } from '@/api/services/ApiConfig';
 
-const BASE_URL = 'http://localhost:8080/api/v1/auth';
+const AUTH_API_URL = `${API_BASE_URL}/api/v1/auth`;
 
 export const signUpApi = async (data: SignUpRequest): Promise<ApiResponse<unknown>> => {
-    const response = await fetch(`${BASE_URL}/signup`, {
+    const response = await fetch(`${AUTH_API_URL}/signup`, {
         method: 'POST',
         headers: {
         'Content-Type': 'application/json',
