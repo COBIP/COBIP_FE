@@ -3,7 +3,7 @@
 import { FolderOpen, File } from 'lucide-react';
 
 interface FileNode {
-  id: string;
+  id?: string;
   name: string;
   type: 'folder' | 'file';
   children?: FileNode[];
@@ -18,6 +18,18 @@ interface FileExplorerProps {
 }
 
 export function FileExplorer({ files, activeFile, onFileSelect, isDarkMode = false }: FileExplorerProps) {
+  // id가 없으면 이름 기반으로 생성
+  const ensureId = (node: FileNode, parentPath = ''): FileNode => {
+    const id = node.id || `${parentPath}/${node.name}`.replace(/^\//, '');
+    return {
+      ...node,
+      id,
+      children: node.children?.map(child => ensureId(child, id)),
+    };
+  };
+
+  const filesWithIds = files.map(f => ensureId(f));
+
   const renderFileTree = (nodes: FileNode[], depth = 0) => (
     <div className="space-y-1">
       {nodes.map((node) => (
