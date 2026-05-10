@@ -1,9 +1,10 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginAPI } from '@/api/services/LoginService';
 import { authService } from '@/api/services/UserService';
 import { useUserStore } from '@/store/UseUserStore';
 import { type LoginRequest } from '@/types/LoginType';
+import { getRoleFromAccessToken } from '@/utils/AuthToken';
 
 export const useAuthMutation = () => {
     const router = useRouter();
@@ -17,6 +18,7 @@ export const useAuthMutation = () => {
             const authResponse = await loginAPI(data);
 
             if (authResponse.accessToken) {
+                const role = getRoleFromAccessToken(authResponse.accessToken);
                 let nickname = authResponse.nickname ?? null;
                 let profileImage: string | null = null;
 
@@ -28,9 +30,9 @@ export const useAuthMutation = () => {
                     console.warn('프로필 조회 실패, 로그인 응답 값으로 진행합니다:', profileError);
                 }
 
-                setLoginSession(authResponse.accessToken, nickname ?? 'User', profileImage);
+                setLoginSession(authResponse.accessToken, nickname ?? 'User', profileImage, role);
                 alert("로그인 성공!");
-                router.push("/my-page/profile");
+                router.push(role === 'ADMIN' ? "/admin" : "/my-page/profile");
             } else {
                 alert("로그인에 실패했습니다.");
             }
