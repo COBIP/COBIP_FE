@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdminAccessRouter } from "@/components/AdminAccessRouter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-full bg-background text-foreground font-sans"
       >
+        <AdminAccessRouter />
         {children}
       </body>
     </html>

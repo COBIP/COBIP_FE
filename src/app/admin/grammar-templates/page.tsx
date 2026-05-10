@@ -1,15 +1,5 @@
-import { AdminGrammarTemplateEditor } from '@/components/editor/AdminGrammarTemplateEditor';
+import { AdminGrammarTemplatesPage } from '@/features/admin/components/AdminGrammarTemplatesPage';
 
-interface AdminGrammarTemplatesPageProps {
-  searchParams?: Promise<{
-    templateId?: string;
-  }>;
-}
-
-export default async function AdminGrammarTemplatesPage({
-  searchParams,
-}: AdminGrammarTemplatesPageProps) {
-  const params = await searchParams;
-
-  return <AdminGrammarTemplateEditor initialTemplateId={params?.templateId} />;
+export default function AdminGrammarTemplatesRoute() {
+  return <AdminGrammarTemplatesPage />;
 }
