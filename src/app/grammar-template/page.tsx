@@ -1,28 +1,18 @@
 "use client";
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { GrammarTemplateList } from '@/features/grammar-template/components/GrammarTemplateList';
-import { GrammarDetailView } from '@/features/grammar-template/components/GrammarDetailView';
 
-/* ================== 메인: 목록 ↔ 상세 전환 ================== */
+/*
+ * 문법 템플릿 - 목록 페이지
+ * URL: /grammar-template
+ */
 export default function GrammarTemplatePage() {
-  const [view, setView] = useState<'list' | 'detail'>('list');
+  const router = useRouter();
 
-  const handleSelectTemplate = (_templateId: string) => {
-    setView('detail');
-    void _templateId;
+  const handleSelectTemplate = (templateId: string) => {
+    router.push(`/grammar-template/${templateId}`);
   };
 
-  const handleBack = () => {
-    setView('list');
-  };
-
-  // 목록 뷰
-  if (view === 'list') {
-    return <GrammarTemplateList onSelectTemplate={handleSelectTemplate} />;
-  }
-
-  // 상세 뷰 - 새로운 강의형 뷰
-  return <GrammarDetailView onBack={handleBack} />;
+  return <GrammarTemplateList onSelectTemplate={handleSelectTemplate} />;
 }
-
