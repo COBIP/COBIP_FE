@@ -10,6 +10,7 @@ import type {
   AdminReportSummary,
   AdminTemplateDetail,
   AdminTemplateExposurePayload,
+  AdminTemplatePayload,
   AdminTemplateSummary,
   AdminUserDetail,
   AdminUserRole,
@@ -260,10 +261,30 @@ export const adminService = {
     return fetchAdminRequest<AdminTemplateDetail>(`/api/v1/admin/templates/${templateId}`);
   },
 
+  createTemplate(payload: AdminTemplatePayload) {
+    return fetchAdminRequest<AdminTemplateDetail>('/api/v1/admin/templates', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateTemplate(templateId: number, payload: Partial<AdminTemplatePayload>) {
+    return fetchAdminRequest<AdminTemplateDetail>(`/api/v1/admin/templates/${templateId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
   updateTemplateExposure(templateId: number, payload: AdminTemplateExposurePayload) {
     return fetchAdminRequest<AdminTemplateDetail>(`/api/v1/admin/templates/${templateId}/exposure`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
+    });
+  },
+
+  deleteTemplate(templateId: number) {
+    return fetchAdminRequest<void>(`/api/v1/admin/templates/${templateId}`, {
+      method: 'DELETE',
     });
   },
 

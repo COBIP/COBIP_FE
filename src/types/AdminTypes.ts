@@ -84,11 +84,33 @@ export interface AdminTemplateSummary {
 export interface AdminTemplateDetail extends AdminTemplateSummary {
   description?: string;
   techStacks?: string[];
+  designIntent?: string;
+  requirementsSpec?: string;
+  erd?: string;
+  apiSpec?: string;
+  projectStructure?: string;
+  interviewQuestions?: string[];
   fileUrl?: string;
   thumbnailUrl?: string;
 }
 
 export interface AdminTemplateExposurePayload {
+  visibility: AdminVisibility;
+  accessLevel: AdminAccessLevel;
+}
+
+export interface AdminTemplatePayload {
+  title: string;
+  description: string;
+  category: string;
+  difficulty: AdminDifficulty;
+  techStacks: string[];
+  designIntent: string;
+  requirementsSpec: string;
+  erd: string;
+  apiSpec: string;
+  projectStructure: string;
+  interviewQuestions: string[];
   visibility: AdminVisibility;
   accessLevel: AdminAccessLevel;
 }
