@@ -18,7 +18,7 @@ import {
 
 
 export default function MyPageSidebar() {
-    const { user, isLoading } = useAuth(); 
+    const { user } = useAuth(); 
 
     // 유저 데이터가 없을 때(또는 로딩 중일 때) 보여줄 기본값 안전 처리
     const nickName = user?.nickname || "로딩 중...";
