@@ -15,6 +15,7 @@ export default function MyPage() {
                     profileImage={user.image} 
                 />
                 
+            
                 <div className="flex flex-col flex-1 min-h-0">
                     <ProfileTabs />
                 </div> 
