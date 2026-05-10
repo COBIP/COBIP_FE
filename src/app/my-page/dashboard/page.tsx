@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-import DashboardHeader from '@/features/my-page/components/common/MyPageHeader';
-import DashboardSidebar from '@/features/my-page/components/common/MyPageSidebar';
+// import DashboardHeader from '@/features/my-page/components/common/MyPageHeader';
+// import DashboardSidebar from '@/features/my-page/components/common/MyPageSidebar';
 
 import { StatisticsCard } from '@/features/my-page/components/dashboard/StatisticsCard';
 import { LearningProgressChart } from '@/features/my-page/components/dashboard/LearningProgressChart';
@@ -25,12 +25,7 @@ export default function Dashboard() {
   const activePeriodOption = dashboardPeriodOptions.find(
     (option: DashboardPeriodOption) => option.value === activePeriod,
   );
-  const activeMenu = 'dashboard';
 
-  const user = {
-        nickName : "nickName",
-        image: "/test.png"
-    };
 
   return (
     // <div className="flex h-screen bg-gray-50">
