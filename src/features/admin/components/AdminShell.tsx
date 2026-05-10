@@ -14,9 +14,9 @@ import {
   Shield,
   Users,
 } from 'lucide-react';
-import { adminService } from '@/api/services/AdminService';
+import { authService } from '@/api/services/UserService';
 import { useUserStore } from '@/store/UseUserStore';
-import { checkAccessTokenExpired, getRoleFromAccessToken } from '@/utils/AuthToken';
+import { checkAccessTokenExpired } from '@/utils/AuthToken';
 
 const adminNavItems = [
   { href: '/admin', label: '대시보드', icon: LayoutDashboard },
@@ -35,6 +35,7 @@ function getStoredToken() {
 export function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const clearSession = useUserStore((state) => state.clearSession);
+  const setLoginSession = useUserStore((state) => state.setLoginSession);
   const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
@@ -46,27 +47,23 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const role = getRoleFromAccessToken(token);
-
-    if (role === 'USER') {
-      router.replace('/login');
-      return;
-    }
-
-    if (role === 'ADMIN') {
-      queueMicrotask(() => setIsAllowed(true));
-      return;
-    }
-
     queueMicrotask(async () => {
       try {
-        await adminService.getOverview();
+        const profile = await authService.getMyProfile(token);
+
+        if (profile.role !== 'ADMIN') {
+          router.replace('/login');
+          return;
+        }
+
+        setLoginSession(token, profile.nickname, profile.profileImageUrl, profile.role);
         setIsAllowed(true);
       } catch {
+        clearSession();
         router.replace('/login');
       }
     });
-  }, [clearSession, router]);
+  }, [clearSession, router, setLoginSession]);
 
   if (!isAllowed) {
     return (

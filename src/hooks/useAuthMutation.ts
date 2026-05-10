@@ -4,7 +4,7 @@ import { loginAPI } from '@/api/services/LoginService';
 import { authService } from '@/api/services/UserService';
 import { useUserStore } from '@/store/UseUserStore';
 import { type LoginRequest } from '@/types/LoginType';
-import { getRoleFromAccessToken } from '@/utils/AuthToken';
+import { getRoleFromAccessToken, type TokenRole } from '@/utils/AuthToken';
 
 export const useAuthMutation = () => {
     const router = useRouter();
@@ -14,25 +14,25 @@ export const useAuthMutation = () => {
     const mutateLogin = async (data: LoginRequest) => {
         setIsLoading(true);
         try {
-            // 로그인 응답에는 닉네임이 없을 수 있으므로, 성공 후 내 프로필을 다시 조회합니다.
             const authResponse = await loginAPI(data);
 
             if (authResponse.accessToken) {
-                const role = getRoleFromAccessToken(authResponse.accessToken);
+                let role: TokenRole | null = authResponse.role ?? getRoleFromAccessToken(authResponse.accessToken);
                 let nickname = authResponse.nickname ?? null;
-                let profileImage: string | null = null;
+                let profileImage = authResponse.profileImageUrl ?? null;
 
                 try {
                     const profile = await authService.getMyProfile(authResponse.accessToken);
+                    role = profile?.role ?? role;
                     nickname = profile?.nickname ?? nickname;
                     profileImage = profile?.profileImageUrl ?? null;
                 } catch (profileError) {
-                    console.warn('프로필 조회 실패, 로그인 응답 값으로 진행합니다:', profileError);
+                    console.warn('프로필 조회 실패, 로그인 응답 값으로 진행합니다.', profileError);
                 }
 
                 setLoginSession(authResponse.accessToken, nickname ?? 'User', profileImage, role);
                 alert("로그인 성공!");
-                router.push(role === 'ADMIN' ? "/admin" : "/my-page/profile");
+                router.replace(role === 'ADMIN' ? "/admin" : "/");
             } else {
                 alert("로그인에 실패했습니다.");
             }
