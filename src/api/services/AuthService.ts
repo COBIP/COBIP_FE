@@ -34,13 +34,13 @@ export const signUpApi = async (data: SignUpRequest): Promise<ApiResponse<unknow
 // ✨ 1. 이메일 인증번호 발송 요청 API (수정 완료!)
 export const sendEmailCodeApi = async (data: EmailVerificationSendRequest) => {
     // AuthController.java의 @PostMapping("/email-verifications") 매핑
-    const response = await axiosInstance.post('/api/v1/auth/email-verifications', data);
+    const response = await axiosInstance.post<ApiResponse<unknown>>('/api/v1/auth/email-verifications', data);
     return response.data;
 };
 
 // ✨ 2. 이메일 인증번호 확인 API (수정 완료!)
 export const verifyEmailCodeApi = async (data: EmailVerificationConfirmRequest) => {
     // AuthController.java의 @PostMapping("/email-verifications/confirm") 매핑
-    const response = await axiosInstance.post('/api/v1/auth/email-verifications/confirm', data);
+    const response = await axiosInstance.post<ApiResponse<unknown>>('/api/v1/auth/email-verifications/confirm', data);
     return response.data;
 };
