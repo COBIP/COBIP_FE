@@ -6,6 +6,21 @@ interface GrammarDetailViewProps {
   onBack: () => void;
 }
 
+// ===== 탐색기 트리 타입 =====
+interface ExplorerFile {
+  name: string;
+  type: 'file';
+}
+
+interface ExplorerFolder {
+  name: string;
+  type: 'folder';
+  isOpen: boolean;
+  children: ExplorerNode[];
+}
+
+type ExplorerNode = ExplorerFile | ExplorerFolder;
+
 /** 볼드 처리 (**텍스트**) */
 function renderContent(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -24,13 +39,293 @@ function renderContent(text: string) {
   });
 }
 
+function ExplorerFolderNode({
+  node,
+  activeFile,
+  openFile,
+  toggleFolder,
+  openAddMenu,
+  startAddFile,
+  startAddFolder,
+  addingTarget,
+  newItemName,
+  setNewItemName,
+  confirmAddItem,
+  cancelAddItem,
+  openMenuFolder,
+}: {
+  node: ExplorerFolder;
+  activeFile: string;
+  openFile: (name: string) => void;
+  toggleFolder: (name: string) => void;
+  openAddMenu: (name: string) => void;
+  startAddFile: (folderName: string) => void;
+  startAddFolder: (parentFolder: string) => void;
+  addingTarget: { mode: 'file' | 'folder'; folderName?: string; parentFolder?: string } | null;
+  newItemName: string;
+  setNewItemName: (v: string) => void;
+  confirmAddItem: () => void;
+  cancelAddItem: () => void;
+  openMenuFolder: string | null;
+}) {
+  return (
+    <div>
+      {/* 폴더 헤더 */}
+      <div className="flex items-center justify-between group cursor-pointer hover:bg-gray-100 rounded-md px-2 py-1">
+        <div
+          className="flex items-center gap-1.5 flex-1 min-w-0"
+          onClick={() => toggleFolder(node.name)}
+        >
+          <span className="text-[10px] text-gray-500 transition-transform duration-150">
+            {node.isOpen ? '▼' : '▶'}
+          </span>
+          <span className="text-xs">📁</span>
+          <span className="text-xs text-gray-700 font-medium truncate">{node.name}</span>
+        </div>
+        {/* + 버튼: 선택 메뉴 */}
+        <div className="relative">
+          <button
+            onClick={(e) => { e.stopPropagation(); openAddMenu(node.name); }}
+            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-purple-600 text-xs px-1 rounded hover:bg-purple-50 transition cursor-pointer"
+          >
+            +
+          </button>
+          {openMenuFolder === node.name && (
+            <div className="absolute right-0 top-5 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[100px]">
+              <button
+                onClick={(e) => { e.stopPropagation(); startAddFile(node.name); }}
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer"
+              >
+                📄 새 파일
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); startAddFolder(node.name); }}
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer"
+              >
+                📁 새 폴더
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 하위 항목들 */}
+      {node.isOpen && (
+        <div className="ml-4 space-y-0.5 mt-0.5">
+          {node.children.map((child) =>
+            child.type === 'folder' ? (
+                            <ExplorerFolderNode
+                key={child.name}
+                node={child as ExplorerFolder}
+                activeFile={activeFile}
+                openFile={openFile}
+                toggleFolder={toggleFolder}
+                openAddMenu={openAddMenu}
+                startAddFile={startAddFile}
+                startAddFolder={startAddFolder}
+                addingTarget={addingTarget}
+                newItemName={newItemName}
+                setNewItemName={setNewItemName}
+                confirmAddItem={confirmAddItem}
+                cancelAddItem={cancelAddItem}
+                openMenuFolder={openMenuFolder}
+              />
+            ) : (
+              <div
+                key={child.name}
+                onClick={() => openFile(child.name)}
+                className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${
+                  child.name === activeFile
+                    ? 'bg-purple-100 text-purple-700 font-medium'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-[10px]">📄</span>
+                <span>{child.name}</span>
+              </div>
+            )
+          )}
+
+          {/* 인라인 입력창 */}
+          {addingTarget?.mode === 'file' && addingTarget.folderName === node.name && (
+            <div className="flex items-center gap-1 px-2 py-1">
+              <span className="text-[10px]">📄</span>
+              <input
+                autoFocus
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') confirmAddItem();
+                  if (e.key === 'Escape') cancelAddItem();
+                }}
+                onBlur={confirmAddItem}
+                className="flex-1 text-xs bg-white border border-purple-300 rounded px-1.5 py-0.5 outline-none text-gray-700"
+                placeholder="파일명.py"
+              />
+            </div>
+          )}
+          {addingTarget?.mode === 'folder' && addingTarget.parentFolder === node.name && (
+            <div className="flex items-center gap-1 px-2 py-1">
+              <span className="text-xs">📁</span>
+              <input
+                autoFocus
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') confirmAddItem();
+                  if (e.key === 'Escape') cancelAddItem();
+                }}
+                onBlur={confirmAddItem}
+                className="flex-1 text-xs bg-white border border-purple-300 rounded px-1.5 py-0.5 outline-none text-gray-700"
+                placeholder="폴더명"
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isRunnerOpen, setIsRunnerOpen] = useState(false);
-  const [currentLessonIndex, setCurrentLessonIndex] = useState(1); // 변수부터 시작
-  const [runnerWidth, setRunnerWidth] = useState(480); // 실행기 기본 너비
-  const [explorerWidth, setExplorerWidth] = useState(160); // 파일 탐색기 기본 너비
-  const [outputHeight, setOutputHeight] = useState(140); // 출력 영역 기본 높이
+    const [isRunnerOpen, setIsRunnerOpen] = useState(false);
+    const [currentLessonIndex, setCurrentLessonIndex] = useState(1); // 변수부터 시작
+    const [runnerWidth, setRunnerWidth] = useState(480); // 실행기 기본 너비
+    const [explorerWidth, setExplorerWidth] = useState(200); // 파일 탐색기 기본 너비
+    const [outputHeight, setOutputHeight] = useState(140); // 출력 영역 기본 높이
+    const [activeFile, setActiveFile] = useState('main.py'); // 현재 열린 파일
+    const [fileContents, setFileContents] = useState<Record<string, string>>({
+      'main.py': `name = "COBIP"\ncount = 3\nis_active = True\nprint(name, count, is_active)`,
+      'example.py': `# 예제 코드\nprint("Hello")`,
+      'condition.py': `score = 72\nif score >= 80:\n    result = "합격"\nelse:\n    result = "불합격"\nprint(result)`,
+      'loop.py': `values = [3, 7, 2, 5]\ntotal = 0\nfor value in values:\n    total += value\n    print(total)`,
+    });
+    const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([
+      {
+        name: '변수',
+        type: 'folder',
+        isOpen: true,
+        children: [
+          { name: 'main.py', type: 'file' },
+          { name: 'example.py', type: 'file' },
+        ],
+      },
+      {
+        name: '조건문',
+        type: 'folder',
+        isOpen: false,
+        children: [
+          { name: 'condition.py', type: 'file' },
+        ],
+      },
+      {
+        name: '반복문',
+        type: 'folder',
+        isOpen: false,
+        children: [
+          { name: 'loop.py', type: 'file' },
+        ],
+      },
+    ]);
+    const [addingTarget, setAddingTarget] = useState<{
+      mode: 'file' | 'folder';
+      folderName?: string;
+      parentFolder?: string;
+    } | null>(null);
+    const [newItemName, setNewItemName] = useState('');
+    const [openMenuFolder, setOpenMenuFolder] = useState<string | null>(null); // + 메뉴 열린 폴더
+
+    // ===== 탐색기 함수 =====
+    const toggleFolder = useCallback((folderName: string) => {
+      setExplorerTree((prev) =>
+        prev.map((node) => {
+          if (node.type === 'folder' && node.name === folderName) {
+            return { ...node, isOpen: !node.isOpen };
+          }
+          return node;
+        })
+      );
+    }, []);
+
+    const openAddMenu = useCallback((folderName: string) => {
+      setOpenMenuFolder((prev) => (prev === folderName ? null : folderName));
+    }, []);
+
+    const startAddFile = useCallback((folderName: string) => {
+      setAddingTarget({ mode: 'file', folderName });
+      setNewItemName('');
+      setOpenMenuFolder(null);
+    }, []);
+
+    const startAddFolder = useCallback((parentFolder?: string) => {
+      setAddingTarget({ mode: 'folder', parentFolder });
+      setNewItemName('');
+      setOpenMenuFolder(null);
+    }, []);
+
+    const addRootFolder = useCallback(() => {
+      setAddingTarget({ mode: 'folder' });
+      setNewItemName('');
+    }, []);
+
+        const confirmAddItem = useCallback(() => {
+      const name = newItemName.trim();
+      if (!name) {
+        setAddingTarget(null);
+        return;
+      }
+
+      if (addingTarget?.mode === 'file' && addingTarget.folderName) {
+        setExplorerTree((prev) =>
+          prev.map((node) => {
+            if (node.type === 'folder' && node.name === addingTarget.folderName) {
+              return {
+                ...node,
+                isOpen: true,
+                children: [...node.children, { name, type: 'file' as const }],
+              };
+            }
+            return node;
+          })
+        );
+        // 새 파일 생성 시 빈 내용으로 추가하고 열기
+        setFileContents((prev) => ({ ...prev, [name]: '' }));
+        setActiveFile(name);
+            } else if (addingTarget?.mode === 'folder' && addingTarget.parentFolder) {
+        // 하위 폴더 생성
+        setExplorerTree((prev) =>
+          prev.map((node) => {
+            if (node.type === 'folder' && node.name === addingTarget.parentFolder) {
+              return {
+                ...node,
+                isOpen: true,
+                children: [...node.children, { name, type: 'folder' as const, isOpen: true, children: [] } as ExplorerNode],
+              };
+            }
+            return node;
+          })
+        );
+      } else if (addingTarget?.mode === 'folder' && !addingTarget.parentFolder) {
+        // 루트 폴더 생성
+        setExplorerTree((prev) => [
+          ...prev,
+          { name, type: 'folder', isOpen: true, children: [] },
+        ]);
+      }
+
+      setAddingTarget(null);
+      setNewItemName('');
+    }, [addingTarget, newItemName]);
+
+    const cancelAddItem = useCallback(() => {
+      setAddingTarget(null);
+      setNewItemName('');
+    }, []);
+
+    const openFile = useCallback((fileName: string) => {
+      setActiveFile(fileName);
+    }, []);
   const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
@@ -335,25 +630,55 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                                   탐색기
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-                                  {/* 파일 트리 아이템들 */}
-                                  {[
-                                    { name: 'main.py', icon: '🐍', active: true },
-                                    { name: 'variables.py', icon: '📄', active: false },
-                                    { name: 'functions.py', icon: '📄', active: false },
-                                  ].map((file) => (
-                                    <div
-                                      key={file.name}
-                                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition ${
-                                        file.active
-                                          ? 'bg-purple-100 text-purple-700 font-medium'
-                                          : 'text-gray-600 hover:bg-gray-100'
-                                      }`}
-                                    >
-                                      <span>{file.icon}</span>
-                                      <span>{file.name}</span>
+                                                                    {/* 루트 폴더들 */}
+                                  {explorerTree.map((node) =>
+                                    node.type === 'folder' ? (
+                                                                            <ExplorerFolderNode
+                                        key={node.name}
+                                        node={node as ExplorerFolder}
+                                        activeFile={activeFile}
+                                        openFile={openFile}
+                                        toggleFolder={toggleFolder}
+                                        openAddMenu={openAddMenu}
+                                        startAddFile={startAddFile}
+                                        startAddFolder={startAddFolder}
+                                        addingTarget={addingTarget}
+                                        newItemName={newItemName}
+                                        setNewItemName={setNewItemName}
+                                        confirmAddItem={confirmAddItem}
+                                        cancelAddItem={cancelAddItem}
+                                        openMenuFolder={openMenuFolder}
+                                      />
+                                    ) : null
+                                  )}
+
+                                  {/* 루트 폴더 추가 */}
+                                  {addingTarget?.mode === 'folder' && !addingTarget.parentFolder ? (
+                                    <div className="flex items-center gap-1.5 px-2 py-1 mt-1">
+                                      <span className="text-xs">📁</span>
+                                      <input
+                                        autoFocus
+                                        value={newItemName}
+                                        onChange={(e) => setNewItemName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') confirmAddItem();
+                                          if (e.key === 'Escape') cancelAddItem();
+                                        }}
+                                        onBlur={confirmAddItem}
+                                        className="flex-1 text-xs bg-white border border-purple-300 rounded px-1.5 py-0.5 outline-none text-gray-700"
+                                        placeholder="폴더명"
+                                      />
                                     </div>
-                                  ))}
-                                </div>
+                                  ) : (
+                                    <button
+                                      onClick={addRootFolder}
+                                      className="w-full flex items-center gap-1.5 px-2 py-1 text-xs text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition cursor-pointer mt-1"
+                                    >
+                                      <span>+</span>
+                                      <span>폴더 추가</span>
+                                    </button>
+                                  )}
+                                                                </div>
                               </div>
 
                               {/* 리사이즈 핸들 (파일트리 ↔ 코드) */}
@@ -367,11 +692,11 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
 
                               {/* 오른쪽: 코드 편집 + 실행 */}
                               <div className="flex-1 flex flex-col overflow-hidden">
-                                {/* 파일 타이틀 바 */}
+                                                                {/* 파일 타이틀 바 */}
                                                                 <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 shrink-0">
                                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white rounded-t border border-gray-200 border-b-0 text-xs text-gray-700 font-medium">
                                     <span className="text-[10px]">🐍</span>
-                                    main.py
+                                    {activeFile}
                                     <button className="ml-1 text-gray-400 hover:text-gray-600 text-[10px] leading-none">✕</button>
                                   </div>
                                 </div>
@@ -380,7 +705,13 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
                                                                 <div className="flex-1 bg-gray-50 overflow-hidden">
                                                                   <textarea
                                                                     className="w-full h-full bg-gray-50 text-gray-800 p-4 text-sm font-mono resize-none outline-none leading-relaxed"
-                                                                    defaultValue={currentLesson.code || ''}
+                                                                    value={fileContents[activeFile] || ''}
+                                                                    onChange={(e) =>
+                                                                      setFileContents((prev) => ({
+                                                                        ...prev,
+                                                                        [activeFile]: e.target.value,
+                                                                      }))
+                                                                    }
                                                                     placeholder="# 여기에 코드를 입력하세요"
                                                                   />
                                                                 </div>
