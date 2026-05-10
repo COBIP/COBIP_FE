@@ -17,3 +17,12 @@ export interface ApiResponse<T> {
   message: string;
   data: T;
 }
+
+export interface EmailVerificationSendRequest {
+  email: string;
+}
+
+export interface EmailVerificationConfirmRequest {
+  email: string;
+  code: string;
+}
