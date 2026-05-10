@@ -2,7 +2,9 @@
  * FunctionalTemplates 페이지 상수
  * - 추천 요구사항 (AI 섹션용)
  * - 로딩 메시지
- * - 템플릿 데이터
+ * - 통계
+ * 
+ * 템플릿 데이터는 API에서 동적으로 로드됩니다.
  */
 
 export const RECOMMENDED_FEATURES = [
@@ -19,36 +21,6 @@ export const LOADING_STEPS = [
   '비즈니스 로직 아키텍처 설계 중...',
   '기능별 프론트/백엔드 보일러플레이트 생성 중...',
   '맞춤형 실습 환경 최적화 중...',
-];
-
-export const TEMPLATES = [
-  {
-    id: 'user-auth',
-    title: '사용자 인증 시스템',
-    description: '단순 로그인을 넘어 JWT 만료 처리와 리프레시 토큰, 권한 기반 라우팅을 학습합니다.',
-    icon: '🔐',
-    status: 'ready',
-    tags: ['인증', '보안', 'JWT'],
-    duration: '약 2시간',
-  },
-  {
-    id: 'data-viz',
-    title: '실시간 데이터 대시보드',
-    description: '스트리밍 데이터를 D3.js로 시각화하고 대용량 차트 렌더링 성능을 최적화합니다.',
-    icon: '📊',
-    status: 'coming-soon',
-    tags: ['데이터 시각화', '성능최적화'],
-    duration: '약 3시간',
-  },
-  {
-    id: 'realtime-chat',
-    title: '실시간 협업 에디터',
-    description: 'WebSocket과 CRDT 알고리즘을 활용해 여러 사용자가 동시 편집하는 환경을 구축합니다.',
-    icon: '💬',
-    status: 'coming-soon',
-    tags: ['웹소켓', '동시성제어'],
-    duration: '약 4시간',
-  },
 ];
 
 export const STATS = [
