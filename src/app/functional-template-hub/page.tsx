@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/features/main-home/components/Header';
 import { Search } from 'lucide-react';
 import {
@@ -9,14 +9,41 @@ import {
   TemplateGrid,
   InfoSection,
 } from '@/features/functional-template-hub/components/Index';
+import type { FunctionalTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
+import { getTemplates, mapTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
 
 /**
  * 기능 템플릿 탐색 메인 페이지 (Hub)
+ * API에서 동적으로 템플릿 데이터를 로드합니다.
  */
 export default function FunctionalTemplatesPage() {
   const router = useRouter();
   const [cardSearchQuery, setCardSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'전체' | '인기' | '추천'>('전체');
+  const [templates, setTemplates] = useState<FunctionalTemplateCardViewModel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 템플릿 데이터 로드
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getTemplates();
+        const mapped = data.map(mapTemplateCardViewModel);
+        setTemplates(mapped);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load templates:', err);
+        setError(err instanceof Error ? err.message : '템플릿을 로드할 수 없습니다.');
+        setTemplates([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTemplates();
+  }, []);
 
   // AI 기반 맞춤 기능 설계 요청 핸들러
   const handleAIDesign = (requirements: string) => {
@@ -26,11 +53,7 @@ export default function FunctionalTemplatesPage() {
 
   // 템플릿 카드 클릭 핸들러
   const handleTemplateClick = (templateId: string) => {
-    if (templateId === 'user-auth') {
-      router.push('/functional-template'); 
-    } else {
-      alert('더 정교한 실습 환경을 위해 준비 중인 템플릿입니다. AI 설계를 이용해보세요!');
-    }
+    router.push(`/functional-template/${templateId}`);
   };
 
   return (
@@ -87,8 +110,20 @@ export default function FunctionalTemplatesPage() {
           ))}
         </div>
 
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
+
         {/* 템플릿 그리드 (개별 카드들이 문법 템플릿과 동일한 느낌) */}
-        <TemplateGrid onTemplateClick={handleTemplateClick} searchQuery={cardSearchQuery} />
+        <TemplateGrid 
+          templates={templates}
+          onTemplateClick={handleTemplateClick} 
+          searchQuery={cardSearchQuery}
+          isLoading={isLoading}
+        />
 
         {/* 서비스 통계 및 가이드 섹션 */}
         <section className="pt-10 border-t border-gray-100">

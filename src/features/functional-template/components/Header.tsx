@@ -1,22 +1,18 @@
 'use client';
 
-import { Settings, Bookmark, Code2, SquarePen } from 'lucide-react';
+import { Settings, Bookmark, SquarePen } from 'lucide-react';
 
 interface HeaderProps {
   onSettingsClick: () => void;
   onMemoToggle: () => void;
-  onEditorToggle: () => void;
   isMemoOpen: boolean;
-  isEditorOpen: boolean;
   isDarkMode: boolean;
 }
 
 export function Header({
   onSettingsClick,
   onMemoToggle,
-  onEditorToggle,
   isMemoOpen,
-  isEditorOpen,
   isDarkMode,
 }: HeaderProps) {
   return (
@@ -65,23 +61,6 @@ export function Header({
           title="메모 (클릭 시 토글)"
         >
           <SquarePen className="w-5 h-5" />
-        </button>
-
-        {/* 코드 에디터 토글 */}
-        <button
-          onClick={onEditorToggle}
-          className={`p-2 rounded-lg transition-all duration-300 ${
-            isEditorOpen
-              ? isDarkMode
-                ? 'bg-[#7C3AED] text-white'
-                : 'bg-purple-100 text-[#7C3AED]'
-              : isDarkMode
-              ? 'text-[#94A3B8] hover:bg-[#334155]'
-              : 'text-[#64748B] hover:bg-[#F8FAFC]'
-          }`}
-          title="에디터"
-        >
-          <Code2 className="w-5 h-5" />
         </button>
 
         {/* 설정 */}
