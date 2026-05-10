@@ -25,22 +25,30 @@ export const useSignUp = () => {
     // 1. 이메일 발송
     const handleSendCode = async () => {
         try {
-            await sendEmailCodeApi({ email: formData.email });
-            alert('인증 번호가 발송되었습니다.');
+            const result = await sendEmailCodeApi({ email: formData.email });
+            if (!result.success) {
+                throw new Error(result.message || '인증 번호 발송에 실패했습니다.');
+            }
+
+            alert(result.message || '인증 번호가 발송되었습니다.');
             setIsEmailSent(true);
-        } catch {
-            alert('발송 실패');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '발송 실패');
         }
     };
 
     // 2. 이메일 인증 확인
     const handleVerifyCode = async () => {
         try {
-            await verifyEmailCodeApi({ email: formData.email, code: authCode });
-            alert('인증 완료!');
+            const result = await verifyEmailCodeApi({ email: formData.email, code: authCode });
+            if (!result.success) {
+                throw new Error(result.message || '인증에 실패했습니다.');
+            }
+
+            alert(result.message || '인증 완료!');
             setIsVerified(true);
-        } catch {
-            alert('인증 실패');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '인증 실패');
         }
     };
 
@@ -52,16 +60,20 @@ export const useSignUp = () => {
         if (formData.password !== formData.passwordConfirm) return alert('비밀번호가 다릅니다.');
 
         try {
-            await signUpApi({
+            const result = await signUpApi({
                 email: formData.email,
                 password: formData.password,
                 confirmPassword: formData.passwordConfirm,
                 nickname: formData.nickname,
             });
-            alert('회원가입 성공!');
+            if (!result.success) {
+                throw new Error(result.message || '가입 실패');
+            }
+
+            alert(result.message || '회원가입 성공!');
             router.push('/login');
-        } catch {
-            alert('가입 실패');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : '가입 실패');
         }
     };
 
