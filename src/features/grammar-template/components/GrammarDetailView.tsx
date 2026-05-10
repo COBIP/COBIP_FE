@@ -7,10 +7,10 @@ interface GrammarDetailViewProps {
   onBack: () => void;
 }
 
-// ===== 탐색기 트리 타입 =====
-interface ExplorerFile { name: string; type: 'file'; }
-interface ExplorerFolder { name: string; type: 'folder'; isOpen: boolean; children: ExplorerNode[]; }
-type ExplorerNode = ExplorerFile | ExplorerFolder;
+// ===== 탐색기 트리 타입 (CodeRunner와 공유) =====
+export interface ExplorerFile { name: string; type: 'file'; }
+export interface ExplorerFolder { name: string; type: 'folder'; isOpen: boolean; children: ExplorerNode[]; }
+export type ExplorerNode = ExplorerFile | ExplorerFolder;
 
 /** 볼드 처리 (**텍스트**) */
 function renderContent(text: string) {
@@ -36,21 +36,18 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
   const [runnerWidth, setRunnerWidth] = useState(480);
   const [explorerWidth, setExplorerWidth] = useState(200);
   const [outputHeight, setOutputHeight] = useState(140);
-  const [activeFile, setActiveFile] = useState('main.py');
+  const [activeFilePath, setActiveFilePath] = useState('변수/main.py');
   const [fileContents, setFileContents] = useState<Record<string, string>>({
-    'main.py': `name = "COBIP"\ncount = 3\nis_active = True\nprint(name, count, is_active)`,
-    'example.py': `# 예제 코드\nprint("Hello")`,
-    'condition.py': `score = 72\nif score >= 80:\n    result = "합격"\nelse:\n    result = "불합격"\nprint(result)`,
-    'loop.py': `values = [3, 7, 2, 5]\ntotal = 0\nfor value in values:\n    total += value\n    print(total)`,
+    '변수/main.py': `name = "COBIP"\ncount = 3\nis_active = True\nprint(name, count, is_active)`,
+    '변수/example.py': `# 예제 코드\nprint("Hello")`,
+    '조건문/condition.py': `score = 72\nif score >= 80:\n    result = "합격"\nelse:\n    result = "불합격"\nprint(result)`,
+    '반복문/loop.py': `values = [3, 7, 2, 5]\ntotal = 0\nfor value in values:\n    total += value\n    print(total)`,
   });
   const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([
     { name: '변수', type: 'folder', isOpen: true, children: [{ name: 'main.py', type: 'file' }, { name: 'example.py', type: 'file' }] },
     { name: '조건문', type: 'folder', isOpen: false, children: [{ name: 'condition.py', type: 'file' }] },
     { name: '반복문', type: 'folder', isOpen: false, children: [{ name: 'loop.py', type: 'file' }] },
   ]);
-  const [addingTarget, setAddingTarget] = useState<{ mode: 'file' | 'folder'; folderName?: string; parentFolder?: string } | null>(null);
-  const [newItemName, setNewItemName] = useState('');
-  const [openMenuFolder, setOpenMenuFolder] = useState<string | null>(null);
 
   const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
   const startXRef = useRef(0);
@@ -65,70 +62,75 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
     if (index >= 0 && index < totalLessons) setCurrentLessonIndex(index);
   };
 
-  // ===== 탐색기 함수 =====
-  const toggleFolder = useCallback((folderName: string) => {
-    setExplorerTree((prev) => prev.map((node) => {
-      if (node.type === 'folder' && node.name === folderName) return { ...node, isOpen: !node.isOpen };
-      return node;
-    }));
+  // ===== 탐색기 함수 (재귀) =====
+  /** 경로(path)로 폴더를 찾아 isOpen 토글 (재귀) */
+  const toggleFolder = useCallback((targetPath: string) => {
+    setExplorerTree((prev) => {
+      const parts = targetPath.split('/').filter(Boolean);
+      const updateRecursive = (nodes: ExplorerNode[], depth: number): ExplorerNode[] =>
+        nodes.map((node) => {
+          if (node.type === 'folder') {
+            if (depth === parts.length - 1 && node.name === parts[depth]) {
+              return { ...node, isOpen: !node.isOpen };
+            }
+            if (node.name === parts[depth]) {
+              return { ...node, children: updateRecursive(node.children, depth + 1) };
+            }
+          }
+          return node;
+        });
+      return updateRecursive(prev, 0);
+    });
   }, []);
 
-  const openAddMenu = useCallback((folderName: string) => {
-    setOpenMenuFolder((prev) => (prev === folderName ? null : folderName));
+  /** 경로(path)로 특정 폴더를 찾아 파일 추가 (재귀), 폴더는 펼쳐짐 */
+  const handleAddFile = useCallback((targetPath: string, fileName: string) => {
+    setExplorerTree((prev) => {
+      const parts = targetPath.split('/').filter(Boolean);
+      const updateRecursive = (nodes: ExplorerNode[], depth: number): ExplorerNode[] =>
+        nodes.map((node) => {
+          if (node.type === 'folder') {
+            if (depth === parts.length - 1 && node.name === parts[depth]) {
+              return { ...node, isOpen: true, children: [...node.children, { name: fileName, type: 'file' as const }] };
+            }
+            if (node.name === parts[depth]) {
+              return { ...node, children: updateRecursive(node.children, depth + 1) };
+            }
+          }
+          return node;
+        });
+      return updateRecursive(prev, 0);
+    });
+    setFileContents((prev) => ({ ...prev, [`${targetPath}/${fileName}`]: '' }));
+    setActiveFilePath(`${targetPath}/${fileName}`);
   }, []);
 
-  const startAddFile = useCallback((folderName: string) => {
-    setAddingTarget({ mode: 'file', folderName });
-    setNewItemName('');
-    setOpenMenuFolder(null);
+  /** 경로(path)로 특정 폴더를 찾아 하위 폴더 추가 (재귀) */
+  const handleAddSubFolder = useCallback((targetPath: string, folderName: string) => {
+    setExplorerTree((prev) => {
+      const parts = targetPath.split('/').filter(Boolean);
+      const updateRecursive = (nodes: ExplorerNode[], depth: number): ExplorerNode[] =>
+        nodes.map((node) => {
+          if (node.type === 'folder') {
+            if (depth === parts.length - 1 && node.name === parts[depth]) {
+              return { ...node, isOpen: true, children: [...node.children, { name: folderName, type: 'folder' as const, isOpen: false, children: [] } as ExplorerNode] };
+            }
+            if (node.name === parts[depth]) {
+              return { ...node, children: updateRecursive(node.children, depth + 1) };
+            }
+          }
+          return node;
+        });
+      return updateRecursive(prev, 0);
+    });
   }, []);
 
-  const startAddFolder = useCallback((parentFolder?: string) => {
-    setAddingTarget({ mode: 'folder', parentFolder });
-    setNewItemName('');
-    setOpenMenuFolder(null);
+  const handleAddRootFolder = useCallback((folderName: string) => {
+    setExplorerTree((prev) => [...prev, { name: folderName, type: 'folder', isOpen: false, children: [] }]);
   }, []);
 
-  const addRootFolder = useCallback(() => {
-    setAddingTarget({ mode: 'folder' });
-    setNewItemName('');
-  }, []);
-
-  const confirmAddItem = useCallback(() => {
-    const name = newItemName.trim();
-    if (!name) { setAddingTarget(null); return; }
-
-    if (addingTarget?.mode === 'file' && addingTarget.folderName) {
-      setExplorerTree((prev) => prev.map((node) => {
-        if (node.type === 'folder' && node.name === addingTarget.folderName) {
-          return { ...node, isOpen: true, children: [...node.children, { name, type: 'file' as const }] };
-        }
-        return node;
-      }));
-      setFileContents((prev) => ({ ...prev, [name]: '' }));
-      setActiveFile(name);
-    } else if (addingTarget?.mode === 'folder' && addingTarget.parentFolder) {
-      setExplorerTree((prev) => prev.map((node) => {
-        if (node.type === 'folder' && node.name === addingTarget.parentFolder) {
-          return { ...node, isOpen: true, children: [...node.children, { name, type: 'folder' as const, isOpen: true, children: [] } as ExplorerNode] };
-        }
-        return node;
-      }));
-    } else if (addingTarget?.mode === 'folder' && !addingTarget.parentFolder) {
-      setExplorerTree((prev) => [...prev, { name, type: 'folder', isOpen: true, children: [] }]);
-    }
-
-    setAddingTarget(null);
-    setNewItemName('');
-  }, [addingTarget, newItemName]);
-
-  const cancelAddItem = useCallback(() => {
-    setAddingTarget(null);
-    setNewItemName('');
-  }, []);
-
-  const openFile = useCallback((fileName: string) => {
-    setActiveFile(fileName);
+  const openFile = useCallback((filePath: string) => {
+    setActiveFilePath(filePath);
   }, []);
 
   // ===== Resize 핸들러 =====
@@ -225,7 +227,6 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
 
         {/* 메인 콘텐츠 */}
         <div className="flex flex-1 overflow-hidden relative">
-          <main className="overflow-y-auto flex-1">
             {/* 실행기 토글 버튼 */}
             <button
               onClick={() => setIsRunnerOpen(!isRunnerOpen)}
@@ -238,6 +239,7 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
               </span>
             </button>
 
+          <main className="overflow-y-auto flex-1">
             <div className="max-w-4xl mx-auto px-8 py-10">
               <h1 className="text-2xl font-bold text-gray-900 mb-6">{currentLesson.title}</h1>
               <div className="space-y-4 mb-8">
@@ -281,23 +283,16 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
               explorerWidth={explorerWidth}
               outputHeight={outputHeight}
               explorerTree={explorerTree}
-              activeFile={activeFile}
+              activeFilePath={activeFilePath}
               fileContents={fileContents}
               onRunnerResizeStart={handleRunnerResizeStart}
               onExplorerResizeStart={handleExplorerResizeStart}
               onOutputResizeStart={handleOutputResizeStart}
-              toggleFolder={toggleFolder}
-              openAddMenu={openAddMenu}
-              startAddFile={startAddFile}
-              startAddFolder={startAddFolder}
-              addRootFolder={addRootFolder}
-              addingTarget={addingTarget}
-              newItemName={newItemName}
-              setNewItemName={setNewItemName}
-              confirmAddItem={confirmAddItem}
-              cancelAddItem={cancelAddItem}
-              openFile={openFile}
-              openMenuFolder={openMenuFolder}
+              onToggleFolder={toggleFolder}
+              onAddFile={handleAddFile}
+              onAddSubFolder={handleAddSubFolder}
+              onAddRootFolder={handleAddRootFolder}
+              onOpenFile={openFile}
               setFileContents={setFileContents}
             />
           )}
@@ -306,3 +301,5 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
     </div>
   );
 }
+
+
