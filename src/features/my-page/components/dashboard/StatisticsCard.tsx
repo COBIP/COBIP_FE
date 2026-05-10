@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { StatisticCard as StatisticCardType } from '@/app/types/DashboardTypes';
+
 interface StatisticsCardProps {
   card: StatisticCardType;
 }
@@ -35,11 +36,7 @@ export function StatisticsCard({ card }: StatisticsCardProps) {
       <div className="flex items-center justify-end mb-2 min-h-6">
         {hasTrend && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {isPositive ? (
-              <TrendingUp size={16} />
-            ) : (
-              <TrendingDown size={16} />
-            )}
+            {isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
             {card.percentage}%
           </div>
         )}
