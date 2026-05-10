@@ -1,12 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from 'next/image';
-import { Menu, Globe, HelpCircle, Key, UserCheck } from "lucide-react";
+import { Menu, Globe, HelpCircle, Key, UserCheck, LogOut, User } from "lucide-react";
+import { useUserStore } from "@/store/UseUserStore";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn] = useState(false); // 임시 로그인 상태 (나중에 auth로 대체)
+  const [isMounted, setIsMounted] = useState(false);
+  const { isLoggedIn, nickname, profileImage, clearSession } = useUserStore();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // 클라이언트 마운트 체크
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
 
   // 외부 클릭 시 메뉴 닫기
   useEffect(() => {
@@ -20,6 +28,21 @@ export function Header() {
   }, []);
 
   const closeMenu = () => setIsMenuOpen(false);
+
+  const getInitial = () => {
+    if (!nickname) return 'U';
+    return nickname.charAt(0).toUpperCase();
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    closeMenu();
+  };
+
+  // 클라이언트에서만 렌더링
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <header className="border-b border-gray-100 bg-white/90 backdrop-blur-xl sticky top-0 z-30">
@@ -40,14 +63,21 @@ export function Header() {
         {/* 우측 버튼 그룹 - 화면 우측 끝에 가깝게 */}
         <div className="absolute right-2 top-0 h-16 flex items-center gap-3" ref={menuRef}>
           {!isLoggedIn ? (
-            <button aria-label="로그인" className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+            <button aria-label="로그인" className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition">
               <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM4 20c0-2.21 3.58-4 8-4s8 1.79 8 4v1H4v-1z" fill="currentColor" />
               </svg>
             </button>
           ) : (
-            <button aria-label="프로필" className="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
-              <Image src="/profile-placeholder.png" alt="profile" width={32} height={32} className="w-full h-full object-cover" />
+            <button
+              aria-label="프로필"
+              className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm hover:shadow-md transition"
+            >
+              {profileImage ? (
+                <Image src={profileImage} alt="profile" width={32} height={32} className="w-full h-full object-cover" />
+              ) : (
+                getInitial()
+              )}
             </button>
           )}
 
@@ -64,24 +94,45 @@ export function Header() {
             <>
               <div className="fixed inset-0 bg-black/20 z-30 md:hidden" onClick={closeMenu} />
               <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-100 rounded-xl shadow-xl shadow-black/5 z-40 py-1.5 overflow-hidden">
-                <div className="px-3 pb-1.5 border-b border-gray-100">
-                  <Link
-                    href="/login"
-                    onClick={closeMenu}
-                    className="flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
-                  >
-                    <Key className="w-4 h-4 text-gray-400" />
-                    로그인
-                  </Link>
-                  <Link
-                    href="/signup"
-                    onClick={closeMenu}
-                    className="flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
-                  >
-                    <UserCheck className="w-4 h-4 text-gray-400" />
-                    회원가입
-                  </Link>
-                </div>
+                {!isLoggedIn ? (
+                  <div className="px-3 pb-1.5 border-b border-gray-100">
+                    <Link
+                      href="/login"
+                      onClick={closeMenu}
+                      className="flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      <Key className="w-4 h-4 text-gray-400" />
+                      로그인
+                    </Link>
+                    <Link
+                      href="/signup"
+                      onClick={closeMenu}
+                      className="flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      <UserCheck className="w-4 h-4 text-gray-400" />
+                      회원가입
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="px-3 pb-1.5 border-b border-gray-100">
+                    <Link
+                      href="/my-page/profile"
+                      onClick={closeMenu}
+                      className="flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      <User className="w-4 h-4 text-gray-400" />
+                      프로필
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 text-gray-400" />
+                      로그아웃
+                    </button>
+                  </div>
+                )}
+
                 <div className="md:hidden px-3 py-2 border-b border-gray-100 space-y-1">
                   {[
                     { href: "/grammar-template", label: "문법 템플릿" },
@@ -99,6 +150,7 @@ export function Header() {
                     </Link>
                   ))}
                 </div>
+
                 <div className="px-3 pt-1.5 space-y-1">
                   <Link
                     href="#"
