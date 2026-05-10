@@ -77,7 +77,7 @@ export function FileExplorer({ files, activeFile, onFileSelect, isDarkMode = fal
         파일 탐색기
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 py-2">{renderFileTree(files)}</div>
+      <div className="flex-1 overflow-y-auto px-2 py-2">{renderFileTree(filesWithIds)}</div>
     </div>
   );
 }

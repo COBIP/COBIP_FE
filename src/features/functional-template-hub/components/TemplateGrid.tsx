@@ -1,5 +1,5 @@
 import { TemplateCard } from '@/features/functional-template-hub/components/TemplateCard';
-import { FunctionalTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
+import type { FunctionalTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
 
 interface TemplateGridProps {
   templates: FunctionalTemplateCardViewModel[];

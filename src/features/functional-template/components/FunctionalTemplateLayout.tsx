@@ -14,6 +14,7 @@ import { MissionSection } from './MissionSection';
 import { RequirementsSection } from './RequirementsSection';
 import { StructureSection } from './StructureSection';
 import { InterviewSection } from './InterviewSection';
+import type { TemplateDetailApiResponse } from '@/api/services/FunctionalTemplateService';
 
 type EditorMode = 'exploration' | 'mission';
 
@@ -136,7 +137,7 @@ const missionFiles: Record<string, string> = {
       templateTitle: string;
       consecutiveDays?: number;
       templateId?: number | null;
-      template?: any;
+      template?: TemplateDetailApiResponse | null;
     }
 
     export function FunctionalTemplateLayout({ templateTitle, templateId, template }: FunctionalTemplateLayoutProps) {
@@ -309,6 +310,23 @@ const missionFiles: Record<string, string> = {
             isDarkMode={isDarkMode}
           />
 
+          <div className={`border-b px-8 py-4 transition-colors duration-300 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'}`}>
+            <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
+              <div>
+                <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>{templateTitle}</p>
+                <p className={`text-xs ${isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>
+                  {template?.category ?? '기능 템플릿'}
+                  {templateId != null ? ` · ID ${templateId}` : ''}
+                </p>
+              </div>
+              {template && (
+                <div className={`text-xs ${isDarkMode ? 'text-[#CBD5E1]' : 'text-[#475569]'}`}>
+                  난이도 {template.difficulty} · 조회 {template.viewCount.toLocaleString()}회
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* 탭 네비게이션 */}
           <TabNav
             activeTab={activeTab}
@@ -322,7 +340,14 @@ const missionFiles: Record<string, string> = {
           <div className={`relative flex flex-1 min-h-0 overflow-hidden ${isMemoOpen ? 'pr-80' : ''}`}>
             {/* 에디터 토글 버튼 (절대 위치, 문법 템플릿 스타일) */}
             <button
-              onClick={() => setIsEditorOpen(!isEditorOpen)}
+              onClick={() => {
+                if (isEditorOpen) {
+                  setIsEditorOpen(false);
+                  return;
+                }
+
+                openExplorationEditor();
+              }}
               className={`absolute top-14 z-20 flex items-center justify-center px-2 py-3 shadow-sm cursor-pointer group transition-colors duration-200 ${
                 isDarkMode
                   ? 'bg-[#1E293B] text-[#A78BFA] hover:text-[#E9D5FF] hover:bg-[#334155]'

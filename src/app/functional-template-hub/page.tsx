@@ -9,11 +9,8 @@ import {
   TemplateGrid,
   InfoSection,
 } from '@/features/functional-template-hub/components/Index';
-import { 
-  getTemplates, 
-  mapTemplateCardViewModel,
-  FunctionalTemplateCardViewModel 
-} from '@/api/services/FunctionalTemplateService';
+import type { FunctionalTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
+import { getTemplates, mapTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
 
 /**
  * 기능 템플릿 탐색 메인 페이지 (Hub)

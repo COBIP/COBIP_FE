@@ -3,7 +3,8 @@
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FunctionalTemplateLayout } from '@/features/functional-template/components/FunctionalTemplateLayout';
-import { getTemplate, TemplateDetailApiResponse } from '@/api/services/FunctionalTemplateService';
+import type { TemplateDetailApiResponse } from '@/api/services/FunctionalTemplateService';
+import { getTemplate } from '@/api/services/FunctionalTemplateService';
 
 export default function FunctionalTemplateDetail() {
   const params = useParams();
