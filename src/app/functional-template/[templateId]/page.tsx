@@ -4,13 +4,15 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FunctionalTemplateLayout } from '@/features/functional-template/components/FunctionalTemplateLayout';
 import type { TemplateDetailApiResponse } from '@/api/services/FunctionalTemplateService';
-import { getTemplate } from '@/api/services/FunctionalTemplateService';
+import type { TemplatePracticeDetailApiResponse } from '@/api/services/FunctionalTemplateService';
+import { getTemplate, getTemplatePractice } from '@/api/services/FunctionalTemplateService';
 
 export default function FunctionalTemplateDetail() {
   const params = useParams();
   const templateId = params?.templateId ? parseInt(String(params.templateId), 10) : null;
   
   const [template, setTemplate] = useState<TemplateDetailApiResponse | null>(null);
+  const [practice, setPractice] = useState<TemplatePracticeDetailApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,13 +26,28 @@ export default function FunctionalTemplateDetail() {
     const loadTemplate = async () => {
       try {
         setIsLoading(true);
-        const data = await getTemplate(templateId);
-        setTemplate(data);
+        const [templateResult, practiceResult] = await Promise.allSettled([
+          getTemplate(templateId),
+          getTemplatePractice(templateId),
+        ]);
+
+        if (templateResult.status === 'fulfilled') {
+          setTemplate(templateResult.value);
+        } else {
+          throw templateResult.reason;
+        }
+
+        if (practiceResult.status === 'fulfilled') {
+          setPractice(practiceResult.value);
+        } else {
+          setPractice(null);
+        }
         setError(null);
       } catch (err) {
         console.error('Failed to load template:', err);
         setError(err instanceof Error ? err.message : '템플릿을 로드할 수 없습니다.');
         setTemplate(null);
+        setPractice(null);
       } finally {
         setIsLoading(false);
       }
@@ -79,6 +96,7 @@ export default function FunctionalTemplateDetail() {
       templateTitle={template.title}
       templateId={templateId}
       template={template}
+      practice={practice}
     />
   );
 }
