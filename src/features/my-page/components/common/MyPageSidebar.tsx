@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from "next/link";
+import { useAuth } from '@/hooks/useUser'; // ✅ 방금 만든 훅 임포트
 import { usePathname } from "next/navigation";
 import { 
     LayoutDashboard, 
@@ -15,33 +16,35 @@ import {
     User
 } from "lucide-react";
 
-interface MyPageSidebarProps {
-    user: {
-        nickName: string;
-        image?: string;
-    };
-}
 
-export default function MyPageSidebar({ user }: MyPageSidebarProps) {
+export default function MyPageSidebar() {
+    const { user } = useAuth(); 
+
+    // 유저 데이터가 없을 때(또는 로딩 중일 때) 보여줄 기본값 안전 처리
+    const nickName = user?.nickname || "로딩 중...";
+    const profileImage = user?.profileImageUrl || null;
+
     return (
         <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 border-r border-t border-[#e5e2e1] bg-white flex flex-col p-6 z-40 hidden md:flex ">
             
             {/* 프로필 출력 */}
             <div className="flex flex-col items-center pb-6 border-b border-[#e5e2e1]">
                 <div className="w-16 h-16 bg-[#f0edec] rounded-full flex items-center justify-center mb-3 shadow-md border-4 border-[#e5e2e1] overflow-hidden">
-                    {user.image ? (
+                    {/* ✅ 실제 프로필 이미지 적용 */}
+                    {profileImage ? (
                         <Image 
-                            src={user.image || "/default-profile.png"} 
+                            src={profileImage} 
                             alt="프로필 이미지" 
                             width={60} 
                             height={60} 
-                            className="rounded-full"
+                            className="rounded-full object-cover w-full h-full"
                         />                    
                     ) : (
                         <User size={20} className="text-gray-600" />
                     )}
                 </div>
-                <h2 className="text-lg font-bold text-[#1c1b1b]">{user.nickName}</h2>
+                {/* ✅ 실제 닉네임 적용 */}
+                <h2 className="text-lg font-bold text-[#1c1b1b]">{nickName}</h2>
             </div>
 
             {/* 사이드바 */}
