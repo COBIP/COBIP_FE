@@ -19,7 +19,7 @@ export const useAuthMutation = () => {
             if (token) {
                 setLoginSession(token);
                 alert("로그인 성공!");
-                router.push("/my-page/profil");
+                router.push("/my-page/profile");
             }
         } catch (error) {
             console.error("로그인 실패:", error);
