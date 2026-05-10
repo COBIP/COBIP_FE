@@ -1,21 +1,53 @@
-import { TEMPLATES } from '@/features/functional-template-hub/Constants';
 import { TemplateCard } from '@/features/functional-template-hub/components/TemplateCard';
+import { FunctionalTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
 
 interface TemplateGridProps {
+  templates: FunctionalTemplateCardViewModel[];
   onTemplateClick: (templateId: string) => void;
   searchQuery?: string;
+  isLoading?: boolean;
 }
 
-export function TemplateGrid({ onTemplateClick, searchQuery = '' }: TemplateGridProps) {
+export function TemplateGrid({ 
+  templates, 
+  onTemplateClick, 
+  searchQuery = '',
+  isLoading = false 
+}: TemplateGridProps) {
   const q = searchQuery.trim().toLowerCase();
   const filtered = q
-    ? TEMPLATES.filter((t) => {
+    ? templates.filter((t) => {
         if (t.title.toLowerCase().includes(q)) return true;
         if (t.description.toLowerCase().includes(q)) return true;
         if (t.tags.some((tag) => tag.toLowerCase().includes(q))) return true;
         return false;
       })
-    : TEMPLATES;
+    : templates;
+
+  if (isLoading) {
+    return (
+      <section>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="h-72 bg-gray-200 rounded-lg animate-pulse"
+            />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (filtered.length === 0) {
+    return (
+      <section>
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">검색 결과가 없습니다.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section>
