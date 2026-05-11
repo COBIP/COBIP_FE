@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { adminService } from '@/api/services/AdminService';
+import { CodeEditor } from '@/features/functional-template/components/CodeEditor';
+import { SourceCodeSection } from '@/features/functional-template/components/SourceCodeSection';
 import type {
   AdminAccessLevel,
   AdminDifficulty,
@@ -14,6 +16,10 @@ import type {
   AdminTemplateSummary,
   AdminTemplateTestCase,
   AdminVisibility,
+  PracticeFile,
+  PracticeFilePayload,
+  PracticeMissionPayload,
+  PracticeMissionType,
   PageResponse,
 } from '@/types/AdminTypes';
 import {
@@ -29,7 +35,9 @@ import {
 const difficulties: AdminDifficulty[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const visibilities: AdminVisibility[] = ['PUBLIC', 'PRIVATE'];
 const accessLevels: AdminAccessLevel[] = ['FREE', 'PREMIUM'];
-const runtimes = ['node', 'python', 'java', 'browser', 'none'];
+const runtimes = ['node', 'node16', 'node20', 'python', 'python3', 'java', 'java17', 'browser', 'none'];
+const missionTypes: PracticeMissionType[] = ['CONCEPT', 'IMPLEMENTATION', 'REVIEW'];
+const problemMissionTypes: PracticeMissionType[] = ['DEBUGGING', 'TEST'];
 
 type TemplateFormState = {
   title: string;
@@ -56,6 +64,8 @@ type TemplateFormState = {
   source: string;
 };
 
+type PracticeFileFormState = PracticeFilePayload;
+
 const emptyForm: TemplateFormState = {
   title: '',
   summary: '',
@@ -79,6 +89,14 @@ const emptyForm: TemplateFormState = {
   published: false,
   license: '',
   source: '',
+};
+
+const emptyPracticeFileForm: PracticeFileFormState = {
+  filePath: '',
+  language: 'typescript',
+  content: '',
+  readOnly: false,
+  orderIndex: 0,
 };
 
 function parseTextList(value: string) {
@@ -120,7 +138,58 @@ function buildRequirementSpec(requirements: AdminTemplateRequirement[]) {
     .join('\n');
 }
 
+function parseRequirementSpec(value?: string): AdminTemplateRequirement[] {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(/\r?\n/g)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const matched = line.match(/^\[([^:\]]+)(?::(optional|required))?\]\s*(.*)$/i);
+
+      if (!matched) {
+        return {
+          type: 'general',
+          description: line,
+          optionalFlag: false,
+        };
+      }
+
+      return {
+        type: matched[1]?.trim() || 'general',
+        description: matched[3]?.trim() ?? '',
+        optionalFlag: matched[2]?.toLowerCase() === 'optional',
+      };
+    })
+    .filter((requirement) => requirement.description);
+}
+
 function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState {
+  const missions = template.missions?.map((mission) => ({
+    id: mission.id ?? '',
+    title: mission.title ?? '',
+    description: mission.description ?? '',
+    missionType: mission.missionType,
+    orderIndex: mission.orderIndex ?? 0,
+    guideContent: mission.guideContent ?? '',
+    validationJson: mission.validationJson ?? {},
+    steps: mission.steps ?? (
+      mission.guideContent && mission.guideContent !== mission.description
+        ? mission.guideContent.split(/\r?\n/g).filter(Boolean)
+        : []
+    ),
+  })) ?? [];
+  const testCases = template.testCases?.map((testCase, index) => ({
+    id: testCase.id,
+    input: testCase.input ?? '',
+    expectedOutput: testCase.expectedOutput ?? testCase.expected_output ?? '',
+    description: testCase.description ?? '',
+    orderIndex: testCase.orderIndex ?? index,
+  })) ?? [];
+
   return {
     title: template.title ?? '',
     summary: template.summary ?? '',
@@ -130,13 +199,13 @@ function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState
     techStacksText: formatTextList(template.techStacks),
     designIntent: template.designIntent ?? '',
     structure: template.structure ?? template.projectStructure ?? '',
-    requirements: template.requirements ?? [],
-    missions: template.missions ?? [],
+    requirements: template.requirements?.length ? template.requirements : parseRequirementSpec(template.requirementsSpec),
+    missions,
     erd: template.erd ?? '',
     apiSpec: template.apiSpec ?? '',
     interviewQuestions: buildInterviewQuestions(template.interviewQuestions),
     runtime: template.runtime ?? 'node',
-    testCases: template.testCases ?? [],
+    testCases,
     tagsText: formatTextList(template.tags),
     previewImage: template.previewImage ?? template.thumbnailUrl ?? '',
     visibility: template.visibility,
@@ -145,6 +214,39 @@ function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState
     license: template.license ?? '',
     source: template.source ?? '',
   };
+}
+
+function buildPracticeFileForm(file: PracticeFile): PracticeFileFormState {
+  return {
+    filePath: file.filePath,
+    language: file.language,
+    content: file.content,
+    readOnly: file.readOnly,
+    orderIndex: file.orderIndex,
+  };
+}
+
+function buildNormalizedPath(value: string) {
+  return value.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').replace(/\/{2,}/g, '/');
+}
+
+function findLanguageByPath(filePath: string) {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+
+  if (extension === 'ts' || extension === 'tsx') return 'typescript';
+  if (extension === 'js' || extension === 'jsx') return 'javascript';
+  if (extension === 'java') return 'java';
+  if (extension === 'py') return 'python';
+  if (extension === 'json') return 'json';
+  if (extension === 'md') return 'markdown';
+  if (extension === 'css') return 'css';
+  if (extension === 'html') return 'html';
+
+  return 'text';
+}
+
+function buildNextOrderIndex(items: Array<{ orderIndex: number }>) {
+  return items.reduce((maxOrderIndex, item) => Math.max(maxOrderIndex, item.orderIndex), -1) + 1;
 }
 
 function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
@@ -157,11 +259,16 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
     .filter((requirement) => requirement.type || requirement.description);
   const missions = form.missions
     .map((mission) => ({
-      id: mission.id.trim(),
+      id: String(mission.id).trim(),
       title: mission.title.trim(),
-      steps: mission.steps.map((step) => step.trim()).filter(Boolean),
+      steps: (mission.steps ?? []).map((step) => step.trim()).filter(Boolean),
+      description: mission.description?.trim() || undefined,
+      missionType: mission.missionType,
+      orderIndex: mission.orderIndex,
+      guideContent: mission.guideContent?.trim() || undefined,
+      validationJson: mission.validationJson ?? {},
     }))
-    .filter((mission) => mission.id || mission.title || mission.steps.length);
+    .filter((mission) => mission.id || mission.title || mission.description || mission.steps.length);
   const interviewQuestions = form.interviewQuestions
     .map((question) => ({
       question: question.question.trim(),
@@ -169,12 +276,13 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
     }))
     .filter((question) => question.question || question.answerHint);
   const testCases = form.testCases
-    .map((testCase) => ({
+    .map((testCase, index) => ({
       input: testCase.input.trim(),
-      expectedOutput: testCase.expectedOutput.trim(),
-      validationScript: testCase.validationScript?.trim() || undefined,
+      expectedOutput: (testCase.expectedOutput ?? testCase.expected_output ?? '').trim(),
+      description: testCase.description?.trim() || undefined,
+      orderIndex: testCase.orderIndex ?? index,
     }))
-    .filter((testCase) => testCase.input || testCase.expectedOutput || testCase.validationScript);
+    .filter((testCase) => testCase.input || testCase.expectedOutput || testCase.description);
   const structure = form.structure.trim();
 
   return {
@@ -205,24 +313,6 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
   };
 }
 
-function checkSameValue(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function buildTemplateUpdatePayload(template: AdminTemplateDetail, form: TemplateFormState) {
-  const current = buildTemplatePayload(buildFormFromTemplate(template));
-  const next = buildTemplatePayload(form);
-  const payload: Partial<AdminTemplatePayload> = {};
-
-  (Object.keys(next) as Array<keyof AdminTemplatePayload>).forEach((key) => {
-    if (!checkSameValue(next[key], current[key])) {
-      Object.assign(payload, { [key]: next[key] });
-    }
-  });
-
-  return payload;
-}
-
 function parseOwnerId(value: string) {
   const parsed = Number(value);
 
@@ -232,6 +322,10 @@ function parseOwnerId(value: string) {
 function validateTemplatePayload(payload: AdminTemplatePayload) {
   if (!payload.title) {
     throw new Error('제목은 필수입니다.');
+  }
+
+  if (!payload.description) {
+    throw new Error('상세설명은 필수입니다.');
   }
 
   if (!payload.category) {
@@ -246,12 +340,10 @@ function validateTemplatePayload(payload: AdminTemplatePayload) {
     throw new Error('요구사항은 type과 description을 모두 입력해야 합니다.');
   }
 
-  const hasInvalidMission = payload.missions?.some(
-    (mission) => !mission.id || !mission.title || !mission.steps.length,
-  );
+  const hasInvalidMission = payload.missions?.some((mission) => !mission.title || !mission.missionType);
 
   if (hasInvalidMission) {
-    throw new Error('미션은 id, title, steps를 모두 입력해야 합니다.');
+    throw new Error('미션/문제는 title과 missionType을 입력해야 합니다.');
   }
 
   const hasInvalidQuestion = payload.interviewQuestions.some((question) => !question.question);
@@ -280,7 +372,11 @@ function createRequirement(): AdminTemplateRequirement {
 }
 
 function createTemplateMission(): AdminTemplateMissionDraft {
-  return { id: '', title: '', steps: [''] };
+  return { id: '', title: '', steps: [''], missionType: 'IMPLEMENTATION', description: '', validationJson: {} };
+}
+
+function createTemplateProblem(): AdminTemplateMissionDraft {
+  return { id: '', title: '', steps: [''], missionType: 'TEST', description: '', validationJson: {} };
 }
 
 function createInterviewQuestion(): AdminTemplateInterviewQuestion {
@@ -288,7 +384,24 @@ function createInterviewQuestion(): AdminTemplateInterviewQuestion {
 }
 
 function createTestCase(): AdminTemplateTestCase {
-  return { input: '', expectedOutput: '', validationScript: '' };
+  return { input: '', expectedOutput: '', description: '' };
+}
+
+function checkProblemMissionType(missionType?: PracticeMissionType) {
+  return missionType === 'DEBUGGING' || missionType === 'TEST';
+}
+
+async function fetchMergedTemplateDetail(templateId: number): Promise<AdminTemplateDetail> {
+  const [detail, practice] = await Promise.all([
+    adminService.getTemplate(templateId),
+    adminService.getTemplatePractice(templateId).catch(() => null),
+  ]);
+
+  return {
+    ...detail,
+    missions: practice?.missions ?? detail.missions,
+    practiceFiles: practice?.files ?? detail.practiceFiles,
+  };
 }
 
 export function AdminTemplatesPage() {
@@ -301,7 +414,9 @@ export function AdminTemplatesPage() {
   const [page, setPage] = useState(0);
   const [templates, setTemplates] = useState<PageResponse<AdminTemplateSummary> | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<AdminTemplateDetail | null>(null);
+  const [selectedPracticeFileId, setSelectedPracticeFileId] = useState<number | null>(null);
   const [form, setForm] = useState<TemplateFormState>(emptyForm);
+  const [practiceFileForm, setPracticeFileForm] = useState<PracticeFileFormState>(emptyPracticeFileForm);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [adminMemo, setAdminMemo] = useState('');
   const [error, setError] = useState('');
@@ -356,7 +471,9 @@ export function AdminTemplatesPage() {
 
   const handleNew = () => {
     setSelectedTemplate(null);
+    setSelectedPracticeFileId(null);
     setForm(emptyForm);
+    setPracticeFileForm(emptyPracticeFileForm);
     setFormMode('create');
     setAdminMemo('');
     setError('');
@@ -368,13 +485,102 @@ export function AdminTemplatesPage() {
     setMessage('');
 
     try {
-      const detail = await adminService.getTemplate(templateId);
-      setSelectedTemplate(detail);
-      setForm(buildFormFromTemplate(detail));
+      const mergedDetail = await fetchMergedTemplateDetail(templateId);
+
+      setSelectedTemplate(mergedDetail);
+      setSelectedPracticeFileId(mergedDetail.practiceFiles?.[0]?.id ?? null);
+      setPracticeFileForm(mergedDetail.practiceFiles?.[0] ? buildPracticeFileForm(mergedDetail.practiceFiles[0]) : emptyPracticeFileForm);
+      setForm(buildFormFromTemplate(mergedDetail));
       setFormMode('edit');
       setAdminMemo('');
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '기능 템플릿 상세를 불러오지 못했습니다.');
+    }
+  };
+
+  const saveMissions = async (templateId: number, missions: AdminTemplateMissionDraft[]) => {
+    const existingPractice = await adminService.getTemplatePractice(templateId);
+    const existingMissions = existingPractice?.missions ?? [];
+    const existingMissionIds = new Set(existingMissions.map((mission) => mission.id));
+    const savedMissionIds = new Set<number>();
+
+    const errors: string[] = [];
+    for (const [index, mission] of missions.entries()) {
+      if (!mission.title?.trim()) {
+        const errMsg = '미션 제목이 비어있습니다. 건너뜁니다.';
+        errors.push(errMsg);
+        continue;
+      }
+
+      if (!mission.missionType) {
+        const errMsg = `미션 타입이 없습니다. 건너뜁니다. (제목: ${mission.title})`;
+        errors.push(errMsg);
+        continue;
+      }
+
+      const missionSteps = (mission.steps ?? []).map((step) => step.trim()).filter(Boolean);
+      const missionDescription = mission.description?.trim() ?? '';
+      const missionGuideContent = missionSteps.join('\n') || mission.guideContent?.trim() || missionDescription;
+      const missionPayload: PracticeMissionPayload = {
+        title: mission.title.trim(),
+        description: missionDescription,
+        type: mission.missionType,
+        missionType: mission.missionType,
+        guideContent: missionGuideContent,
+        validationJson: mission.validationJson ?? {},
+        orderIndex: mission.orderIndex ?? index,
+      };
+
+      const missionId = Number(mission.id);
+      const existingById = Number.isFinite(missionId) && missionId > 0 && existingMissionIds.has(missionId)
+        ? existingMissions.find((existingMission) => existingMission.id === missionId)
+        : undefined;
+      const existingByStableKey = existingMissions.find(
+        (existingMission) =>
+          !savedMissionIds.has(existingMission.id) &&
+          existingMission.title === missionPayload.title &&
+          (existingMission.missionType ?? existingMission.type) === missionPayload.missionType,
+      );
+      const targetMission = existingById ?? existingByStableKey;
+
+      try {
+        if (targetMission) {
+          const updated = await adminService.updatePracticeMission(templateId, targetMission.id, missionPayload);
+          savedMissionIds.add(updated.id);
+        } else {
+          const created = await adminService.createPracticeMission(templateId, missionPayload);
+          savedMissionIds.add(created.id);
+        }
+      } catch (error) {
+        if (targetMission && error instanceof Error && error.message.includes('찾을 수 없습니다')) {
+          const created = await adminService.createPracticeMission(templateId, missionPayload);
+          savedMissionIds.add(created.id);
+          continue;
+        }
+
+        const errMsg = `미션 저장 실패 (제목: ${mission.title}): ${error instanceof Error ? error.message : String(error)}`;
+        errors.push(errMsg);
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new Error(`미션 저장 중 오류 발생:\n${errors.join('\n')}`);
+    }
+
+    for (const existingMission of existingMissions) {
+      if (savedMissionIds.has(existingMission.id)) {
+        continue;
+      }
+
+      try {
+        await adminService.deletePracticeMission(templateId, existingMission.id);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('찾을 수 없습니다')) {
+          continue;
+        }
+
+        throw error;
+      }
     }
   };
 
@@ -393,17 +599,27 @@ export function AdminTemplatesPage() {
         formMode === 'create'
           ? await adminService.createTemplate(payload)
           : selectedTemplate
-            ? await adminService.updateTemplate(selectedTemplate.id, buildTemplateUpdatePayload(selectedTemplate, form))
+            ? await adminService.updateTemplate(selectedTemplate.id, payload)
             : null;
 
       if (!saved) {
         throw new Error('수정할 템플릿을 선택해주세요.');
       }
 
-      setSelectedTemplate(saved);
-      setForm(buildFormFromTemplate(saved));
+      // 미션 저장 (template 저장 후)
+      if (form.missions.length > 0 || (selectedTemplate?.missions?.length ?? 0) > 0) {
+        await saveMissions(saved.id, form.missions);
+      }
+
+      const refreshed = await fetchMergedTemplateDetail(saved.id);
+      setSelectedTemplate(refreshed);
+      setSelectedPracticeFileId(refreshed.practiceFiles?.[0]?.id ?? null);
+      setPracticeFileForm(refreshed.practiceFiles?.[0] ? buildPracticeFileForm(refreshed.practiceFiles[0]) : emptyPracticeFileForm);
+      setForm(buildFormFromTemplate(refreshed));
       setFormMode('edit');
-      setMessage(formMode === 'create' ? '기능 템플릿을 생성했습니다.' : '기능 템플릿을 수정했습니다.');
+      setMessage(
+        formMode === 'create' ? '기능 템플릿과 미션을 생성했습니다.' : '기능 템플릿과 미션을 수정했습니다.',
+      );
       await loadTemplates();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '기능 템플릿 저장에 실패했습니다.');
@@ -567,6 +783,76 @@ export function AdminTemplatesPage() {
     }));
   };
 
+  const practiceFiles = selectedTemplate?.practiceFiles ?? [];
+
+  const selectPracticeFile = (file: PracticeFile) => {
+    setSelectedPracticeFileId(file.id);
+    setPracticeFileForm(buildPracticeFileForm(file));
+  };
+
+  const resetPracticeFileForm = () => {
+    const nextOrderIndex = buildNextOrderIndex(practiceFiles);
+
+    setSelectedPracticeFileId(null);
+    setPracticeFileForm({
+      ...emptyPracticeFileForm,
+      orderIndex: nextOrderIndex,
+    });
+  };
+
+  const savePracticeFile = async () => {
+    if (!selectedTemplate) {
+      return;
+    }
+
+    setError('');
+    setMessage('');
+
+    try {
+      const payload = {
+        ...practiceFileForm,
+        filePath: buildNormalizedPath(practiceFileForm.filePath),
+      };
+
+      if (!payload.filePath) {
+        throw new Error('파일 경로를 입력해주세요.');
+      }
+
+      if (selectedPracticeFileId) {
+        await adminService.updatePracticeFile(selectedTemplate.id, selectedPracticeFileId, payload);
+      } else {
+        await adminService.createPracticeFile(selectedTemplate.id, payload);
+      }
+
+      const refreshed = await fetchMergedTemplateDetail(selectedTemplate.id);
+      setSelectedTemplate(refreshed);
+      setSelectedPracticeFileId(refreshed.practiceFiles?.[0]?.id ?? null);
+      setPracticeFileForm(refreshed.practiceFiles?.[0] ? buildPracticeFileForm(refreshed.practiceFiles[0]) : emptyPracticeFileForm);
+      setMessage('실습 파일을 저장했습니다.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : '실습 파일 저장에 실패했습니다.');
+    }
+  };
+
+  const deletePracticeFile = async () => {
+    if (!selectedTemplate || !selectedPracticeFileId || !confirm('선택한 실습 파일을 삭제할까요?')) {
+      return;
+    }
+
+    try {
+      await adminService.deletePracticeFile(selectedTemplate.id, selectedPracticeFileId);
+      const refreshed = await fetchMergedTemplateDetail(selectedTemplate.id);
+      setSelectedTemplate(refreshed);
+      setSelectedPracticeFileId(refreshed.practiceFiles?.[0]?.id ?? null);
+      setPracticeFileForm(refreshed.practiceFiles?.[0] ? buildPracticeFileForm(refreshed.practiceFiles[0]) : emptyPracticeFileForm);
+      setMessage('실습 파일을 삭제했습니다.');
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : '실습 파일 삭제에 실패했습니다.');
+    }
+  };
+
+  const currentPracticeFile = practiceFiles.find((file) => file.id === selectedPracticeFileId) ?? null;
+
   return (
     <div>
       <AdminPageTitle title="기능 템플릿 관리" description="기능 템플릿 본문, 실습 메타데이터, 공개 상태를 관리합니다." />
@@ -665,7 +951,7 @@ export function AdminTemplatesPage() {
               <AdminEmpty message="기능 템플릿이 없습니다." />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1080px] text-left text-sm">
+                <table className="w-full min-w-270 text-left text-sm">
                   <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
                     <tr>
                       <th className="py-3">템플릿</th>
@@ -905,14 +1191,6 @@ export function AdminTemplatesPage() {
                     className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
                   />
                 </label>
-                <label className="text-sm font-semibold text-slate-700">
-                  출처
-                  <input
-                    value={form.source}
-                    onChange={(event) => updateForm('source', event.target.value)}
-                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
-                  />
-                </label>
                 <label className="md:col-span-2 text-sm font-semibold text-slate-700">
                   기술 스택
                   <textarea
@@ -947,6 +1225,16 @@ export function AdminTemplatesPage() {
                     value={form.structure}
                     onChange={(event) => updateForm('structure', event.target.value)}
                     rows={5}
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
+                  />
+                </label>
+                <label className="md:col-span-2 text-sm font-semibold text-slate-700">
+                  소스코드
+                  <textarea
+                    value={form.source}
+                    onChange={(event) => updateForm('source', event.target.value)}
+                    placeholder="소스코드 또는 참고 코드"
+                    rows={8}
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
                   />
                 </label>
@@ -1038,9 +1326,9 @@ export function AdminTemplatesPage() {
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {form.missions.map((mission, index) => (
+                  {form.missions.map((mission, index) => checkProblemMissionType(mission.missionType) ? null : (
                     <div key={index} className="rounded-md bg-slate-50 p-3">
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[6rem_minmax(0,1fr)_8rem_auto]">
                         <input
                           value={mission.id}
                           onChange={(event) => updateTemplateMission(index, 'id', event.target.value)}
@@ -1053,6 +1341,15 @@ export function AdminTemplatesPage() {
                           placeholder="title"
                           className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                         />
+                        <select
+                          value={mission.missionType ?? 'CONCEPT'}
+                          onChange={(event) => updateTemplateMission(index, 'missionType', event.target.value as PracticeMissionType)}
+                          className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                        >
+                          {missionTypes.map((type) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
                         <button
                           type="button"
                           onClick={() => deleteTemplateMission(index)}
@@ -1061,10 +1358,16 @@ export function AdminTemplatesPage() {
                           삭제
                         </button>
                       </div>
+                      <input
+                        value={mission.description ?? ''}
+                        onChange={(event) => updateTemplateMission(index, 'description', event.target.value)}
+                        placeholder="description (선택사항)"
+                        className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                      />
                       <textarea
-                        value={mission.steps.join('\n')}
+                        value={(mission.steps ?? []).join('\n')}
                         onChange={(event) => updateTemplateMissionSteps(index, event.target.value)}
-                        placeholder="steps"
+                        placeholder="steps (한 줄씩)"
                         rows={4}
                         className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
@@ -1075,13 +1378,13 @@ export function AdminTemplatesPage() {
 
               <section className="rounded-md border border-slate-200 p-3">
                 <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-950">면접질문</h4>
+                  <h4 className="text-sm font-bold text-slate-950">문제</h4>
                   <button
                     type="button"
                     onClick={() =>
                       setForm((currentForm) => ({
                         ...currentForm,
-                        interviewQuestions: [...currentForm.interviewQuestions, createInterviewQuestion()],
+                        missions: [...currentForm.missions, createTemplateProblem()],
                       }))
                     }
                     className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
@@ -1089,28 +1392,52 @@ export function AdminTemplatesPage() {
                     추가
                   </button>
                 </div>
-                <div className="space-y-2">
-                  {form.interviewQuestions.map((question, index) => (
-                    <div key={index} className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                <div className="space-y-3">
+                  {form.missions.map((mission, index) => !checkProblemMissionType(mission.missionType) ? null : (
+                    <div key={index} className="rounded-md bg-slate-50 p-3">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[6rem_minmax(0,1fr)_8rem_auto]">
+                        <input
+                          value={mission.id}
+                          onChange={(event) => updateTemplateMission(index, 'id', event.target.value)}
+                          placeholder="id"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <input
+                          value={mission.title}
+                          onChange={(event) => updateTemplateMission(index, 'title', event.target.value)}
+                          placeholder="문제 제목"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <select
+                          value={mission.missionType ?? 'TEST'}
+                          onChange={(event) => updateTemplateMission(index, 'missionType', event.target.value as PracticeMissionType)}
+                          className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                        >
+                          {problemMissionTypes.map((type) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => deleteTemplateMission(index)}
+                          className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
+                        >
+                          삭제
+                        </button>
+                      </div>
                       <input
-                        value={question.question}
-                        onChange={(event) => updateInterviewQuestion(index, 'question', event.target.value)}
-                        placeholder="question"
-                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        value={mission.description ?? ''}
+                        onChange={(event) => updateTemplateMission(index, 'description', event.target.value)}
+                        placeholder="문제 설명"
+                        className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
                       />
-                      <input
-                        value={question.answerHint}
-                        onChange={(event) => updateInterviewQuestion(index, 'answerHint', event.target.value)}
-                        placeholder="answerHint"
-                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                      <textarea
+                        value={(mission.steps ?? []).join('\n')}
+                        onChange={(event) => updateTemplateMissionSteps(index, event.target.value)}
+                        placeholder="풀이 단계 또는 검증 가이드 (한 줄씩)"
+                        rows={4}
+                        className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
-                      <button
-                        type="button"
-                        onClick={() => deleteInterviewQuestion(index)}
-                        className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
-                      >
-                        삭제
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -1132,7 +1459,7 @@ export function AdminTemplatesPage() {
                     추가
                   </button>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {form.testCases.map((testCase, index) => (
                     <div key={index} className="rounded-md bg-slate-50 p-3">
                       <div className="mb-2 flex justify-end">
@@ -1148,25 +1475,68 @@ export function AdminTemplatesPage() {
                         <textarea
                           value={testCase.input}
                           onChange={(event) => updateTestCase(index, 'input', event.target.value)}
-                          placeholder="input"
+                          placeholder="문제 입력"
                           rows={4}
                           className="rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
                         />
                         <textarea
-                          value={testCase.expectedOutput}
+                          value={testCase.expectedOutput ?? testCase.expected_output ?? ''}
                           onChange={(event) => updateTestCase(index, 'expectedOutput', event.target.value)}
-                          placeholder="expectedOutput"
+                          placeholder="기대 출력"
                           rows={4}
                           className="rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
                         />
                         <textarea
-                          value={testCase.validationScript ?? ''}
-                          onChange={(event) => updateTestCase(index, 'validationScript', event.target.value)}
-                          placeholder="validationScript"
+                          value={testCase.description ?? ''}
+                          onChange={(event) => updateTestCase(index, 'description', event.target.value)}
+                          placeholder="문제 설명"
                           rows={4}
                           className="md:col-span-2 rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
                         />
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-md border border-slate-200 p-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-950">면접질문</h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        interviewQuestions: [...currentForm.interviewQuestions, createInterviewQuestion()],
+                      }))
+                    }
+                    className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    추가
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {form.interviewQuestions.map((question, index) => (
+                    <div key={index} className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                      <input
+                        value={question.question}
+                        onChange={(event) => updateInterviewQuestion(index, 'question', event.target.value)}
+                        placeholder="question"
+                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <input
+                        value={question.answerHint}
+                        onChange={(event) => updateInterviewQuestion(index, 'answerHint', event.target.value)}
+                        placeholder="answerHint"
+                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deleteInterviewQuestion(index)}
+                        className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
+                      >
+                        삭제
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1198,6 +1568,200 @@ export function AdminTemplatesPage() {
                 )}
               </div>
             </form>
+          </AdminCard>
+
+          <AdminCard>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-950">전체 소스코드</h3>
+                <p className="text-sm text-slate-500">이 섹션의 파일들이 사용자 템플릿 화면에서 그대로 탭으로 보입니다.</p>
+              </div>
+              {selectedTemplate && (
+                <button
+                  type="button"
+                  onClick={resetPracticeFileForm}
+                  className="rounded-md border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-700"
+                >
+                  새 파일
+                </button>
+              )}
+            </div>
+
+            {!selectedTemplate ? (
+              <AdminEmpty message="템플릿을 먼저 선택하거나 저장해야 실습 파일을 편집할 수 있습니다." />
+            ) : practiceFiles.length > 0 ? (
+              <div className="space-y-4">
+                <SourceCodeSection
+                  files={practiceFiles}
+                  isDarkMode={false}
+                  onOpenEditor={(filePath) => {
+                    const file = practiceFiles.find((practiceFile) => practiceFile.filePath === filePath);
+
+                    if (file) {
+                      selectPracticeFile(file);
+                    }
+                  }}
+                />
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <input
+                    value={practiceFileForm.filePath}
+                    onChange={(event) =>
+                      setPracticeFileForm((current) => ({
+                        ...current,
+                        filePath: event.target.value,
+                        language: current.readOnly ? current.language : findLanguageByPath(event.target.value),
+                      }))
+                    }
+                    placeholder="src/app/page.tsx"
+                    className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                  <input
+                    value={practiceFileForm.language}
+                    onChange={(event) => setPracticeFileForm((current) => ({ ...current, language: event.target.value }))}
+                    placeholder="typescript"
+                    className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={practiceFileForm.orderIndex}
+                    onChange={(event) =>
+                      setPracticeFileForm((current) => ({ ...current, orderIndex: Number(event.target.value) }))
+                    }
+                    className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                  <label className="flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={practiceFileForm.readOnly}
+                      onChange={(event) =>
+                        setPracticeFileForm((current) => ({
+                          ...current,
+                          readOnly: event.target.checked,
+                        }))
+                      }
+                    />
+                    읽기 전용
+                  </label>
+                  <div className="md:col-span-2">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-800">코드 내용</span>
+                      <span className="text-xs text-slate-500">빈 파일도 바로 입력할 수 있습니다.</span>
+                    </div>
+                    <div className="h-[34rem] overflow-hidden rounded-md border border-slate-300">
+                    <CodeEditor
+                      fileName={practiceFileForm.filePath || 'new-file'}
+                      code={practiceFileForm.content}
+                      onCodeChange={(content) => setPracticeFileForm((current) => ({ ...current, content }))}
+                      fileTabs={practiceFiles.map((file) => file.filePath)}
+                      activeFile={practiceFileForm.filePath || currentPracticeFile?.filePath}
+                      onFileSelect={(filePath) => {
+                        const file = practiceFiles.find((practiceFile) => practiceFile.filePath === filePath);
+
+                        if (file) {
+                          selectPracticeFile(file);
+                        }
+                      }}
+                      hasContent
+                      showRunner={false}
+                    />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void savePracticeFile()}
+                    className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    파일 저장
+                  </button>
+                  {selectedPracticeFileId && (
+                    <button
+                      type="button"
+                      onClick={() => void deletePracticeFile()}
+                      className="rounded-md border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700"
+                    >
+                      파일 삭제
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <AdminEmpty message="등록된 실습 파일이 없습니다. 아래에서 첫 파일을 추가하세요." />
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <input
+                    value={practiceFileForm.filePath}
+                    onChange={(event) =>
+                      setPracticeFileForm((current) => ({
+                        ...current,
+                        filePath: event.target.value,
+                        language: findLanguageByPath(event.target.value),
+                      }))
+                    }
+                    placeholder="src/app/page.tsx"
+                    className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                  <input
+                    value={practiceFileForm.language}
+                    onChange={(event) => setPracticeFileForm((current) => ({ ...current, language: event.target.value }))}
+                    placeholder="typescript"
+                    className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={practiceFileForm.orderIndex}
+                    onChange={(event) =>
+                      setPracticeFileForm((current) => ({ ...current, orderIndex: Number(event.target.value) }))
+                    }
+                    className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                  <label className="flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={practiceFileForm.readOnly}
+                      onChange={(event) =>
+                        setPracticeFileForm((current) => ({
+                          ...current,
+                          readOnly: event.target.checked,
+                        }))
+                      }
+                    />
+                    읽기 전용
+                  </label>
+                  <div className="md:col-span-2">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-800">코드 내용</span>
+                      <span className="text-xs text-slate-500">파일 경로를 입력한 뒤 코드를 작성하세요.</span>
+                    </div>
+                    <div className="h-[34rem] overflow-hidden rounded-md border border-slate-300">
+                    <CodeEditor
+                      fileName={practiceFileForm.filePath || 'new-file'}
+                      code={practiceFileForm.content}
+                      onCodeChange={(content) => setPracticeFileForm((current) => ({ ...current, content }))}
+                      fileTabs={[]}
+                      activeFile={practiceFileForm.filePath}
+                      onFileSelect={() => {}}
+                      hasContent
+                      showRunner={false}
+                    />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void savePracticeFile()}
+                    className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    파일 추가
+                  </button>
+                </div>
+              </div>
+            )}
           </AdminCard>
 
           {selectedTemplate && (
