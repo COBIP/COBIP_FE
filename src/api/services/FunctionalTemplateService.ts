@@ -1,7 +1,10 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
 
 function getAuthHeaders(): Record<string, string> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('access_token') ?? localStorage.getItem('accessToken')
+      : null;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -92,6 +95,15 @@ export type TemplatePracticeDetailApiResponse = {
   progress: TemplatePracticeProgressApiResponse | null;
 };
 
+export type TemplatePracticeProjectRunResponse = {
+  status: string;
+  exitCode: number;
+  stdout: string | null;
+  stderr: string | null;
+  message: string | null;
+  durationMillis: number;
+};
+
 export type FunctionalTemplateCardViewModel = {
   id: string;
   title: string;
@@ -173,6 +185,24 @@ export async function getTemplate(templateId: number): Promise<TemplateDetailApi
   return result.data;
 }
 
+export async function createTemplateFavorite(templateId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/templates/${templateId}/favorite`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  await parseJsonResponse<{ data: null }>(response);
+}
+
+export async function deleteTemplateFavorite(templateId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/templates/${templateId}/favorite`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  await parseJsonResponse<{ data: null }>(response);
+}
+
 export async function getTemplatePractice(templateId: number): Promise<TemplatePracticeDetailApiResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/templates/${templateId}/practice`, {
     headers: getAuthHeaders(),
@@ -202,10 +232,10 @@ export async function updateTemplatePracticeMissionProgress(
 ): Promise<TemplatePracticeProgressApiResponse> {
   const response = await fetch(
     `${API_BASE_URL}/api/v1/templates/${templateId}/practice/missions/${missionId}/progress`,
-    {...getAuthHeaders(),
-        
+    {
       method: 'PATCH',
       headers: {
+        ...getAuthHeaders(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ status }),
@@ -213,5 +243,39 @@ export async function updateTemplatePracticeMissionProgress(
   );
 
   const result = await parseJsonResponse<{ data: TemplatePracticeProgressApiResponse }>(response);
+  return result.data;
+}
+
+export async function updateTemplatePracticeComplete(
+  templateId: number,
+  missionIds: number[],
+): Promise<TemplatePracticeProgressApiResponse> {
+  let progress = await createTemplatePracticeStart(templateId);
+
+  for (const missionId of missionIds) {
+    progress = await updateTemplatePracticeMissionProgress(templateId, missionId, 'COMPLETED');
+  }
+
+  return progress;
+}
+
+export async function fetchTemplatePracticeProjectRun(
+  templateId: number,
+  missionId: number,
+  files: Array<{ filePath: string; content: string }>,
+): Promise<TemplatePracticeProjectRunResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/templates/${templateId}/practice/missions/${missionId}/project/run`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ files }),
+    },
+  );
+
+  const result = await parseJsonResponse<{ data: TemplatePracticeProjectRunResponse }>(response);
   return result.data;
 }

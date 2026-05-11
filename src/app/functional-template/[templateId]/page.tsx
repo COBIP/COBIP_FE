@@ -1,16 +1,19 @@
-"use client";
+'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { FunctionalTemplateLayout } from '@/features/functional-template/components/FunctionalTemplateLayout';
-import type { TemplateDetailApiResponse } from '@/api/services/FunctionalTemplateService';
-import type { TemplatePracticeDetailApiResponse } from '@/api/services/FunctionalTemplateService';
-import { getTemplate, getTemplatePractice } from '@/api/services/FunctionalTemplateService';
+import {
+  getTemplate,
+  getTemplatePractice,
+  type TemplateDetailApiResponse,
+  type TemplatePracticeDetailApiResponse,
+} from '@/api/services/FunctionalTemplateService';
 
 export default function FunctionalTemplateDetail() {
   const params = useParams();
-  const templateId = params?.templateId ? parseInt(String(params.templateId), 10) : null;
-  
+  const templateId = params?.templateId ? Number.parseInt(String(params.templateId), 10) : null;
+
   const [template, setTemplate] = useState<TemplateDetailApiResponse | null>(null);
   const [practice, setPractice] = useState<TemplatePracticeDetailApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,15 +40,11 @@ export default function FunctionalTemplateDetail() {
           throw templateResult.reason;
         }
 
-        if (practiceResult.status === 'fulfilled') {
-          setPractice(practiceResult.value);
-        } else {
-          setPractice(null);
-        }
+        setPractice(practiceResult.status === 'fulfilled' ? practiceResult.value : null);
         setError(null);
-      } catch (err) {
-        console.error('Failed to load template:', err);
-        setError(err instanceof Error ? err.message : '템플릿을 로드할 수 없습니다.');
+      } catch (loadError) {
+        console.error('Failed to load template:', loadError);
+        setError(loadError instanceof Error ? loadError.message : '템플릿을 불러오지 못했습니다.');
         setTemplate(null);
         setPractice(null);
       } finally {
@@ -53,15 +52,15 @@ export default function FunctionalTemplateDetail() {
       }
     };
 
-    loadTemplate();
+    void loadTemplate();
   }, [templateId]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">템플릿을 로드하는 중입니다...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-purple-600" />
+          <p className="text-gray-600">템플릿을 불러오는 중입니다...</p>
         </div>
       </div>
     );
@@ -69,12 +68,13 @@ export default function FunctionalTemplateDetail() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="mb-4 text-red-600">{error}</p>
           <button
+            type="button"
             onClick={() => window.history.back()}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            className="rounded-lg bg-purple-600 px-4 py-2 text-white transition hover:bg-purple-700"
           >
             뒤로가기
           </button>
@@ -85,14 +85,14 @@ export default function FunctionalTemplateDetail() {
 
   if (!template) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <p className="text-gray-600">템플릿을 찾을 수 없습니다.</p>
       </div>
     );
   }
 
   return (
-    <FunctionalTemplateLayout 
+    <FunctionalTemplateLayout
       templateTitle={template.title}
       templateId={templateId}
       template={template}
