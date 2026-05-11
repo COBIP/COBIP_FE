@@ -27,7 +27,7 @@ const getInitialSession = () => {
     };
   }
 
-  const accessToken = localStorage.getItem('accessToken');
+  const accessToken = localStorage.getItem('accessToken') ?? localStorage.getItem('access_token');
   const nickname = localStorage.getItem('nickname');
   const profileImage = localStorage.getItem('profileImage');
   const storedRole = localStorage.getItem('userRole') as TokenRole | null;
@@ -59,6 +59,7 @@ export const useUserStore = create<UserState>((set) => ({
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('accessToken', token);
+      localStorage.setItem('access_token', token);
       localStorage.setItem('nickname', nickname);
 
       if (profileImage) {
@@ -80,6 +81,7 @@ export const useUserStore = create<UserState>((set) => ({
 
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('access_token');
       localStorage.removeItem('nickname');
       localStorage.removeItem('profileImage');
       localStorage.removeItem('userRole');
