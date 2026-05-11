@@ -1,4 +1,5 @@
 // src/features/dashboard/components/RecentLearningSection.tsx
+import Link from 'next/link';
 import type { RecentLearning } from '@/app/types/DashboardTypes';
 
 interface RecentLearningSectionProps {
@@ -14,11 +15,9 @@ export function RecentLearningSection({ learnings }: RecentLearningSectionProps)
         <p className="text-sm text-gray-500 py-4 text-center">아직 최근 학습 내역이 없습니다.</p>
       ) : (
         <div className="space-y-3">
-          {learnings.map((learning) => (
-            <div
-              key={learning.id}
-              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
-            >
+          {learnings.map((learning) => {
+            const content = (
+              <>
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
@@ -41,8 +40,26 @@ export function RecentLearningSection({ learnings }: RecentLearningSectionProps)
               <p className="text-xs text-gray-600 mt-2">
                 {learning.completionRate}% 완료
               </p>
-            </div>
-          ))}
+              </>
+            );
+
+            return learning.href ? (
+              <Link
+                key={learning.id}
+                href={learning.href}
+                className="block rounded-lg border border-gray-200 p-4 transition hover:bg-gray-50"
+              >
+                {content}
+              </Link>
+            ) : (
+              <div
+                key={learning.id}
+                className="rounded-lg border border-gray-200 p-4 transition hover:bg-gray-50"
+              >
+                {content}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

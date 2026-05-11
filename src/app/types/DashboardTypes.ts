@@ -29,6 +29,7 @@ export interface RecentLearning {
   category: string;
   completionRate: number;
   lastStudiedDate: string;
+  href?: string;
 }
 
 export interface RecommendedCourse {
