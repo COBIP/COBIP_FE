@@ -69,10 +69,12 @@ export type AdminUserDetail = AdminUserSummary & {
 export interface AdminTemplateSummary {
   id: number;
   title: string;
+  summary?: string;
   category: string;
   difficulty: AdminDifficulty;
   visibility: AdminVisibility;
   accessLevel: AdminAccessLevel;
+  published?: boolean;
   viewCount: number;
   favoriteCount: number;
   ownerId: number;
@@ -81,15 +83,47 @@ export interface AdminTemplateSummary {
   updatedAt: string;
 }
 
+export interface AdminTemplateRequirement {
+  type: string;
+  description: string;
+  optionalFlag: boolean;
+}
+
+export interface AdminTemplateMissionDraft {
+  id: string;
+  title: string;
+  steps: string[];
+}
+
+export interface AdminTemplateInterviewQuestion {
+  question: string;
+  answerHint: string;
+}
+
+export interface AdminTemplateTestCase {
+  input: string;
+  expectedOutput: string;
+  validationScript?: string;
+}
+
 export interface AdminTemplateDetail extends AdminTemplateSummary {
   description?: string;
   techStacks?: string[];
   designIntent?: string;
+  structure?: string;
+  requirements?: AdminTemplateRequirement[];
   requirementsSpec?: string;
+  missions?: AdminTemplateMissionDraft[];
   erd?: string;
   apiSpec?: string;
   projectStructure?: string;
-  interviewQuestions?: string[];
+  interviewQuestions?: Array<string | AdminTemplateInterviewQuestion>;
+  runtime?: string;
+  testCases?: AdminTemplateTestCase[];
+  tags?: string[];
+  previewImage?: string;
+  license?: string;
+  source?: string;
   fileUrl?: string;
   thumbnailUrl?: string;
 }
@@ -101,18 +135,29 @@ export interface AdminTemplateExposurePayload {
 
 export interface AdminTemplatePayload {
   title: string;
+  summary?: string;
   description: string;
   category: string;
   difficulty: AdminDifficulty;
   techStacks: string[];
   designIntent: string;
+  structure?: string;
+  requirements?: AdminTemplateRequirement[];
   requirementsSpec: string;
+  missions?: AdminTemplateMissionDraft[];
   erd: string;
   apiSpec: string;
   projectStructure: string;
-  interviewQuestions: string[];
+  interviewQuestions: AdminTemplateInterviewQuestion[];
+  runtime?: string;
+  testCases?: AdminTemplateTestCase[];
+  tags?: string[];
+  previewImage?: string;
   visibility: AdminVisibility;
   accessLevel: AdminAccessLevel;
+  published?: boolean;
+  license?: string;
+  source?: string;
 }
 
 export interface GrammarTemplateSummary {
