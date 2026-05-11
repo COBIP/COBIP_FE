@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Layers3, Loader2, Play, Sparkles } from 'lucide-react';
+import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Layers3, Play, Sparkles } from 'lucide-react';
 import { useUserStore } from '@/store/UseUserStore';
 import { Header } from './Header';
 import { TabNav } from './TabNav';
@@ -21,10 +21,12 @@ import {
   createTemplatePracticeStart,
   deleteTemplateFavorite,
   fetchTemplatePracticeProjectRun,
-  updateTemplatePracticeComplete,
+  getTemplatePractice,
+  submitTemplatePracticeProject,
   type TemplateDetailApiResponse,
   type TemplatePracticeDetailApiResponse,
   type TemplatePracticeFileApiResponse,
+  type TemplatePracticeMissionApiResponse,
   type TemplatePracticeProgressApiResponse,
 } from '@/api/services/FunctionalTemplateService';
 
@@ -73,6 +75,10 @@ interface FunctionalTemplateLayoutProps {
 
 function checkProblemMissionType(missionType?: string) {
   return missionType === 'DEBUGGING' || missionType === 'TEST';
+}
+
+function getPracticeMissionType(mission: TemplatePracticeMissionApiResponse) {
+  return mission.missionType ?? mission.type;
 }
 
 function buildEditorFileTree(files: TemplatePracticeFileApiResponse[], templateTitle: string): FileTreeItem[] {
@@ -124,6 +130,55 @@ function buildEditorFileTree(files: TemplatePracticeFileApiResponse[], templateT
   return [root];
 }
 
+function getStringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function getArrayFirstString(value: unknown): string | null {
+  if (!Array.isArray(value)) return null;
+  const first = value.find((item) => typeof item === 'string' && item.trim());
+  return getStringValue(first);
+}
+
+function getNestedFilePath(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  return (
+    getStringValue(record.filePath) ??
+    getStringValue(record.path) ??
+    getStringValue(record.targetFilePath) ??
+    getStringValue(record.targetFile)
+  );
+}
+
+function getMissionFilePath(
+  mission: TemplatePracticeMissionApiResponse,
+  files: TemplatePracticeFileApiResponse[],
+  fallbackIndex: number,
+) {
+  const validation = mission.validationJson ?? {};
+  const directPath =
+    getStringValue(validation.filePath) ??
+    getStringValue(validation.path) ??
+    getStringValue(validation.targetFilePath) ??
+    getStringValue(validation.targetFile) ??
+    getStringValue(validation.mainFile) ??
+    getStringValue(validation.entryFile) ??
+    getArrayFirstString(validation.files) ??
+    getNestedFilePath(Array.isArray(validation.files) ? validation.files[0] : null);
+
+  if (directPath && files.some((file) => file.filePath === directPath)) {
+    return directPath;
+  }
+
+  const mentionedFile = files.find((file) => {
+    const text = `${mission.title}\n${mission.description}\n${mission.guideContent}`;
+    return text.includes(file.filePath) || text.includes(file.filePath.split('/').at(-1) ?? file.filePath);
+  });
+
+  return mentionedFile?.filePath ?? files[fallbackIndex]?.filePath ?? files[0]?.filePath ?? 'main.java';
+}
+
 export function FunctionalTemplateLayout({
   templateTitle,
   templateId,
@@ -142,19 +197,18 @@ export function FunctionalTemplateLayout({
   const [isAiGuruHintMode, setIsAiGuruHintMode] = useState(true);
   const [activeFile, setActiveFile] = useState('main.java');
   const [activeMissionId, setActiveMissionId] = useState<number | null>(null);
+  const [localPractice, setLocalPractice] = useState<TemplatePracticeDetailApiResponse | null>(practice ?? null);
   const [contentWidth, setContentWidth] = useState(760);
   const [explorerWidth, setExplorerWidth] = useState(260);
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
   const [runOutput, setRunOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [practiceProgress, setPracticeProgress] = useState<TemplatePracticeProgressApiResponse | null>(
     practice?.progress ?? null,
   );
   const [isFavorite, setIsFavorite] = useState(Boolean(template?.favorited));
   const [isFavoriteSaving, setIsFavoriteSaving] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [completeMessage, setCompleteMessage] = useState('');
-  const [completeError, setCompleteError] = useState('');
   const [favoriteError, setFavoriteError] = useState('');
 
   const resizingRef = useRef<'content' | 'explorer' | null>(null);
@@ -163,19 +217,19 @@ export function FunctionalTemplateLayout({
   const isDarkMode = themeMode === 'dark';
 
   const practiceFiles = useMemo(
-    () => [...(practice?.files ?? [])].sort((left, right) => left.orderIndex - right.orderIndex || left.filePath.localeCompare(right.filePath)),
-    [practice?.files],
+    () => [...(localPractice?.files ?? [])].sort((left, right) => left.orderIndex - right.orderIndex || left.filePath.localeCompare(right.filePath)),
+    [localPractice?.files],
   );
   const practiceMissions = useMemo(
-    () => [...(practice?.missions ?? [])].sort((left, right) => left.orderIndex - right.orderIndex),
-    [practice?.missions],
+    () => [...(localPractice?.missions ?? [])].sort((left, right) => left.orderIndex - right.orderIndex),
+    [localPractice?.missions],
   );
   const missionItems = useMemo(
-    () => practiceMissions.filter((mission) => !checkProblemMissionType(mission.missionType)),
+    () => practiceMissions.filter((mission) => !checkProblemMissionType(getPracticeMissionType(mission))),
     [practiceMissions],
   );
   const problemItems = useMemo(
-    () => practiceMissions.filter((mission) => checkProblemMissionType(mission.missionType)),
+    () => practiceMissions.filter((mission) => checkProblemMissionType(getPracticeMissionType(mission))),
     [practiceMissions],
   );
   const hasPracticeFiles = practiceFiles.length > 0;
@@ -197,17 +251,16 @@ export function FunctionalTemplateLayout({
   );
   const progressPercent = practiceProgress?.progressPercent ?? 0;
   const isCompleted = practiceProgress?.status === 'COMPLETED' || progressPercent >= 100;
-  const visibleTags = (template?.techStacks ?? []).slice(0, 3);
+  const visibleTags = (template?.tags && template.tags.length > 0 ? template.tags : template?.techStacks ?? []).slice(0, 3);
 
   const learningPoint = useMemo(() => {
-    const firstMissionGuide = practiceMissions[0]?.guideContent || practiceMissions[0]?.description;
-    return firstMissionGuide || template?.description || TEXT.defaultLearningPoint;
-  }, [practiceMissions, template?.description]);
+    return template?.summary || template?.description || TEXT.defaultLearningPoint;
+  }, [template?.description, template?.summary]);
   const conceptKeywords = useMemo(() => {
-    const keywords = [...(template?.techStacks ?? [])];
+    const keywords = template?.tags && template.tags.length > 0 ? [...template.tags] : [...(template?.techStacks ?? [])];
     if (template?.category) keywords.unshift(template.category);
-    return keywords.filter(Boolean).slice(0, 4);
-  }, [template?.category, template?.techStacks]);
+    return Array.from(new Set(keywords.filter(Boolean))).slice(0, 4);
+  }, [template?.category, template?.tags, template?.techStacks]);
   const references = useMemo(() => {
     const fileRefs = practiceFiles.map((file) => file.filePath).slice(0, 3);
     const missionRefs = practiceMissions.map((mission) => mission.title).slice(0, 3);
@@ -215,8 +268,9 @@ export function FunctionalTemplateLayout({
   }, [practiceFiles, practiceMissions]);
 
   useEffect(() => {
+    setLocalPractice(practice ?? null);
     setPracticeProgress(practice?.progress ?? null);
-  }, [practice?.progress]);
+  }, [practice]);
 
   useEffect(() => {
     setIsFavorite(Boolean(template?.favorited));
@@ -228,11 +282,31 @@ export function FunctionalTemplateLayout({
     if (practiceMissions[0]) setActiveMissionId(practiceMissions[0].id);
   }, [practiceFiles, practiceMissions]);
 
-  const openEditor = (filePath?: string, missionId?: number) => {
+  const refreshPractice = async () => {
+    if (!templateId) return;
+    const nextPractice = await getTemplatePractice(templateId);
+    setLocalPractice(nextPractice);
+    setPracticeProgress(nextPractice.progress ?? null);
+    if (nextPractice.progress?.currentMissionId) {
+      setActiveMissionId(nextPractice.progress.currentMissionId);
+    }
+  };
+
+  const openEditor = async (filePath?: string, missionId?: number) => {
     if (filePath) setActiveFile(filePath);
     else if (practiceFiles[0]) setActiveFile(practiceFiles[0].filePath);
-    setActiveMissionId(missionId ?? activeMissionId ?? practiceMissions[0]?.id ?? null);
+    const nextMissionId = missionId ?? activeMissionId ?? practiceMissions[0]?.id ?? null;
+    setActiveMissionId(nextMissionId);
     setIsEditorOpen(true);
+
+    if (templateId) {
+      try {
+        const progress = await createTemplatePracticeStart(templateId);
+        setPracticeProgress(progress);
+      } catch {
+        // 에디터 열기는 진행되어야 하므로 시작 기록 실패는 조용히 무시합니다.
+      }
+    }
   };
 
   const buildProjectFiles = () =>
@@ -274,6 +348,40 @@ export function FunctionalTemplateLayout({
     }
   };
 
+  const handleSubmitProject = async () => {
+    if (!templateId || isSubmitting) return;
+    const missionId = activeMissionId ?? practiceMissions[0]?.id;
+
+    if (!missionId) {
+      setRunOutput('제출할 미션이나 문제를 먼저 선택해주세요.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setRunOutput('제출 중...');
+
+    try {
+      const result = await submitTemplatePracticeProject(templateId, missionId, buildProjectFiles());
+      setRunOutput(
+        [
+          `status: ${result.status}`,
+          `passed: ${result.passedCount}/${result.totalCount}`,
+          result.stdout ? `stdout:\n${result.stdout}` : '',
+          result.stderr ? `stderr:\n${result.stderr}` : '',
+          result.compileOutput ? `compile:\n${result.compileOutput}` : '',
+          result.message ? `message:\n${result.message}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+      );
+      await refreshPractice();
+    } catch (error) {
+      setRunOutput(error instanceof Error ? error.message : '제출에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleFavoriteToggle = async () => {
     if (!templateId || isFavoriteSaving) return;
 
@@ -293,28 +401,6 @@ export function FunctionalTemplateLayout({
     }
   };
 
-  const handleMarkComplete = async () => {
-    if (!templateId || isCompleting || isCompleted) return;
-
-    setIsCompleting(true);
-    setCompleteMessage('');
-    setCompleteError('');
-
-    try {
-      const missionIds = practiceMissions.map((mission) => mission.id);
-      const nextProgress = missionIds.length > 0
-        ? await updateTemplatePracticeComplete(templateId, missionIds)
-        : await createTemplatePracticeStart(templateId);
-
-      setPracticeProgress(nextProgress);
-      setCompleteMessage(nextProgress.progressPercent >= 100 ? TEXT.completeSaved : TEXT.progressSaved);
-    } catch (error) {
-      setCompleteError(error instanceof Error ? error.message : TEXT.completeFailed);
-    } finally {
-      setIsCompleting(false);
-    }
-  };
-
   const renderContent = () => {
     switch (activeTab) {
       case 'design-intent':
@@ -328,10 +414,11 @@ export function FunctionalTemplateLayout({
           <MissionSection
             title="미션"
             isDarkMode={isDarkMode}
+            activeMissionId={activeMissionId}
             onOpenEditor={openEditor}
             missions={missionItems.map((mission, index) => ({
               ...mission,
-              fileName: practiceFiles[index]?.filePath ?? practiceFiles[0]?.filePath ?? 'main.java',
+              fileName: getMissionFilePath(mission, practiceFiles, index),
             }))}
           />
         );
@@ -342,10 +429,11 @@ export function FunctionalTemplateLayout({
             emptyText="아직 연결된 문제가 없습니다."
             actionLabel="문제 풀기"
             isDarkMode={isDarkMode}
+            activeMissionId={activeMissionId}
             onOpenEditor={openEditor}
             missions={problemItems.map((mission, index) => ({
               ...mission,
-              fileName: practiceFiles[index]?.filePath ?? practiceFiles[0]?.filePath ?? 'main.java',
+              fileName: getMissionFilePath(mission, practiceFiles, index),
             }))}
           />
         );
@@ -510,26 +598,26 @@ export function FunctionalTemplateLayout({
                 <div className="h-full rounded-full bg-[#7C3AED] transition-all" style={{ width: `${progressPercent}%` }} />
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => void handleMarkComplete()}
-              disabled={isCompleting || isCompleted}
-              className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${
+            <div
+              className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${
                 isCompleted
                   ? isDarkMode
                     ? 'bg-[#064E3B] text-[#A7F3D0]'
                     : 'bg-[#ECFDF5] text-[#047857]'
-                  : 'bg-[#7C3AED] text-white hover:bg-[#6D28D9] disabled:opacity-70'
+                  : isDarkMode
+                    ? 'bg-[#1E293B] text-[#CBD5E1]'
+                    : 'bg-[#F1F5F9] text-[#475569]'
               }`}
+              title="실행이 아니라 제출 채점에 통과하면 자동으로 진행률이 올라갑니다."
             >
-              {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              {isCompleted ? TEXT.completed : isCompleting ? TEXT.saving : TEXT.complete}
-            </button>
+              <CheckCircle2 className="h-4 w-4" />
+              {isCompleted ? TEXT.completed : '제출 완료 시 반영'}
+            </div>
           </div>
         </div>
-        {(completeMessage || completeError || favoriteError) && (
-          <p className={`mx-auto mt-2 max-w-[1440px] text-xs ${completeError || favoriteError ? 'text-rose-500' : isDarkMode ? 'text-[#A7F3D0]' : 'text-[#047857]'}`}>
-            {completeError || favoriteError || completeMessage}
+        {favoriteError && (
+          <p className="mx-auto mt-2 max-w-[1440px] text-xs text-rose-500">
+            {favoriteError}
           </p>
         )}
       </div>
@@ -537,7 +625,7 @@ export function FunctionalTemplateLayout({
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} isDarkMode={isDarkMode} />
 
       <div className={`relative flex min-h-0 flex-1 overflow-hidden ${isMemoOpen ? 'pr-80' : ''}`}>
-        {isEditorOpen && hasPracticeFiles ? (
+        {isEditorOpen ? (
           <div className="flex min-w-0 flex-1 overflow-hidden">
             <section
               style={{ width: `${contentWidth}px` }}
@@ -606,9 +694,11 @@ export function FunctionalTemplateLayout({
                     activeFile={resolvedActiveFile}
                     onFileSelect={setActiveFile}
                     isDarkMode={isDarkMode}
-                    hasContent={editorCode.length > 0}
+                    hasContent={hasPracticeFiles}
                     onRun={() => void handleRunProject()}
+                    onSubmit={() => void handleSubmitProject()}
                     isRunning={isRunning}
+                    isSubmitting={isSubmitting}
                     runOutput={runOutput}
                   />
                 </div>
@@ -617,21 +707,19 @@ export function FunctionalTemplateLayout({
           </div>
         ) : (
           <>
-            {hasPracticeFiles && (
-              <button
-                type="button"
-                aria-label={TEXT.editorOpen}
-                title={TEXT.editorOpen}
-                onClick={() => openEditor()}
-                className={`absolute right-0 top-8 z-20 flex h-12 w-8 items-center justify-center rounded-l-lg border-2 border-r-0 text-[#7C3AED] shadow-md transition-colors ${
-                  isDarkMode
-                    ? 'border-[#7C3AED] bg-[#1E293B] hover:bg-[#334155]'
-                    : 'border-[#D8B4FE] bg-[#F3E8FF] hover:bg-[#EDE9FE]'
-                }`}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            )}
+            <button
+              type="button"
+              aria-label={TEXT.editorOpen}
+              title={TEXT.editorOpen}
+              onClick={() => void openEditor()}
+              className={`absolute right-0 top-8 z-20 flex h-12 w-8 items-center justify-center rounded-l-lg border-2 border-r-0 text-[#7C3AED] shadow-md transition-colors ${
+                isDarkMode
+                  ? 'border-[#7C3AED] bg-[#1E293B] hover:bg-[#334155]'
+                  : 'border-[#D8B4FE] bg-[#F3E8FF] hover:bg-[#EDE9FE]'
+              }`}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
             <section className={`min-w-0 flex-1 overflow-y-auto ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
               <div className="mx-auto max-w-[1040px] px-5 py-5 lg:px-6 lg:py-6">{renderContent()}</div>
             </section>

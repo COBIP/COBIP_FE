@@ -8,6 +8,7 @@ interface MissionSectionProps {
   title?: string;
   emptyText?: string;
   actionLabel?: string;
+  activeMissionId?: number | null;
   onOpenEditor?: (fileName: string, missionId: number) => void;
   missions?: Array<TemplatePracticeMissionApiResponse & { fileName?: string }>;
 }
@@ -17,6 +18,7 @@ export function MissionSection({
   title = '미션',
   emptyText = '아직 연결된 미션이 없습니다.',
   actionLabel = '풀어보기',
+  activeMissionId,
   onOpenEditor,
   missions,
 }: MissionSectionProps) {
@@ -27,9 +29,10 @@ export function MissionSection({
         fileName: mission.fileName,
         summary: mission.description,
         explanation: mission.guideContent,
-        missionType: mission.missionType,
-      }))
+        missionType: mission.missionType ?? mission.type,
+    }))
     : [];
+  const selectedStep = steps.find((step) => step.id === activeMissionId) ?? steps[0];
 
   return (
     <div className="space-y-4">
@@ -51,9 +54,11 @@ export function MissionSection({
                   type="button"
                   onClick={() => onOpenEditor?.(step.fileName ?? 'main.java', step.id)}
                   className={`w-full rounded-md border px-3 py-3 text-left transition-colors duration-300 ${
-                    isDarkMode
-                      ? 'border-[#334155] bg-[#0F172A] text-[#CBD5E1] hover:bg-[#1E293B]'
-                      : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
+                    step.id === activeMissionId
+                      ? 'border-[#7C3AED] bg-[#7C3AED]/10 text-[#5B21B6]'
+                      : isDarkMode
+                        ? 'border-[#334155] bg-[#0F172A] text-[#CBD5E1] hover:bg-[#1E293B]'
+                        : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -87,8 +92,8 @@ export function MissionSection({
             >
               <h3 className="mb-2 text-[15px] font-semibold text-[#7C3AED]">가이드</h3>
               <div className={`text-[13px] leading-relaxed ${isDarkMode ? 'text-[#CBD5E1]' : 'text-[#475569]'}`}>
-                {steps[0]?.explanation ? (
-                  <MarkdownTextView content={steps[0].explanation} isDarkMode={isDarkMode} />
+                {selectedStep?.explanation ? (
+                  <MarkdownTextView content={selectedStep.explanation} isDarkMode={isDarkMode} />
                 ) : (
                   <p>관리자 실습 관리에서 guideContent를 입력하면 여기에 표시됩니다.</p>
                 )}
