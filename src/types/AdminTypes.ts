@@ -90,9 +90,14 @@ export interface AdminTemplateRequirement {
 }
 
 export interface AdminTemplateMissionDraft {
-  id: string;
+  id: string | number;
   title: string;
-  steps: string[];
+  steps?: string[];
+  description?: string;
+  missionType?: PracticeMissionType;
+  orderIndex?: number;
+  guideContent?: string;
+  validationJson?: Record<string, unknown> | null;
 }
 
 export interface AdminTemplateInterviewQuestion {
@@ -101,9 +106,12 @@ export interface AdminTemplateInterviewQuestion {
 }
 
 export interface AdminTemplateTestCase {
+  id?: number;
   input: string;
-  expectedOutput: string;
-  validationScript?: string;
+  expectedOutput?: string;
+  expected_output?: string;
+  description?: string;
+  orderIndex?: number;
 }
 
 export interface AdminTemplateDetail extends AdminTemplateSummary {
@@ -114,6 +122,7 @@ export interface AdminTemplateDetail extends AdminTemplateSummary {
   requirements?: AdminTemplateRequirement[];
   requirementsSpec?: string;
   missions?: AdminTemplateMissionDraft[];
+  practiceFiles?: Array<PracticeFile & { path?: string; name?: string }>;
   erd?: string;
   apiSpec?: string;
   projectStructure?: string;
@@ -280,6 +289,7 @@ export interface PracticeMission {
   id: number;
   title: string;
   description?: string;
+  guideContent?: string;
   type?: PracticeMissionType;
   missionType?: PracticeMissionType;
   validationJson: Record<string, unknown>;

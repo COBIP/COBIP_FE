@@ -36,6 +36,48 @@ import type {
 type QueryValue = string | number | boolean | null | undefined;
 type QueryParams = Record<string, QueryValue>;
 
+function buildTemplateRequestBody(payload: AdminTemplatePayload | Partial<AdminTemplatePayload>) {
+  const body: Record<string, unknown> = {};
+
+  if ('title' in payload) body.title = payload.title;
+  if ('summary' in payload) body.summary = payload.summary;
+  if ('description' in payload) body.description = payload.description;
+  if ('category' in payload) body.category = payload.category;
+  if ('difficulty' in payload) body.difficulty = payload.difficulty;
+  if ('techStacks' in payload) body.techStacks = payload.techStacks;
+  if ('tags' in payload) body.tags = payload.tags;
+  if ('runtime' in payload) body.runtime = payload.runtime;
+  if ('previewImage' in payload) body.previewImage = payload.previewImage;
+  if ('license' in payload) body.license = payload.license;
+  if ('source' in payload) body.source = payload.source;
+  if ('designIntent' in payload) body.designIntent = payload.designIntent;
+  if ('requirementsSpec' in payload) body.requirementsSpec = payload.requirementsSpec;
+  if ('erd' in payload) body.erd = payload.erd;
+  if ('apiSpec' in payload) body.apiSpec = payload.apiSpec;
+
+  if ('projectStructure' in payload || 'structure' in payload) {
+    body.projectStructure = payload.projectStructure ?? payload.structure;
+  }
+
+  if ('interviewQuestions' in payload) {
+    body.interviewQuestions = payload.interviewQuestions;
+  }
+
+  if ('testCases' in payload) {
+    body.testCases = payload.testCases?.map((testCase) => ({
+      input: testCase.input,
+      expected_output: testCase.expectedOutput ?? testCase.expected_output,
+      description: testCase.description,
+      orderIndex: testCase.orderIndex,
+    }));
+  }
+  if ('published' in payload) body.published = payload.published;
+  if ('visibility' in payload) body.visibility = payload.visibility;
+  if ('accessLevel' in payload) body.accessLevel = payload.accessLevel;
+
+  return body;
+}
+
 export class AdminApiError extends Error {
   status: number;
 
@@ -85,6 +127,12 @@ async function parseAdminResponse<TData>(response: Response): Promise<TData> {
     : null;
 
   if (!response.ok) {
+    console.error('Admin API Error Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: body,
+      contentType: contentType,
+    });
     throw new AdminApiError(body?.message ?? `관리자 API 요청 실패 (${response.status})`, response.status);
   }
 
@@ -264,14 +312,14 @@ export const adminService = {
   createTemplate(payload: AdminTemplatePayload) {
     return fetchAdminRequest<AdminTemplateDetail>('/api/v1/admin/templates', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildTemplateRequestBody(payload)),
     });
   },
 
   updateTemplate(templateId: number, payload: Partial<AdminTemplatePayload>) {
     return fetchAdminRequest<AdminTemplateDetail>(`/api/v1/admin/templates/${templateId}`, {
       method: 'PATCH',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildTemplateRequestBody(payload)),
     });
   },
 
