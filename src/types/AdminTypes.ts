@@ -94,6 +94,7 @@ export interface AdminTemplateMissionDraft {
   title: string;
   steps?: string[];
   description?: string;
+  type?: PracticeMissionType;
   missionType?: PracticeMissionType;
   orderIndex?: number;
   guideContent?: string;

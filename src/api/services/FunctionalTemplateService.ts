@@ -27,11 +27,18 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 export type TemplateSummaryApiResponse = {
   id: number;
   title: string;
+  summary?: string | null;
   description: string;
   category: string;
   difficulty: string;
   accessLevel: string;
   techStacks: string[];
+  tags?: string[];
+  runtime?: string | null;
+  previewImage?: string | null;
+  license?: string | null;
+  source?: string | null;
+  published?: boolean;
   thumbnailUrl: string | null;
   viewCount: number;
   favoriteCount: number;
@@ -47,7 +54,7 @@ export type TemplateDetailApiResponse = TemplateSummaryApiResponse & {
   erd: string;
   apiSpec: string;
   projectStructure: string;
-  interviewQuestions: string[];
+  interviewQuestions: Array<string | { question: string; answerHint?: string | null }>;
   fileUrl: string | null;
   favorited: boolean;
   updatedAt: string;
@@ -71,6 +78,7 @@ export type TemplatePracticeMissionApiResponse = {
   title: string;
   description: string;
   missionType: TemplatePracticeMissionType;
+  type?: TemplatePracticeMissionType;
   orderIndex: number;
   guideContent: string;
   validationJson: Record<string, unknown> | null;
@@ -102,6 +110,31 @@ export type TemplatePracticeProjectRunResponse = {
   stderr: string | null;
   message: string | null;
   durationMillis: number;
+};
+
+export type TemplatePracticeCodeRunResponse = {
+  status: string;
+  stdout: string | null;
+  stderr: string | null;
+  compileOutput: string | null;
+  message: string | null;
+  time: string | null;
+  memory: number | null;
+};
+
+export type TemplatePracticeSubmissionResponse = {
+  id: number;
+  templateId?: number;
+  missionId?: number;
+  language?: string;
+  status: string;
+  passedCount: number;
+  totalCount: number;
+  stdout: string | null;
+  stderr: string | null;
+  compileOutput?: string | null;
+  message?: string | null;
+  createdAt?: string;
 };
 
 export type FunctionalTemplateCardViewModel = {
@@ -277,5 +310,68 @@ export async function fetchTemplatePracticeProjectRun(
   );
 
   const result = await parseJsonResponse<{ data: TemplatePracticeProjectRunResponse }>(response);
+  return result.data;
+}
+
+export async function fetchTemplatePracticeCodeRun(
+  templateId: number,
+  missionId: number,
+  payload: { language: string; sourceCode: string; input?: string },
+): Promise<TemplatePracticeCodeRunResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/templates/${templateId}/practice/missions/${missionId}/run`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  const result = await parseJsonResponse<{ data: TemplatePracticeCodeRunResponse }>(response);
+  return result.data;
+}
+
+export async function submitTemplatePracticeCode(
+  templateId: number,
+  missionId: number,
+  payload: { language: string; sourceCode: string },
+): Promise<TemplatePracticeSubmissionResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/templates/${templateId}/practice/missions/${missionId}/submissions`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  const result = await parseJsonResponse<{ data: TemplatePracticeSubmissionResponse }>(response);
+  return result.data;
+}
+
+export async function submitTemplatePracticeProject(
+  templateId: number,
+  missionId: number,
+  files: Array<{ filePath: string; content: string }>,
+): Promise<TemplatePracticeSubmissionResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/templates/${templateId}/practice/missions/${missionId}/project/submissions`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ files }),
+    },
+  );
+
+  const result = await parseJsonResponse<{ data: TemplatePracticeSubmissionResponse }>(response);
   return result.data;
 }

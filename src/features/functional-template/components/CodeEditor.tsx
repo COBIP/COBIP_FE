@@ -12,7 +12,9 @@ interface CodeEditorProps {
   isDarkMode?: boolean;
   hasContent?: boolean;
   onRun?: () => void;
+  onSubmit?: () => void;
   isRunning?: boolean;
+  isSubmitting?: boolean;
   runOutput?: string;
   showRunner?: boolean;
 }
@@ -27,7 +29,9 @@ export function CodeEditor({
   isDarkMode = false,
   hasContent = true,
   onRun,
+  onSubmit,
   isRunning = false,
+  isSubmitting = false,
   runOutput,
   showRunner = true,
 }: CodeEditorProps) {
@@ -111,7 +115,7 @@ export function CodeEditor({
             <button
               type="button"
               onClick={onRun}
-              disabled={isEmpty || isRunning || !onRun}
+              disabled={isEmpty || isRunning || isSubmitting || !onRun}
               className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#6D28D9] disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
@@ -119,6 +123,21 @@ export function CodeEditor({
             </button>
 
             <div className="flex items-center gap-2">
+              {onSubmit && (
+                <button
+                  type="button"
+                  onClick={onSubmit}
+                  disabled={isEmpty || isRunning || isSubmitting}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-semibold transition disabled:opacity-50 ${
+                    isDarkMode
+                      ? 'border-emerald-400 text-emerald-300 hover:bg-emerald-950/40'
+                      : 'border-emerald-500 text-emerald-700 hover:bg-emerald-50'
+                  }`}
+                >
+                  <Save className="h-4 w-4" />
+                  {isSubmitting ? '제출 중' : '제출'}
+                </button>
+              )}
               <button
                 type="button"
                 className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium ${

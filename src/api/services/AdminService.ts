@@ -99,7 +99,7 @@ function getAccessToken() {
     return null;
   }
 
-  return localStorage.getItem('accessToken');
+  return localStorage.getItem('accessToken') ?? localStorage.getItem('access_token');
 }
 
 function buildQueryString(params?: QueryParams) {

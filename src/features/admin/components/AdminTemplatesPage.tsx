@@ -172,7 +172,8 @@ function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState
     id: mission.id ?? '',
     title: mission.title ?? '',
     description: mission.description ?? '',
-    missionType: mission.missionType,
+    type: mission.type,
+    missionType: mission.missionType ?? mission.type,
     orderIndex: mission.orderIndex ?? 0,
     guideContent: mission.guideContent ?? '',
     validationJson: mission.validationJson ?? {},
@@ -263,7 +264,8 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
       title: mission.title.trim(),
       steps: (mission.steps ?? []).map((step) => step.trim()).filter(Boolean),
       description: mission.description?.trim() || undefined,
-      missionType: mission.missionType,
+      type: getTemplateMissionType(mission),
+      missionType: getTemplateMissionType(mission),
       orderIndex: mission.orderIndex,
       guideContent: mission.guideContent?.trim() || undefined,
       validationJson: mission.validationJson ?? {},
@@ -391,6 +393,26 @@ function checkProblemMissionType(missionType?: PracticeMissionType) {
   return missionType === 'DEBUGGING' || missionType === 'TEST';
 }
 
+function getTemplateMissionType(mission: AdminTemplateMissionDraft) {
+  return mission.missionType ?? mission.type;
+}
+
+function getMissionValidationJson(mission: AdminTemplateMissionDraft): Record<string, unknown> {
+  return mission.validationJson && typeof mission.validationJson === 'object' ? mission.validationJson : {};
+}
+
+function getMissionTargetFilePath(mission: AdminTemplateMissionDraft) {
+  const validationJson = getMissionValidationJson(mission);
+  const filePath =
+    validationJson.filePath ??
+    validationJson.targetFilePath ??
+    validationJson.targetFile ??
+    validationJson.mainFile ??
+    validationJson.entryFile;
+
+  return typeof filePath === 'string' ? filePath : '';
+}
+
 async function fetchMergedTemplateDetail(templateId: number): Promise<AdminTemplateDetail> {
   const [detail, practice] = await Promise.all([
     adminService.getTemplate(templateId),
@@ -512,7 +534,9 @@ export function AdminTemplatesPage() {
         continue;
       }
 
-      if (!mission.missionType) {
+      const missionType = getTemplateMissionType(mission);
+
+      if (!missionType) {
         const errMsg = `미션 타입이 없습니다. 건너뜁니다. (제목: ${mission.title})`;
         errors.push(errMsg);
         continue;
@@ -524,8 +548,8 @@ export function AdminTemplatesPage() {
       const missionPayload: PracticeMissionPayload = {
         title: mission.title.trim(),
         description: missionDescription,
-        type: mission.missionType,
-        missionType: mission.missionType,
+        type: missionType,
+        missionType,
         guideContent: missionGuideContent,
         validationJson: mission.validationJson ?? {},
         orderIndex: mission.orderIndex ?? index,
@@ -734,6 +758,29 @@ export function AdminTemplatesPage() {
 
   const updateTemplateMissionSteps = (index: number, value: string) => {
     updateTemplateMission(index, 'steps', value.split(/\r?\n/g));
+  };
+
+  const updateTemplateMissionTargetFilePath = (index: number, value: string) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, missionIndex) => {
+        if (missionIndex !== index) return mission;
+
+        const nextValidationJson = { ...getMissionValidationJson(mission) };
+        const nextFilePath = value.trim();
+
+        if (nextFilePath) {
+          nextValidationJson.filePath = nextFilePath;
+        } else {
+          delete nextValidationJson.filePath;
+        }
+
+        return {
+          ...mission,
+          validationJson: nextValidationJson,
+        };
+      }),
+    }));
   };
 
   const deleteTemplateMission = (index: number) => {
@@ -1326,7 +1373,7 @@ export function AdminTemplatesPage() {
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {form.missions.map((mission, index) => checkProblemMissionType(mission.missionType) ? null : (
+                  {form.missions.map((mission, index) => checkProblemMissionType(getTemplateMissionType(mission)) ? null : (
                     <div key={index} className="rounded-md bg-slate-50 p-3">
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-[6rem_minmax(0,1fr)_8rem_auto]">
                         <input
@@ -1342,7 +1389,7 @@ export function AdminTemplatesPage() {
                           className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                         />
                         <select
-                          value={mission.missionType ?? 'CONCEPT'}
+                          value={getTemplateMissionType(mission) ?? 'CONCEPT'}
                           onChange={(event) => updateTemplateMission(index, 'missionType', event.target.value as PracticeMissionType)}
                           className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
                         >
@@ -1362,6 +1409,12 @@ export function AdminTemplatesPage() {
                         value={mission.description ?? ''}
                         onChange={(event) => updateTemplateMission(index, 'description', event.target.value)}
                         placeholder="description (선택사항)"
+                        className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <input
+                        value={getMissionTargetFilePath(mission)}
+                        onChange={(event) => updateTemplateMissionTargetFilePath(index, event.target.value)}
+                        placeholder="연결 파일 경로 예: src/main/java/com/cobip/auth/service/AuthService.java"
                         className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
                       />
                       <textarea
@@ -1393,7 +1446,7 @@ export function AdminTemplatesPage() {
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {form.missions.map((mission, index) => !checkProblemMissionType(mission.missionType) ? null : (
+                  {form.missions.map((mission, index) => !checkProblemMissionType(getTemplateMissionType(mission)) ? null : (
                     <div key={index} className="rounded-md bg-slate-50 p-3">
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-[6rem_minmax(0,1fr)_8rem_auto]">
                         <input
@@ -1409,7 +1462,7 @@ export function AdminTemplatesPage() {
                           className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                         />
                         <select
-                          value={mission.missionType ?? 'TEST'}
+                          value={getTemplateMissionType(mission) ?? 'TEST'}
                           onChange={(event) => updateTemplateMission(index, 'missionType', event.target.value as PracticeMissionType)}
                           className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
                         >
@@ -1429,6 +1482,12 @@ export function AdminTemplatesPage() {
                         value={mission.description ?? ''}
                         onChange={(event) => updateTemplateMission(index, 'description', event.target.value)}
                         placeholder="문제 설명"
+                        className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <input
+                        value={getMissionTargetFilePath(mission)}
+                        onChange={(event) => updateTemplateMissionTargetFilePath(index, event.target.value)}
+                        placeholder="연결 파일 경로 예: src/main/java/com/cobip/auth/controller/AuthController.java"
                         className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
                       />
                       <textarea

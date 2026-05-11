@@ -125,10 +125,48 @@ function checkProblemMissionType(missionType?: PracticeMissionType) {
 }
 
 function buildMissionPayload(form: PracticeMissionPayload, validationText: string) {
+  const missionType = form.missionType ?? form.type;
+
   return {
     ...form,
+    type: missionType,
+    missionType,
     validationJson: JSON.parse(validationText) as Record<string, unknown>,
   };
+}
+
+function parseValidationJsonText(value: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function getValidationTargetFilePath(value: string) {
+  const validationJson = parseValidationJsonText(value);
+  const filePath =
+    validationJson.filePath ??
+    validationJson.targetFilePath ??
+    validationJson.targetFile ??
+    validationJson.mainFile ??
+    validationJson.entryFile;
+
+  return typeof filePath === 'string' ? filePath : '';
+}
+
+function buildValidationTextWithFilePath(value: string, filePath: string) {
+  const validationJson = parseValidationJsonText(value);
+  const nextFilePath = filePath.trim();
+
+  if (nextFilePath) {
+    validationJson.filePath = nextFilePath;
+  } else {
+    delete validationJson.filePath;
+  }
+
+  return JSON.stringify(validationJson, null, 2);
 }
 
 export function AdminTemplatePracticePage({ templateId }: { templateId: number }) {
@@ -675,6 +713,12 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
                 rows={8}
                 className="md:col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
               />
+              <input
+                value={getValidationTargetFilePath(validationText)}
+                onChange={(event) => setValidationText((current) => buildValidationTextWithFilePath(current, event.target.value))}
+                placeholder="연결 파일 경로 예: src/main/java/com/cobip/auth/service/AuthService.java"
+                className="md:col-span-2 h-10 rounded-md border border-slate-300 px-3 text-sm"
+              />
               <textarea
                 value={validationText}
                 onChange={(event) => setValidationText(event.target.value)}
@@ -772,6 +816,12 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
                 placeholder="사용자에게 보여줄 문제 설명"
                 rows={8}
                 className="md:col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
+              />
+              <input
+                value={getValidationTargetFilePath(problemValidationText)}
+                onChange={(event) => setProblemValidationText((current) => buildValidationTextWithFilePath(current, event.target.value))}
+                placeholder="연결 파일 경로 예: src/main/java/com/cobip/auth/controller/AuthController.java"
+                className="md:col-span-2 h-10 rounded-md border border-slate-300 px-3 text-sm"
               />
               <textarea
                 value={problemValidationText}

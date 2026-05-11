@@ -23,8 +23,12 @@ axiosInstance.interceptors.request.use(
         const isPublicPath = publicPaths.some(path => config.url?.includes(path));
         
         if (!isPublicPath) {
-            // Zustand 스토어에서 상태를 직접 가져옵니다
-            const token = useUserStore.getState().accessToken;
+            const storeToken = useUserStore.getState().accessToken;
+            const storageToken =
+                typeof window !== 'undefined'
+                    ? localStorage.getItem('accessToken') ?? localStorage.getItem('access_token')
+                    : null;
+            const token = storeToken ?? storageToken;
 
             // 토큰이 있다면 Header에 Bearer 방식으로 추가
             if (token) {

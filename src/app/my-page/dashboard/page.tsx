@@ -110,6 +110,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { useDashboard } from '@/hooks/useDashboard';
 import { StatisticsCard } from '@/features/my-page/components/dashboard/StatisticsCard';
 import { LearningProgressChart } from '@/features/my-page/components/dashboard/LearningProgressChart';
@@ -180,14 +181,36 @@ export default function DashboardPage() {
   const recentLearnings = dashboardData.recentLearning.map((item: LearningProgress) => ({
     id: item.templateId,
     title: item.templateTitle,
-    category: "학습 기록", 
+    category: item.completed ? '학습 완료' : '학습 중',
     lastStudiedDate: new Date(item.lastAccessedAt).toLocaleDateString(),
-    completionRate: item.progressPercent
-}));
+    completionRate: item.progressPercent,
+    href: `/functional-template/${item.templateId}`,
+  }));
 
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
+
+      {dashboardData.continueLearning && (
+        <Link
+          href={`/functional-template/${dashboardData.continueLearning.templateId}`}
+          className="block rounded-xl border border-purple-200 bg-purple-50 p-5 transition hover:bg-purple-100"
+        >
+          <p className="text-sm font-semibold text-purple-700">이어서 학습하기</p>
+          <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-gray-950">{dashboardData.continueLearning.templateTitle}</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                진행률 {dashboardData.continueLearning.progressPercent}%
+                {dashboardData.continueLearning.lastStep ? ` · ${dashboardData.continueLearning.lastStep}` : ''}
+              </p>
+            </div>
+            <span className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white">
+              계속하기
+            </span>
+          </div>
+        </Link>
+      )}
 
       {/* 상단 통계 카드 섹션 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
