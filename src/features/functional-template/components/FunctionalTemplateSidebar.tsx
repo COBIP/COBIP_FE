@@ -1,30 +1,28 @@
-"use client";
+'use client';
 
 import type { TemplateSidebarProps } from '@/app/types/TemplateTypes';
 
-export function FunctionalTemplateSidebar({
-  activeMenu,
-  onMenuChange,
-}: TemplateSidebarProps) {
-  const menus = [
-    { id: 'design-intent', label: '설계 의도' },
-    { id: 'source-code', label: '전체 소스코드' },
-    { id: 'mission', label: '미션 / 문제' },
-    { id: 'requirements', label: '요구사항' },
-    { id: 'structure', label: '구조 설명' },
-    { id: 'interview', label: '면접 질문' },
-  ];
+const menus = [
+  { id: 'design-intent', label: '설계의도' },
+  { id: 'structure', label: '구조설명' },
+  { id: 'requirements', label: '요구사항' },
+  { id: 'mission', label: '미션' },
+  { id: 'problem', label: '문제' },
+  { id: 'interview', label: '면접질문' },
+];
 
+export function FunctionalTemplateSidebar({ activeMenu, onMenuChange }: TemplateSidebarProps) {
   return (
-    <aside className="w-48 bg-white border-r border-gray-200 p-6 flex flex-col">
-      <nav className="space-y-2 flex-1">
+    <aside className="flex w-48 flex-col border-r border-gray-200 bg-white p-6">
+      <nav className="flex-1 space-y-2">
         {menus.map((menu) => (
           <button
             key={menu.id}
+            type="button"
             onClick={() => onMenuChange(menu.id)}
-            className={`w-full text-left px-4 py-2 rounded-lg transition ${
+            className={`w-full rounded-lg px-4 py-2 text-left transition ${
               activeMenu === menu.id
-                ? 'bg-purple-100 text-purple-700 font-semibold border-l-4 border-purple-600'
+                ? 'border-l-4 border-purple-600 bg-purple-100 font-semibold text-purple-700'
                 : 'text-gray-700 hover:bg-gray-50'
             }`}
           >

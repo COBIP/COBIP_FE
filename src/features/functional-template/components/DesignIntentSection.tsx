@@ -1,14 +1,14 @@
 "use client";
 
+import { MarkdownTextView } from './MarkdownTextView';
+
 interface DesignIntentSectionProps {
   isDarkMode?: boolean;
   content?: string;
 }
 
 export function DesignIntentSection({ isDarkMode = false, content }: DesignIntentSectionProps) {
-  const paragraphs = content
-    ? content.split(/\n+/).map((line) => line.trim()).filter(Boolean)
-    : [];
+  const hasContent = Boolean(content?.trim());
 
   return (
     <div className="space-y-4">
@@ -23,13 +23,11 @@ export function DesignIntentSection({ isDarkMode = false, content }: DesignInten
           ? 'bg-[#1E293B] border-[#334155]'
           : 'bg-[#F8FAFC] border-[#E2E8F0]'
       }`}>
-        {paragraphs.length > 0 ? (
+        {hasContent ? (
           <div className={`space-y-3 text-[14px] leading-relaxed transition-colors duration-300 ${
             isDarkMode ? 'text-[#E2E8F0]' : 'text-[#1E293B]'
           }`}>
-            {paragraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
+            <MarkdownTextView content={content} isDarkMode={isDarkMode} />
           </div>
         ) : (
           <div className={`flex min-h-32 items-center justify-center text-sm ${isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>

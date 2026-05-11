@@ -1,8 +1,23 @@
 'use client';
 
-import { Settings, Bookmark, SquarePen } from 'lucide-react';
+import { Bookmark, Settings, SquarePen } from 'lucide-react';
+
+const TEXT = {
+  bookmarkAdd: '\uBD81\uB9C8\uD06C \uCD94\uAC00',
+  bookmarkRemove: '\uBD81\uB9C8\uD06C \uD574\uC81C',
+  memo: '\uBA54\uBAA8',
+  settings: '\uC124\uC815',
+  profile: '\uB9C8\uC774\uD398\uC774\uC9C0\uB85C \uC774\uB3D9',
+};
 
 interface HeaderProps {
+  title: string;
+  isFavorite: boolean;
+  isFavoriteSaving: boolean;
+  profileImage?: string | null;
+  nickname?: string | null;
+  onFavoriteToggle: () => void;
+  onProfileClick: () => void;
   onSettingsClick: () => void;
   onMemoToggle: () => void;
   isMemoOpen: boolean;
@@ -10,76 +25,88 @@ interface HeaderProps {
 }
 
 export function Header({
+  title,
+  isFavorite,
+  isFavoriteSaving,
+  profileImage,
+  nickname,
+  onFavoriteToggle,
+  onProfileClick,
   onSettingsClick,
   onMemoToggle,
   isMemoOpen,
   isDarkMode,
 }: HeaderProps) {
+  const initial = (nickname?.trim().charAt(0) || 'U').toUpperCase();
+
   return (
     <header
-      className={`h-16 border-b transition-colors duration-300 flex items-center px-6 justify-between ${
-        isDarkMode
-          ? 'bg-[#1E293B] border-[#334155]'
-          : 'bg-white border-[#F1F5F9]'
+      className={`flex h-14 items-center justify-between border-b px-6 transition-colors duration-300 ${
+        isDarkMode ? 'border-[#334155] bg-[#1E293B]' : 'border-[#F1F5F9] bg-white'
       }`}
     >
-      {/* 좌측: 제목 */}
-      <h1
-        className={`font-bold text-lg transition-colors duration-300 ${
-          isDarkMode ? 'text-white' : 'text-[#1E293B]'
-        }`}
-      >
-        사용자 인증 시스템
+      <h1 className={`min-w-0 truncate text-base font-bold ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+        {title}
       </h1>
 
-      {/* 우측: 액션 버튼들 */}
-      <div className="flex items-center gap-3">
-        {/* 북마크 */}
+      <div className="flex items-center gap-2">
         <button
-          className={`p-2 rounded-lg transition-all duration-300 ${
-            isDarkMode
-              ? 'text-[#94A3B8] hover:bg-[#334155]'
-              : 'text-[#64748B] hover:bg-[#F8FAFC]'
+          type="button"
+          onClick={onFavoriteToggle}
+          disabled={isFavoriteSaving}
+          className={`rounded-lg p-2 transition-all duration-300 disabled:opacity-60 ${
+            isFavorite
+              ? 'bg-purple-50 text-[#7C3AED]'
+              : isDarkMode
+                ? 'text-[#94A3B8] hover:bg-[#334155]'
+                : 'text-[#64748B] hover:bg-[#F8FAFC]'
           }`}
-          title="북마크"
+          title={isFavorite ? TEXT.bookmarkRemove : TEXT.bookmarkAdd}
+          aria-label={isFavorite ? TEXT.bookmarkRemove : TEXT.bookmarkAdd}
         >
-          <Bookmark className="w-5 h-5" />
+          <Bookmark className="h-5 w-5" fill={isFavorite ? 'currentColor' : 'none'} />
         </button>
 
-        {/* 메모 */}
         <button
-          className={`p-2 rounded-lg transition-colors duration-300 ${
+          type="button"
+          className={`rounded-lg p-2 transition-colors duration-300 ${
             isMemoOpen
-              ? isDarkMode
-                ? 'bg-[#7C3AED] text-white'
-                : 'bg-[#7C3AED] text-white'
+              ? 'bg-[#7C3AED] text-white'
               : isDarkMode
-              ? 'text-[#94A3B8] hover:bg-[#334155]'
-              : 'text-[#64748B] hover:bg-[#F8FAFC]'
+                ? 'text-[#94A3B8] hover:bg-[#334155]'
+                : 'text-[#64748B] hover:bg-[#F8FAFC]'
           }`}
           onClick={onMemoToggle}
-          title="메모 (클릭 시 토글)"
+          title={TEXT.memo}
+          aria-label={TEXT.memo}
         >
-          <SquarePen className="w-5 h-5" />
+          <SquarePen className="h-5 w-5" />
         </button>
 
-        {/* 설정 */}
         <button
+          type="button"
           onClick={onSettingsClick}
-          className={`p-2 rounded-lg transition-colors duration-300 ${
-            isDarkMode
-              ? 'text-[#94A3B8] hover:bg-[#334155]'
-              : 'text-[#64748B] hover:bg-[#F8FAFC]'
+          className={`rounded-lg p-2 transition-colors duration-300 ${
+            isDarkMode ? 'text-[#94A3B8] hover:bg-[#334155]' : 'text-[#64748B] hover:bg-[#F8FAFC]'
           }`}
-          title="설정"
+          title={TEXT.settings}
+          aria-label={TEXT.settings}
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="h-5 w-5" />
         </button>
 
-        {/* 프로필 */}
-        <div className={`w-8 h-8 rounded-full transition-colors duration-300 ${
-          isDarkMode ? 'bg-[#334155]' : 'bg-[#E2E8F0]'
-        }`} />
+        <button
+          type="button"
+          onClick={onProfileClick}
+          className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-sm font-semibold text-white transition ${
+            isDarkMode ? 'bg-[#334155] hover:ring-2 hover:ring-[#64748B]' : 'bg-[#CBD5E1] hover:ring-2 hover:ring-purple-200'
+          }`}
+          style={profileImage ? { backgroundImage: `url(${profileImage})`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined}
+          title={TEXT.profile}
+          aria-label={TEXT.profile}
+        >
+          {profileImage ? <span className="sr-only">{nickname ?? 'User'}</span> : initial}
+        </button>
       </div>
     </header>
   );
