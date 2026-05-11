@@ -7,8 +7,12 @@ import type {
   AdminAccessLevel,
   AdminDifficulty,
   AdminTemplateDetail,
+  AdminTemplateInterviewQuestion,
+  AdminTemplateMissionDraft,
   AdminTemplatePayload,
+  AdminTemplateRequirement,
   AdminTemplateSummary,
+  AdminTemplateTestCase,
   AdminVisibility,
   PageResponse,
 } from '@/types/AdminTypes';
@@ -25,26 +29,56 @@ import {
 const difficulties: AdminDifficulty[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const visibilities: AdminVisibility[] = ['PUBLIC', 'PRIVATE'];
 const accessLevels: AdminAccessLevel[] = ['FREE', 'PREMIUM'];
+const runtimes = ['node', 'python', 'java', 'browser', 'none'];
 
-type TemplateFormState = Omit<AdminTemplatePayload, 'techStacks' | 'interviewQuestions'> & {
+type TemplateFormState = {
+  title: string;
+  summary: string;
+  description: string;
+  category: string;
+  difficulty: AdminDifficulty;
   techStacksText: string;
-  interviewQuestionsText: string;
+  designIntent: string;
+  structure: string;
+  requirements: AdminTemplateRequirement[];
+  missions: AdminTemplateMissionDraft[];
+  erd: string;
+  apiSpec: string;
+  interviewQuestions: AdminTemplateInterviewQuestion[];
+  runtime: string;
+  testCases: AdminTemplateTestCase[];
+  tagsText: string;
+  previewImage: string;
+  visibility: AdminVisibility;
+  accessLevel: AdminAccessLevel;
+  published: boolean;
+  license: string;
+  source: string;
 };
 
 const emptyForm: TemplateFormState = {
   title: '',
+  summary: '',
   description: '',
   category: '',
   difficulty: 'BEGINNER',
   techStacksText: '',
   designIntent: '',
-  requirementsSpec: '',
+  structure: '',
+  requirements: [],
+  missions: [],
   erd: '',
   apiSpec: '',
-  projectStructure: '',
-  interviewQuestionsText: '',
+  interviewQuestions: [],
+  runtime: 'node',
+  testCases: [],
+  tagsText: '',
+  previewImage: '',
   visibility: 'PRIVATE',
   accessLevel: 'FREE',
+  published: false,
+  license: '',
+  source: '',
 };
 
 function parseTextList(value: string) {
@@ -58,44 +92,121 @@ function formatTextList(values?: string[]) {
   return values?.join('\n') ?? '';
 }
 
+function buildInterviewQuestions(
+  values?: Array<string | AdminTemplateInterviewQuestion>,
+): AdminTemplateInterviewQuestion[] {
+  return (
+    values?.map((value) =>
+      typeof value === 'string'
+        ? {
+            question: value,
+            answerHint: '',
+          }
+        : {
+            question: value.question ?? '',
+            answerHint: value.answerHint ?? '',
+          },
+    ) ?? []
+  );
+}
+
+function buildRequirementSpec(requirements: AdminTemplateRequirement[]) {
+  return requirements
+    .map((requirement) => {
+      const optionalText = requirement.optionalFlag ? 'optional' : 'required';
+
+      return `[${requirement.type || 'general'}:${optionalText}] ${requirement.description}`;
+    })
+    .join('\n');
+}
+
 function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState {
   return {
     title: template.title ?? '',
+    summary: template.summary ?? '',
     description: template.description ?? '',
     category: template.category ?? '',
     difficulty: template.difficulty,
     techStacksText: formatTextList(template.techStacks),
     designIntent: template.designIntent ?? '',
-    requirementsSpec: template.requirementsSpec ?? '',
+    structure: template.structure ?? template.projectStructure ?? '',
+    requirements: template.requirements ?? [],
+    missions: template.missions ?? [],
     erd: template.erd ?? '',
     apiSpec: template.apiSpec ?? '',
-    projectStructure: template.projectStructure ?? '',
-    interviewQuestionsText: formatTextList(template.interviewQuestions),
+    interviewQuestions: buildInterviewQuestions(template.interviewQuestions),
+    runtime: template.runtime ?? 'node',
+    testCases: template.testCases ?? [],
+    tagsText: formatTextList(template.tags),
+    previewImage: template.previewImage ?? template.thumbnailUrl ?? '',
     visibility: template.visibility,
     accessLevel: template.accessLevel,
+    published: template.published ?? template.visibility === 'PUBLIC',
+    license: template.license ?? '',
+    source: template.source ?? '',
   };
 }
 
 function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
+  const requirements = form.requirements
+    .map((requirement) => ({
+      type: requirement.type.trim(),
+      description: requirement.description.trim(),
+      optionalFlag: requirement.optionalFlag,
+    }))
+    .filter((requirement) => requirement.type || requirement.description);
+  const missions = form.missions
+    .map((mission) => ({
+      id: mission.id.trim(),
+      title: mission.title.trim(),
+      steps: mission.steps.map((step) => step.trim()).filter(Boolean),
+    }))
+    .filter((mission) => mission.id || mission.title || mission.steps.length);
+  const interviewQuestions = form.interviewQuestions
+    .map((question) => ({
+      question: question.question.trim(),
+      answerHint: question.answerHint.trim(),
+    }))
+    .filter((question) => question.question || question.answerHint);
+  const testCases = form.testCases
+    .map((testCase) => ({
+      input: testCase.input.trim(),
+      expectedOutput: testCase.expectedOutput.trim(),
+      validationScript: testCase.validationScript?.trim() || undefined,
+    }))
+    .filter((testCase) => testCase.input || testCase.expectedOutput || testCase.validationScript);
+  const structure = form.structure.trim();
+
   return {
     title: form.title.trim(),
+    summary: form.summary.trim() || undefined,
     description: form.description.trim(),
     category: form.category.trim(),
     difficulty: form.difficulty,
     techStacks: parseTextList(form.techStacksText),
     designIntent: form.designIntent.trim(),
-    requirementsSpec: form.requirementsSpec.trim(),
+    structure,
+    requirements,
+    requirementsSpec: buildRequirementSpec(requirements),
+    missions,
     erd: form.erd.trim(),
     apiSpec: form.apiSpec.trim(),
-    projectStructure: form.projectStructure.trim(),
-    interviewQuestions: parseTextList(form.interviewQuestionsText),
+    projectStructure: structure,
+    interviewQuestions,
+    runtime: form.runtime,
+    testCases,
+    tags: parseTextList(form.tagsText),
+    previewImage: form.previewImage.trim() || undefined,
     visibility: form.visibility,
     accessLevel: form.accessLevel,
+    published: form.published,
+    license: form.license.trim() || undefined,
+    source: form.source.trim() || undefined,
   };
 }
 
-function checkSameList(left: string[], right: string[]) {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+function checkSameValue(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function buildTemplateUpdatePayload(template: AdminTemplateDetail, form: TemplateFormState) {
@@ -103,21 +214,11 @@ function buildTemplateUpdatePayload(template: AdminTemplateDetail, form: Templat
   const next = buildTemplatePayload(form);
   const payload: Partial<AdminTemplatePayload> = {};
 
-  if (next.title !== current.title) payload.title = next.title;
-  if (next.description !== current.description) payload.description = next.description;
-  if (next.category !== current.category) payload.category = next.category;
-  if (next.difficulty !== current.difficulty) payload.difficulty = next.difficulty;
-  if (!checkSameList(next.techStacks, current.techStacks)) payload.techStacks = next.techStacks;
-  if (next.designIntent !== current.designIntent) payload.designIntent = next.designIntent;
-  if (next.requirementsSpec !== current.requirementsSpec) payload.requirementsSpec = next.requirementsSpec;
-  if (next.erd !== current.erd) payload.erd = next.erd;
-  if (next.apiSpec !== current.apiSpec) payload.apiSpec = next.apiSpec;
-  if (next.projectStructure !== current.projectStructure) payload.projectStructure = next.projectStructure;
-  if (!checkSameList(next.interviewQuestions, current.interviewQuestions)) {
-    payload.interviewQuestions = next.interviewQuestions;
-  }
-  if (next.visibility !== current.visibility) payload.visibility = next.visibility;
-  if (next.accessLevel !== current.accessLevel) payload.accessLevel = next.accessLevel;
+  (Object.keys(next) as Array<keyof AdminTemplatePayload>).forEach((key) => {
+    if (!checkSameValue(next[key], current[key])) {
+      Object.assign(payload, { [key]: next[key] });
+    }
+  });
 
   return payload;
 }
@@ -126,6 +227,68 @@ function parseOwnerId(value: string) {
   const parsed = Number(value);
 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function validateTemplatePayload(payload: AdminTemplatePayload) {
+  if (!payload.title) {
+    throw new Error('제목은 필수입니다.');
+  }
+
+  if (!payload.category) {
+    throw new Error('카테고리는 필수입니다.');
+  }
+
+  const hasInvalidRequirement = payload.requirements?.some(
+    (requirement) => !requirement.type || !requirement.description,
+  );
+
+  if (hasInvalidRequirement) {
+    throw new Error('요구사항은 type과 description을 모두 입력해야 합니다.');
+  }
+
+  const hasInvalidMission = payload.missions?.some(
+    (mission) => !mission.id || !mission.title || !mission.steps.length,
+  );
+
+  if (hasInvalidMission) {
+    throw new Error('미션은 id, title, steps를 모두 입력해야 합니다.');
+  }
+
+  const hasInvalidQuestion = payload.interviewQuestions.some((question) => !question.question);
+
+  if (hasInvalidQuestion) {
+    throw new Error('면접질문은 question을 입력해야 합니다.');
+  }
+
+  const hasInvalidTestCase = payload.testCases?.some((testCase) => !testCase.input || !testCase.expectedOutput);
+
+  if (hasInvalidTestCase) {
+    throw new Error('테스트케이스는 입력과 기대 출력을 모두 입력해야 합니다.');
+  }
+
+  if (payload.previewImage) {
+    try {
+      new URL(payload.previewImage);
+    } catch {
+      throw new Error('미리보기 이미지는 올바른 URL이어야 합니다.');
+    }
+  }
+}
+
+function createRequirement(): AdminTemplateRequirement {
+  return { type: '', description: '', optionalFlag: false };
+}
+
+function createTemplateMission(): AdminTemplateMissionDraft {
+  return { id: '', title: '', steps: [''] };
+}
+
+function createInterviewQuestion(): AdminTemplateInterviewQuestion {
+  return { question: '', answerHint: '' };
+}
+
+function createTestCase(): AdminTemplateTestCase {
+  return { input: '', expectedOutput: '', validationScript: '' };
 }
 
 export function AdminTemplatesPage() {
@@ -224,9 +387,7 @@ export function AdminTemplatesPage() {
     try {
       const payload = buildTemplatePayload(form);
 
-      if (!payload.title || !payload.description || !payload.category) {
-        throw new Error('제목, 설명, 카테고리는 필수입니다.');
-      }
+      validateTemplatePayload(payload);
 
       const saved =
         formMode === 'create'
@@ -322,11 +483,95 @@ export function AdminTemplatesPage() {
     }
   };
 
+  const updateRequirement = <TKey extends keyof AdminTemplateRequirement>(
+    index: number,
+    key: TKey,
+    value: AdminTemplateRequirement[TKey],
+  ) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      requirements: currentForm.requirements.map((requirement, requirementIndex) =>
+        requirementIndex === index ? { ...requirement, [key]: value } : requirement,
+      ),
+    }));
+  };
+
+  const deleteRequirement = (index: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      requirements: currentForm.requirements.filter((_, requirementIndex) => requirementIndex !== index),
+    }));
+  };
+
+  const updateTemplateMission = <TKey extends keyof AdminTemplateMissionDraft>(
+    index: number,
+    key: TKey,
+    value: AdminTemplateMissionDraft[TKey],
+  ) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, missionIndex) =>
+        missionIndex === index ? { ...mission, [key]: value } : mission,
+      ),
+    }));
+  };
+
+  const updateTemplateMissionSteps = (index: number, value: string) => {
+    updateTemplateMission(index, 'steps', value.split(/\r?\n/g));
+  };
+
+  const deleteTemplateMission = (index: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.filter((_, missionIndex) => missionIndex !== index),
+    }));
+  };
+
+  const updateInterviewQuestion = <TKey extends keyof AdminTemplateInterviewQuestion>(
+    index: number,
+    key: TKey,
+    value: AdminTemplateInterviewQuestion[TKey],
+  ) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      interviewQuestions: currentForm.interviewQuestions.map((question, questionIndex) =>
+        questionIndex === index ? { ...question, [key]: value } : question,
+      ),
+    }));
+  };
+
+  const deleteInterviewQuestion = (index: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      interviewQuestions: currentForm.interviewQuestions.filter((_, questionIndex) => questionIndex !== index),
+    }));
+  };
+
+  const updateTestCase = <TKey extends keyof AdminTemplateTestCase>(
+    index: number,
+    key: TKey,
+    value: AdminTemplateTestCase[TKey],
+  ) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      testCases: currentForm.testCases.map((testCase, testCaseIndex) =>
+        testCaseIndex === index ? { ...testCase, [key]: value } : testCase,
+      ),
+    }));
+  };
+
+  const deleteTestCase = (index: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      testCases: currentForm.testCases.filter((_, testCaseIndex) => testCaseIndex !== index),
+    }));
+  };
+
   return (
     <div>
-      <AdminPageTitle title="기능 템플릿 관리" description="기능 템플릿 본문, 공개 상태, 접근 등급을 관리합니다." />
+      <AdminPageTitle title="기능 템플릿 관리" description="기능 템플릿 본문, 실습 메타데이터, 공개 상태를 관리합니다." />
 
-      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1.35fr)_minmax(28rem,0.9fr)]">
+      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1.2fr)_minmax(32rem,1fr)]">
         <div className="space-y-4">
           <AdminCard>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_9rem_10rem_10rem_10rem_8rem_auto]">
@@ -438,7 +683,7 @@ export function AdminTemplatesPage() {
                       <tr key={template.id} className="hover:bg-slate-50">
                         <td className="py-3">
                           <p className="font-semibold">{template.title}</p>
-                          <p className="text-xs text-slate-500">#{template.id}</p>
+                          <p className="text-xs text-slate-500">{template.summary || `#${template.id}`}</p>
                         </td>
                         <td className="py-3">
                           {template.category} · {template.difficulty}
@@ -545,13 +790,21 @@ export function AdminTemplatesPage() {
               )}
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-5">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="text-sm font-semibold text-slate-700">
                   제목
                   <input
                     value={form.title}
                     onChange={(event) => updateForm('title', event.target.value)}
+                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  요약
+                  <input
+                    value={form.summary}
+                    onChange={(event) => updateForm('summary', event.target.value)}
                     className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
                   />
                 </label>
@@ -576,6 +829,29 @@ export function AdminTemplatesPage() {
                       </option>
                     ))}
                   </select>
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  런타임
+                  <select
+                    value={form.runtime}
+                    onChange={(event) => updateForm('runtime', event.target.value)}
+                    className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                  >
+                    {runtimes.map((runtime) => (
+                      <option key={runtime} value={runtime}>
+                        {runtime}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  태그
+                  <input
+                    value={form.tagsText}
+                    onChange={(event) => updateForm('tagsText', event.target.value)}
+                    placeholder="auth, jwt, backend"
+                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                  />
                 </label>
                 <label className="text-sm font-semibold text-slate-700">
                   공개 상태
@@ -605,7 +881,39 @@ export function AdminTemplatesPage() {
                     ))}
                   </select>
                 </label>
+                <label className="flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.published}
+                    onChange={(event) => updateForm('published', event.target.checked)}
+                  />
+                  published
+                </label>
                 <label className="text-sm font-semibold text-slate-700">
+                  미리보기 이미지 URL
+                  <input
+                    value={form.previewImage}
+                    onChange={(event) => updateForm('previewImage', event.target.value)}
+                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  라이선스
+                  <input
+                    value={form.license}
+                    onChange={(event) => updateForm('license', event.target.value)}
+                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  출처
+                  <input
+                    value={form.source}
+                    onChange={(event) => updateForm('source', event.target.value)}
+                    className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                  />
+                </label>
+                <label className="md:col-span-2 text-sm font-semibold text-slate-700">
                   기술 스택
                   <textarea
                     value={form.techStacksText}
@@ -616,11 +924,11 @@ export function AdminTemplatesPage() {
                   />
                 </label>
                 <label className="md:col-span-2 text-sm font-semibold text-slate-700">
-                  설명
+                  상세설명
                   <textarea
                     value={form.description}
                     onChange={(event) => updateForm('description', event.target.value)}
-                    rows={3}
+                    rows={4}
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                   />
                 </label>
@@ -629,17 +937,17 @@ export function AdminTemplatesPage() {
                   <textarea
                     value={form.designIntent}
                     onChange={(event) => updateForm('designIntent', event.target.value)}
-                    rows={3}
+                    rows={4}
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                   />
                 </label>
                 <label className="md:col-span-2 text-sm font-semibold text-slate-700">
-                  요구사항
+                  구조
                   <textarea
-                    value={form.requirementsSpec}
-                    onChange={(event) => updateForm('requirementsSpec', event.target.value)}
-                    rows={4}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                    value={form.structure}
+                    onChange={(event) => updateForm('structure', event.target.value)}
+                    rows={5}
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
                   />
                 </label>
                 <label className="text-sm font-semibold text-slate-700">
@@ -660,26 +968,209 @@ export function AdminTemplatesPage() {
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                   />
                 </label>
-                <label className="md:col-span-2 text-sm font-semibold text-slate-700">
-                  프로젝트 구조
-                  <textarea
-                    value={form.projectStructure}
-                    onChange={(event) => updateForm('projectStructure', event.target.value)}
-                    rows={4}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="md:col-span-2 text-sm font-semibold text-slate-700">
-                  면접 질문
-                  <textarea
-                    value={form.interviewQuestionsText}
-                    onChange={(event) => updateForm('interviewQuestionsText', event.target.value)}
-                    placeholder="질문을 줄바꿈 또는 쉼표로 구분"
-                    rows={4}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </label>
               </div>
+
+              <section className="rounded-md border border-slate-200 p-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-950">요구사항</h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        requirements: [...currentForm.requirements, createRequirement()],
+                      }))
+                    }
+                    className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    추가
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {form.requirements.map((requirement, index) => (
+                    <div key={index} className="grid grid-cols-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_6rem_auto]">
+                      <input
+                        value={requirement.type}
+                        onChange={(event) => updateRequirement(index, 'type', event.target.value)}
+                        placeholder="type"
+                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <input
+                        value={requirement.description}
+                        onChange={(event) => updateRequirement(index, 'description', event.target.value)}
+                        placeholder="description"
+                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <label className="flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={requirement.optionalFlag}
+                          onChange={(event) => updateRequirement(index, 'optionalFlag', event.target.checked)}
+                        />
+                        optional
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => deleteRequirement(index)}
+                        className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-md border border-slate-200 p-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-950">미션</h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        missions: [...currentForm.missions, createTemplateMission()],
+                      }))
+                    }
+                    className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    추가
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {form.missions.map((mission, index) => (
+                    <div key={index} className="rounded-md bg-slate-50 p-3">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_auto]">
+                        <input
+                          value={mission.id}
+                          onChange={(event) => updateTemplateMission(index, 'id', event.target.value)}
+                          placeholder="id"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <input
+                          value={mission.title}
+                          onChange={(event) => updateTemplateMission(index, 'title', event.target.value)}
+                          placeholder="title"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => deleteTemplateMission(index)}
+                          className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                      <textarea
+                        value={mission.steps.join('\n')}
+                        onChange={(event) => updateTemplateMissionSteps(index, event.target.value)}
+                        placeholder="steps"
+                        rows={4}
+                        className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-md border border-slate-200 p-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-950">면접질문</h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        interviewQuestions: [...currentForm.interviewQuestions, createInterviewQuestion()],
+                      }))
+                    }
+                    className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    추가
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {form.interviewQuestions.map((question, index) => (
+                    <div key={index} className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                      <input
+                        value={question.question}
+                        onChange={(event) => updateInterviewQuestion(index, 'question', event.target.value)}
+                        placeholder="question"
+                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <input
+                        value={question.answerHint}
+                        onChange={(event) => updateInterviewQuestion(index, 'answerHint', event.target.value)}
+                        placeholder="answerHint"
+                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deleteInterviewQuestion(index)}
+                        className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-md border border-slate-200 p-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-950">테스트케이스</h4>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        testCases: [...currentForm.testCases, createTestCase()],
+                      }))
+                    }
+                    className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    추가
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {form.testCases.map((testCase, index) => (
+                    <div key={index} className="rounded-md bg-slate-50 p-3">
+                      <div className="mb-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => deleteTestCase(index)}
+                          className="rounded-md border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <textarea
+                          value={testCase.input}
+                          onChange={(event) => updateTestCase(index, 'input', event.target.value)}
+                          placeholder="input"
+                          rows={4}
+                          className="rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
+                        />
+                        <textarea
+                          value={testCase.expectedOutput}
+                          onChange={(event) => updateTestCase(index, 'expectedOutput', event.target.value)}
+                          placeholder="expectedOutput"
+                          rows={4}
+                          className="rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
+                        />
+                        <textarea
+                          value={testCase.validationScript ?? ''}
+                          onChange={(event) => updateTestCase(index, 'validationScript', event.target.value)}
+                          placeholder="validationScript"
+                          rows={4}
+                          className="md:col-span-2 rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
               <div className="flex flex-wrap gap-2">
                 <button
