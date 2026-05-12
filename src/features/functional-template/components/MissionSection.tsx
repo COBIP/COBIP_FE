@@ -9,6 +9,7 @@ interface MissionSectionProps {
   emptyText?: string;
   actionLabel?: string;
   activeMissionId?: number | null;
+  completedMissionIds?: Set<number>;
   onOpenEditor?: (fileName: string, missionId: number) => void;
   missions?: Array<TemplatePracticeMissionApiResponse & { fileName?: string }>;
 }
@@ -19,6 +20,7 @@ export function MissionSection({
   emptyText = '아직 연결된 미션이 없습니다.',
   actionLabel = '풀어보기',
   activeMissionId,
+  completedMissionIds,
   onOpenEditor,
   missions,
 }: MissionSectionProps) {
@@ -30,7 +32,7 @@ export function MissionSection({
         summary: mission.description,
         explanation: mission.guideContent,
         missionType: mission.missionType ?? mission.type,
-    }))
+      }))
     : [];
   const selectedStep = steps.find((step) => step.id === activeMissionId) ?? steps[0];
 
@@ -48,28 +50,40 @@ export function MissionSection({
             }`}
           >
             <div className="space-y-2">
-              {steps.map((step) => (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => onOpenEditor?.(step.fileName ?? 'main.java', step.id)}
-                  className={`w-full rounded-md border px-3 py-3 text-left transition-colors duration-300 ${
-                    step.id === activeMissionId
-                      ? 'border-[#7C3AED] bg-[#7C3AED]/10 text-[#5B21B6]'
-                      : isDarkMode
-                        ? 'border-[#334155] bg-[#0F172A] text-[#CBD5E1] hover:bg-[#1E293B]'
-                        : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[13px] font-semibold">{step.title}</span>
-                    <span className="shrink-0 rounded-full bg-[#7C3AED]/10 px-2 py-0.5 text-[11px] font-medium text-[#7C3AED]">
-                      {actionLabel}
-                    </span>
-                  </div>
-                  {step.summary && <p className="mt-1 text-[12px] leading-relaxed opacity-90">{step.summary}</p>}
-                </button>
-              ))}
+              {steps.map((step) => {
+                const isCompleted = completedMissionIds?.has(step.id) ?? false;
+
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => onOpenEditor?.(step.fileName ?? 'main.java', step.id)}
+                    className={`w-full rounded-md border px-3 py-3 text-left transition-colors duration-300 ${
+                      isCompleted
+                        ? isDarkMode
+                          ? 'border-emerald-500/60 bg-emerald-950/30 text-emerald-100'
+                          : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                        : step.id === activeMissionId
+                          ? 'border-[#7C3AED] bg-[#7C3AED]/10 text-[#5B21B6]'
+                          : isDarkMode
+                            ? 'border-[#334155] bg-[#0F172A] text-[#CBD5E1] hover:bg-[#1E293B]'
+                            : 'border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F8FAFC]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-semibold">{step.title}</span>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-[#7C3AED]/10 text-[#7C3AED]'
+                        }`}
+                      >
+                        {isCompleted ? '완료' : actionLabel}
+                      </span>
+                    </div>
+                    {step.summary && <p className="mt-1 text-[12px] leading-relaxed opacity-90">{step.summary}</p>}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -81,7 +95,7 @@ export function MissionSection({
             >
               <h3 className="mb-2 text-[15px] font-semibold text-[#7C3AED]">진행 방법</h3>
               <p className={`text-[14px] leading-relaxed ${isDarkMode ? 'text-[#E2E8F0]' : 'text-[#1E293B]'}`}>
-                항목을 선택하면 관련 실습 파일이 에디터에 열립니다. 안내와 조건을 확인한 뒤 코드를 수정하고 실행해보세요.
+                항목을 선택하면 연결된 실습 파일이 코드 실행기에 열립니다. 안내와 조건을 확인한 뒤 코드를 수정하고 제출해보세요.
               </p>
             </div>
 
