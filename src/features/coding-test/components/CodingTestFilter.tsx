@@ -1,18 +1,30 @@
 // src/features/coding-test/components/CodingTestFilter.tsx
-import { useState } from 'react';
-import type { GetWorkbooksParams, CodingDifficulty } from '@/types/CodingWorkbookTypes';
+'use client';
 
-// 백엔드 파라미터에 맞춘 카테고리 (필요 시 수정 가능)
+import { useState } from 'react';
+import type { GetWorkbooksParams } from '@/types/CodingWorkbookTypes';
+
+// DB 약속에 맞춘 최종 카테고리 & 난이도 세팅
 const FILTER_CATEGORIES = [
     { 
         id: 'category', 
-        label: '카테고리', 
-        options: [{ label: '전체', value: undefined }, { label: '구현', value: '구현' }, { label: '알고리즘', value: '알고리즘' }, { label: 'SQL', value: 'SQL' }] 
+        label: '출제 기관', 
+        options: [
+            { label: '전체', value: undefined }, 
+            { label: '네이버', value: '네이버' }, 
+            { label: '삼성', value: '삼성' }, 
+            { label: '다음', value: '다음' }
+        ] 
     },
     { 
         id: 'difficulty', 
         label: '난이도', 
-        options: [{ label: '전체', value: undefined }, { label: '초급', value: 'EASY' }, { label: '중급', value: 'MEDIUM' }, { label: '고급', value: 'HARD' }] 
+        options: [
+            { label: '전체', value: undefined }, 
+            { label: '초급', value: 'EASY' }, 
+            { label: '중급', value: 'MEDIUM' }, 
+            { label: '고급', value: 'HARD' }
+        ] 
     },
 ];
 
@@ -23,7 +35,7 @@ interface CodingTestFilterProps {
 }
 
 export default function CodingTestFilter({ selectedParams, onFilterChange, onSearch }: CodingTestFilterProps) {
-    const [searchInput, setSearchInput] = useState('');
+    const [searchInput, setSearchInput] = useState(selectedParams.keyword || '');
 
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -36,7 +48,7 @@ export default function CodingTestFilter({ selectedParams, onFilterChange, onSea
             <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h1 className="text-4xl font-bold text-gray-900 mb-2">문제집 목록</h1>
-                    <p className="text-lg text-gray-600">다양한 문제집을 통해 코딩 테스트 실력을 향상시키세요.</p>
+                    <p className="text-lg text-gray-600">다양한 출제 기관의 문제집을 통해 실력을 향상시키세요.</p>
                 </div>
                 <div className="w-full md:w-80 relative group">
                     <input 
@@ -61,8 +73,8 @@ export default function CodingTestFilter({ selectedParams, onFilterChange, onSea
                         </div>
                         <div className="flex flex-wrap gap-2">
                             {category.options.map((option) => {
-                                // 현재 선택된 값인지 확인
-                                const isSelected = (selectedParams as any)[category.id] === option.value;
+                                // 타입 안전성을 위해 타입 단언 사용
+                                const isSelected = (selectedParams as Record<string, any>)[category.id] === option.value;
                                 return (
                                     <button 
                                         key={option.label} 
