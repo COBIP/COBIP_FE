@@ -74,7 +74,7 @@ export default function CodingTestFilter({ selectedParams, onFilterChange, onSea
                         <div className="flex flex-wrap gap-2">
                             {category.options.map((option) => {
                                 // 타입 안전성을 위해 타입 단언 사용
-                                const isSelected = (selectedParams as Record<string, any>)[category.id] === option.value;
+                                const isSelected = (selectedParams as Record<string, unknown>)[category.id] === option.value;
                                 return (
                                     <button 
                                         key={option.label} 

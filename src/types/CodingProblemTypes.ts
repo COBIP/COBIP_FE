@@ -26,8 +26,8 @@ export interface CodingProblemDetailResponse {
     title: string;
     category: string;
     difficulty: CodingDifficulty;
-    contentJson: any; 
-    explanationJson: any;
+    contentJson: string; // any 대신 구체적인 타입(주로 string) 지정
+    explanationJson: string | null;
     orderIndex: number;
     timeLimitMillis: number;
     memoryLimitMb: number;
