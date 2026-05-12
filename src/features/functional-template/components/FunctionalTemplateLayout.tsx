@@ -263,6 +263,35 @@ function setJsonToStorage(key: string | null, value: unknown) {
   window.localStorage.setItem(key, JSON.stringify(value));
 }
 
+function getPracticeFileContent(
+  file: TemplatePracticeFileApiResponse,
+  storedCode: Record<string, string>,
+) {
+  return file.userContent ?? storedCode[file.filePath] ?? file.content;
+}
+
+function getCompletedMissionIdSet(
+  missions: TemplatePracticeMissionApiResponse[],
+  storedCompletedIds: number[],
+) {
+  const missionIds = new Set(missions.map((mission) => mission.id));
+  const completedIds = new Set<number>();
+
+  missions.forEach((mission) => {
+    if (mission.progressStatus === 'COMPLETED') {
+      completedIds.add(mission.id);
+    }
+  });
+
+  storedCompletedIds.forEach((missionId) => {
+    if (missionIds.has(missionId)) {
+      completedIds.add(missionId);
+    }
+  });
+
+  return completedIds;
+}
+
 export function FunctionalTemplateLayout({
   templateTitle,
   templateId,
@@ -388,16 +417,15 @@ export function FunctionalTemplateLayout({
   useEffect(() => {
     const storedCode = getJsonFromStorage<Record<string, string>>(getPracticeCodeStorageKey(templateId), {});
     const nextFileContents = Object.fromEntries(
-      practiceFiles.map((file) => [file.filePath, storedCode[file.filePath] ?? file.content]),
+      practiceFiles.map((file) => [file.filePath, getPracticeFileContent(file, storedCode)]),
     );
 
     setFileContents(nextFileContents);
     if (practiceFiles[0]) setActiveFile(practiceFiles[0].filePath);
     if (practiceMissions[0]) setActiveMissionId(practiceMissions[0].id);
 
-    const missionIds = new Set(practiceMissions.map((mission) => mission.id));
     const storedCompletedIds = getJsonFromStorage<number[]>(getPracticeCompletedStorageKey(templateId), []);
-    setCompletedMissionIds(new Set(storedCompletedIds.filter((missionId) => missionIds.has(missionId))));
+    setCompletedMissionIds(getCompletedMissionIdSet(practiceMissions, storedCompletedIds));
   }, [practiceFiles, practiceMissions, templateId]);
 
   const refreshPractice = async () => {
@@ -405,6 +433,8 @@ export function FunctionalTemplateLayout({
     const nextPractice = await getTemplatePractice(templateId);
     setLocalPractice(nextPractice);
     setPracticeProgress(nextPractice.progress ?? null);
+    const storedCompletedIds = getJsonFromStorage<number[]>(getPracticeCompletedStorageKey(templateId), []);
+    setCompletedMissionIds(getCompletedMissionIdSet(nextPractice.missions ?? [], storedCompletedIds));
     if (nextPractice.progress?.currentMissionId) {
       setActiveMissionId(nextPractice.progress.currentMissionId);
     }
