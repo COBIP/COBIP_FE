@@ -47,6 +47,12 @@ export type TemplateSummaryApiResponse = {
   createdAt: string;
 };
 
+export type TemplateInterviewQuestionApiResponse = {
+  question: string;
+  answerHint?: string | null;
+  answer_hint?: string | null;
+};
+
 export type TemplateDetailApiResponse = TemplateSummaryApiResponse & {
   visibility: string;
   designIntent: string;
@@ -54,7 +60,7 @@ export type TemplateDetailApiResponse = TemplateSummaryApiResponse & {
   erd: string;
   apiSpec: string;
   projectStructure: string;
-  interviewQuestions: Array<string | { question: string; answerHint?: string | null }>;
+  interviewQuestions: Array<string | TemplateInterviewQuestionApiResponse>;
   fileUrl: string | null;
   favorited: boolean;
   updatedAt: string;
