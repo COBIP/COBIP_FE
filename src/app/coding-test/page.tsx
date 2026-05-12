@@ -28,7 +28,27 @@ export default function CodingTestPage() {
     if (isLoading && !data) return <div className="text-center py-20">데이터를 불러오는 중입니다...</div>;
 
     // 백엔드 데이터 추출
-    const workbooks = data?.content || [];
+    // const workbooks = data?.content || [];
+
+    // 1. 임시 더미 데이터 하나 만들기
+    const dummyWorkbook = {
+        id: 999,
+        slug: 'dummy-test',
+        title: '프론트엔드 UI 테스트용 더미 문제집',
+        category: '알고리즘',
+        difficulty: 'MEDIUM' as const, // 타입 에러 방지를 위해 as const 추가
+        summary: 'DB에 데이터가 없을 때 UI를 확인하기 위해 임시로 띄워둔 문제집입니다.',
+        displayOrder: 1,
+        createdAt: new Date().toISOString()
+    };
+
+    // 2. 백엔드 데이터가 비어있으면(0개면) 더미 데이터를 대신 배열에 쏙 넣어줍니다.
+    const workbooks = (data?.content && data.content.length > 0) 
+        ? data.content 
+        : [dummyWorkbook]; 
+        
+    // =================================================================
+
     const totalPages = data?.totalPages || 1;
     const currentPage = (data?.page || 0) + 1; // UI는 1부터 시작 (백엔드는 0부터)
 
