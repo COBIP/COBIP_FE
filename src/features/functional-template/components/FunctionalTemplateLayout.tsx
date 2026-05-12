@@ -238,6 +238,31 @@ function getCodingLanguageByFilePath(filePath: string) {
   return 'JAVA';
 }
 
+function getPracticeCodeStorageKey(templateId?: number | null) {
+  return templateId ? `cobip:template:${templateId}:practice-code` : null;
+}
+
+function getPracticeCompletedStorageKey(templateId?: number | null) {
+  return templateId ? `cobip:template:${templateId}:completed-missions` : null;
+}
+
+function getJsonFromStorage<T>(key: string | null, fallback: T): T {
+  if (!key || typeof window === 'undefined') return fallback;
+
+  try {
+    const rawValue = window.localStorage.getItem(key);
+    return rawValue ? (JSON.parse(rawValue) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function setJsonToStorage(key: string | null, value: unknown) {
+  if (!key || typeof window === 'undefined') return;
+
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
 export function FunctionalTemplateLayout({
   templateTitle,
   templateId,
@@ -260,6 +285,7 @@ export function FunctionalTemplateLayout({
   const [contentWidth, setContentWidth] = useState(760);
   const [explorerWidth, setExplorerWidth] = useState(260);
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
+  const [completedMissionIds, setCompletedMissionIds] = useState<Set<number>>(() => new Set());
   const [runOutput, setRunOutput] = useState('');
   const [submissionResult, setSubmissionResult] = useState<TemplatePracticeSubmissionResponse | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -360,10 +386,19 @@ export function FunctionalTemplateLayout({
   }, [template?.favorited]);
 
   useEffect(() => {
-    setFileContents(Object.fromEntries(practiceFiles.map((file) => [file.filePath, file.content])));
+    const storedCode = getJsonFromStorage<Record<string, string>>(getPracticeCodeStorageKey(templateId), {});
+    const nextFileContents = Object.fromEntries(
+      practiceFiles.map((file) => [file.filePath, storedCode[file.filePath] ?? file.content]),
+    );
+
+    setFileContents(nextFileContents);
     if (practiceFiles[0]) setActiveFile(practiceFiles[0].filePath);
     if (practiceMissions[0]) setActiveMissionId(practiceMissions[0].id);
-  }, [practiceFiles, practiceMissions]);
+
+    const missionIds = new Set(practiceMissions.map((mission) => mission.id));
+    const storedCompletedIds = getJsonFromStorage<number[]>(getPracticeCompletedStorageKey(templateId), []);
+    setCompletedMissionIds(new Set(storedCompletedIds.filter((missionId) => missionIds.has(missionId))));
+  }, [practiceFiles, practiceMissions, templateId]);
 
   const refreshPractice = async () => {
     if (!templateId) return;
@@ -398,6 +433,34 @@ export function FunctionalTemplateLayout({
       filePath: file.filePath,
       content: fileContents[file.filePath] ?? file.content,
     }));
+
+  const persistFileContents = (nextFileContents: Record<string, string>) => {
+    setJsonToStorage(getPracticeCodeStorageKey(templateId), nextFileContents);
+  };
+
+  const persistCompletedMissionIds = (nextCompletedMissionIds: Set<number>) => {
+    setJsonToStorage(getPracticeCompletedStorageKey(templateId), [...nextCompletedMissionIds]);
+  };
+
+  const updateEditorCode = (filePath: string, value: string) => {
+    setFileContents((current) => {
+      const nextFileContents = {
+        ...current,
+        [filePath]: value,
+      };
+      persistFileContents(nextFileContents);
+      return nextFileContents;
+    });
+  };
+
+  const markMissionCompleted = (missionId: number) => {
+    setCompletedMissionIds((current) => {
+      const nextCompletedMissionIds = new Set(current);
+      nextCompletedMissionIds.add(missionId);
+      persistCompletedMissionIds(nextCompletedMissionIds);
+      return nextCompletedMissionIds;
+    });
+  };
 
   const handleRunProject = async () => {
     if (!templateId || isRunning) return;
@@ -454,6 +517,10 @@ export function FunctionalTemplateLayout({
           })
         : await submitTemplatePracticeProject(templateId, missionId, buildProjectFiles());
       setSubmissionResult(result);
+      persistFileContents(fileContents);
+      if (result.status === 'ACCEPTED') {
+        markMissionCompleted(missionId);
+      }
       setRunOutput(
         [
           `status: ${result.status}`,
@@ -507,6 +574,7 @@ export function FunctionalTemplateLayout({
             title="미션"
             isDarkMode={isDarkMode}
             activeMissionId={activeMissionId}
+            completedMissionIds={completedMissionIds}
             onOpenEditor={openEditor}
             missions={missionItems.map((mission, index) => ({
               ...mission,
@@ -522,6 +590,7 @@ export function FunctionalTemplateLayout({
             actionLabel="문제 풀기"
             isDarkMode={isDarkMode}
             activeMissionId={activeMissionId}
+            completedMissionIds={completedMissionIds}
             onOpenEditor={openEditor}
             missions={problemItems.map((mission, index) => ({
               ...mission,
@@ -778,12 +847,7 @@ export function FunctionalTemplateLayout({
                   <CodeEditor
                     fileName={resolvedActiveFile}
                     code={editorCode}
-                    onCodeChange={(value) =>
-                      setFileContents((current) => ({
-                        ...current,
-                        [resolvedActiveFile]: value,
-                      }))
-                    }
+                    onCodeChange={(value) => updateEditorCode(resolvedActiveFile, value)}
                     fileTabs={currentTabs}
                     activeFile={resolvedActiveFile}
                     onFileSelect={setActiveFile}
@@ -836,14 +900,6 @@ export function FunctionalTemplateLayout({
         </button>
 
         <div className="flex-1" />
-
-        <div className={`flex items-center gap-3 text-sm ${isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>
-          <ChevronLeft className="h-4 w-4" />
-          <span>{TEXT.previousLesson}</span>
-          <span className={isDarkMode ? 'text-[#64748B]' : 'text-[#CBD5E1]'}>|</span>
-          <span>{TEXT.nextLesson}</span>
-          <ChevronRight className="h-4 w-4" />
-        </div>
       </div>
 
       {isShowSettings && (
