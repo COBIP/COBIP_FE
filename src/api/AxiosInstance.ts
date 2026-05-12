@@ -4,7 +4,7 @@ import { API_BASE_URL } from '@/api/services/ApiConfig';
 
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 5000,
+    timeout: 60000,
 });
 
 // 인증이 필요 없는 경로 (로그인/회원가입/이메일 인증 등)
