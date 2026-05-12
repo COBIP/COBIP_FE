@@ -30,7 +30,7 @@ export const useCodingSolving = (problemId: number) => {
             }
         };
         fetchProblem();
-    }, [problemId]);
+    }, [problemId , selectedLanguage]);
 
     const changeLanguage = (lang: CodingLanguage) => {
         setSelectedLanguage(lang);
