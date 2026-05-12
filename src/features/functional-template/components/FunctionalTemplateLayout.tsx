@@ -22,12 +22,15 @@ import {
   deleteTemplateFavorite,
   fetchTemplatePracticeProjectRun,
   getTemplatePractice,
+  submitTemplatePracticeCode,
   submitTemplatePracticeProject,
   type TemplateDetailApiResponse,
   type TemplatePracticeDetailApiResponse,
   type TemplatePracticeFileApiResponse,
   type TemplatePracticeMissionApiResponse,
+  type TemplatePracticeMissionType,
   type TemplatePracticeProgressApiResponse,
+  type TemplatePracticeSubmissionResponse,
 } from '@/api/services/FunctionalTemplateService';
 
 const TEXT = {
@@ -69,15 +72,26 @@ interface FunctionalTemplateLayoutProps {
   templateTitle: string;
   consecutiveDays?: number;
   templateId?: number | null;
-  template?: TemplateDetailApiResponse | null;
+  template?: TemplateDetailViewModel | null;
   practice?: TemplatePracticeDetailApiResponse | null;
 }
+
+type TemplateDetailViewModel = TemplateDetailApiResponse & {
+  summary?: string | null;
+  tags?: string[];
+  source?: string | null;
+  license?: string | null;
+};
+
+type PracticeMissionViewModel = TemplatePracticeMissionApiResponse & {
+  type?: TemplatePracticeMissionType;
+};
 
 function checkProblemMissionType(missionType?: string) {
   return missionType === 'DEBUGGING' || missionType === 'TEST';
 }
 
-function getPracticeMissionType(mission: TemplatePracticeMissionApiResponse) {
+function getPracticeMissionType(mission: PracticeMissionViewModel) {
   return mission.missionType ?? mission.type;
 }
 
@@ -179,6 +193,51 @@ function getMissionFilePath(
   return mentionedFile?.filePath ?? files[fallbackIndex]?.filePath ?? files[0]?.filePath ?? 'main.java';
 }
 
+function getReferenceSource(value?: string | null) {
+  const source = value?.trim();
+
+  if (!source) return null;
+
+  return /^https?:\/\//i.test(source) ? source : null;
+}
+
+function checkStalePracticeProgress(
+  progress: TemplatePracticeProgressApiResponse | null,
+  totalMissionCount: number,
+) {
+  return Boolean(progress && totalMissionCount > 0 && progress.completedMissionCount > totalMissionCount);
+}
+
+function checkCodeValidationMission(mission?: TemplatePracticeMissionApiResponse | null) {
+  const validationJson = mission?.validationJson;
+
+  if (!validationJson) return false;
+  if (Array.isArray(validationJson.testCases) && validationJson.testCases.length > 0) return true;
+
+  return typeof validationJson.expectedOutput === 'string' && validationJson.expectedOutput.length > 0;
+}
+
+function checkProjectValidationMission(mission?: TemplatePracticeMissionApiResponse | null) {
+  const validationJson = mission?.validationJson;
+
+  if (!validationJson) return false;
+
+  return (
+    typeof validationJson.testCommand === 'string' && validationJson.testCommand.trim().length > 0
+  ) || (
+    typeof validationJson.runCommand === 'string' && validationJson.runCommand.trim().length > 0
+  );
+}
+
+function getCodingLanguageByFilePath(filePath: string) {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+
+  if (extension === 'py') return 'PYTHON';
+  if (extension === 'js' || extension === 'jsx' || extension === 'ts' || extension === 'tsx') return 'JAVASCRIPT';
+
+  return 'JAVA';
+}
+
 export function FunctionalTemplateLayout({
   templateTitle,
   templateId,
@@ -202,6 +261,7 @@ export function FunctionalTemplateLayout({
   const [explorerWidth, setExplorerWidth] = useState(260);
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
   const [runOutput, setRunOutput] = useState('');
+  const [submissionResult, setSubmissionResult] = useState<TemplatePracticeSubmissionResponse | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [practiceProgress, setPracticeProgress] = useState<TemplatePracticeProgressApiResponse | null>(
@@ -249,8 +309,28 @@ export function FunctionalTemplateLayout({
     () => (hasPracticeFiles ? buildEditorFileTree(practiceFiles, templateTitle) : []),
     [hasPracticeFiles, practiceFiles, templateTitle],
   );
-  const progressPercent = practiceProgress?.progressPercent ?? 0;
-  const isCompleted = practiceProgress?.status === 'COMPLETED' || progressPercent >= 100;
+  const activeMission = useMemo(
+    () => practiceMissions.find((mission) => mission.id === activeMissionId) ?? practiceMissions[0] ?? null,
+    [activeMissionId, practiceMissions],
+  );
+  const progressPercent = useMemo(() => {
+    if (!practiceProgress) return 0;
+
+    if (practiceMissions.length > 0) {
+      if (checkStalePracticeProgress(practiceProgress, practiceMissions.length)) {
+        return 0;
+      }
+
+      return Math.min(
+        100,
+        Math.max(0, Math.round((practiceProgress.completedMissionCount / practiceMissions.length) * 100)),
+      );
+    }
+
+    return Math.min(100, Math.max(0, practiceProgress.progressPercent));
+  }, [practiceMissions.length, practiceProgress]);
+  const hasStalePracticeProgress = checkStalePracticeProgress(practiceProgress, practiceMissions.length);
+  const isCompleted = !hasStalePracticeProgress && practiceProgress?.status === 'COMPLETED' && progressPercent >= 100;
   const visibleTags = (template?.tags && template.tags.length > 0 ? template.tags : template?.techStacks ?? []).slice(0, 3);
 
   const learningPoint = useMemo(() => {
@@ -262,10 +342,13 @@ export function FunctionalTemplateLayout({
     return Array.from(new Set(keywords.filter(Boolean))).slice(0, 4);
   }, [template?.category, template?.tags, template?.techStacks]);
   const references = useMemo(() => {
-    const fileRefs = practiceFiles.map((file) => file.filePath).slice(0, 3);
-    const missionRefs = practiceMissions.map((mission) => mission.title).slice(0, 3);
-    return fileRefs.length > 0 ? fileRefs : missionRefs;
-  }, [practiceFiles, practiceMissions]);
+    const refs = [
+      getReferenceSource(template?.source),
+      template?.license ? `License: ${template.license}` : null,
+    ].filter((reference): reference is string => Boolean(reference));
+
+    return Array.from(new Set(refs)).slice(0, 3);
+  }, [template?.license, template?.source]);
 
   useEffect(() => {
     setLocalPractice(practice ?? null);
@@ -303,6 +386,7 @@ export function FunctionalTemplateLayout({
       try {
         const progress = await createTemplatePracticeStart(templateId);
         setPracticeProgress(progress);
+        setSubmissionResult(null);
       } catch {
         // 에디터 열기는 진행되어야 하므로 시작 기록 실패는 조용히 무시합니다.
       }
@@ -326,6 +410,7 @@ export function FunctionalTemplateLayout({
 
     setIsRunning(true);
     setRunOutput('실행 중...');
+    setSubmissionResult(null);
 
     try {
       const result = await fetchTemplatePracticeProjectRun(templateId, missionId, buildProjectFiles());
@@ -350,7 +435,7 @@ export function FunctionalTemplateLayout({
 
   const handleSubmitProject = async () => {
     if (!templateId || isSubmitting) return;
-    const missionId = activeMissionId ?? practiceMissions[0]?.id;
+    const missionId = activeMission?.id;
 
     if (!missionId) {
       setRunOutput('제출할 미션이나 문제를 먼저 선택해주세요.');
@@ -359,9 +444,16 @@ export function FunctionalTemplateLayout({
 
     setIsSubmitting(true);
     setRunOutput('제출 중...');
+    setSubmissionResult(null);
 
     try {
-      const result = await submitTemplatePracticeProject(templateId, missionId, buildProjectFiles());
+      const result = checkCodeValidationMission(activeMission) && !checkProjectValidationMission(activeMission)
+        ? await submitTemplatePracticeCode(templateId, missionId, {
+            language: getCodingLanguageByFilePath(resolvedActiveFile),
+            sourceCode: editorCode,
+          })
+        : await submitTemplatePracticeProject(templateId, missionId, buildProjectFiles());
+      setSubmissionResult(result);
       setRunOutput(
         [
           `status: ${result.status}`,
@@ -524,20 +616,22 @@ export function FunctionalTemplateLayout({
           </ul>
         </section>
 
-        <section className={`rounded-lg border p-4 ${isDarkMode ? 'border-[#334155] bg-[#1E293B]' : 'border-[#E2E8F0] bg-white'}`}>
-          <div className="mb-2 flex items-center gap-2">
-            <Layers3 className="h-4 w-4 text-[#7C3AED]" />
-            <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>{TEXT.references}</h3>
-          </div>
-          <ul className={`space-y-1.5 text-[13px] ${isDarkMode ? 'text-[#CBD5E1]' : 'text-[#475569]'}`}>
-            {references.map((reference) => (
-              <li key={reference} className="flex gap-2">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#7C3AED]" />
-                <span className="min-w-0 truncate">{reference}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {references.length > 0 && (
+          <section className={`rounded-lg border p-4 ${isDarkMode ? 'border-[#334155] bg-[#1E293B]' : 'border-[#E2E8F0] bg-white'}`}>
+            <div className="mb-2 flex items-center gap-2">
+              <Layers3 className="h-4 w-4 text-[#7C3AED]" />
+              <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>{TEXT.references}</h3>
+            </div>
+            <ul className={`space-y-1.5 text-[13px] ${isDarkMode ? 'text-[#CBD5E1]' : 'text-[#475569]'}`}>
+              {references.map((reference) => (
+                <li key={reference} className="flex gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#7C3AED]" />
+                  <span className="min-w-0 truncate">{reference}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </aside>
   );
@@ -700,6 +794,7 @@ export function FunctionalTemplateLayout({
                     isRunning={isRunning}
                     isSubmitting={isSubmitting}
                     runOutput={runOutput}
+                    submissionResult={submissionResult}
                   />
                 </div>
               </div>

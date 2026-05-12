@@ -169,6 +169,44 @@ function buildValidationTextWithFilePath(value: string, filePath: string) {
   return JSON.stringify(validationJson, null, 2);
 }
 
+function getValidationStringField(value: string, key: string) {
+  const fieldValue = parseValidationJsonText(value)[key];
+  return typeof fieldValue === 'string' ? fieldValue : '';
+}
+
+function buildValidationTextWithField(value: string, key: string, fieldValue: string) {
+  const validationJson = parseValidationJsonText(value);
+  const nextValue = fieldValue.trim();
+
+  if (nextValue) {
+    if (key === 'timeLimitMillis' || key === 'memoryLimitMb') {
+      const numericValue = Number(nextValue);
+      if (Number.isFinite(numericValue) && numericValue > 0) {
+        validationJson[key] = numericValue;
+      }
+    } else {
+      validationJson[key] = nextValue;
+    }
+  } else {
+    delete validationJson[key];
+  }
+
+  return JSON.stringify(validationJson, null, 2);
+}
+
+function buildValidationTextWithProjectDefaults(value: string) {
+  const validationJson = parseValidationJsonText(value);
+
+  validationJson.dockerImage = getValidationStringField(value, 'dockerImage') || 'gradle:8.14-jdk21';
+  validationJson.testCommand = getValidationStringField(value, 'testCommand') || 'gradle test --no-daemon';
+  validationJson.timeLimitMillis = Number(getValidationStringField(value, 'timeLimitMillis')) || 120000;
+  validationJson.memoryLimitMb = Number(getValidationStringField(value, 'memoryLimitMb')) || 512;
+  delete validationJson.testCases;
+  delete validationJson.expectedOutput;
+
+  return JSON.stringify(validationJson, null, 2);
+}
+
 export function AdminTemplatePracticePage({ templateId }: { templateId: number }) {
   const [practice, setPractice] = useState<TemplatePractice>(() => buildNormalizedPractice(null, templateId));
   const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
@@ -719,6 +757,51 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
                 placeholder="연결 파일 경로 예: src/main/java/com/cobip/auth/service/AuthService.java"
                 className="md:col-span-2 h-10 rounded-md border border-slate-300 px-3 text-sm"
               />
+              <div className="md:col-span-2 rounded-md border border-emerald-100 bg-emerald-50 p-3 text-sm text-slate-700">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Spring 프로젝트 미션은 Gradle 테스트 명령으로 채점하세요.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setValidationText((current) => buildValidationTextWithProjectDefaults(current))}
+                    className="rounded-md border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700"
+                  >
+                    프로젝트 채점 기본값
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input
+                    value={getValidationStringField(validationText, 'dockerImage')}
+                    onChange={(event) => setValidationText((current) => buildValidationTextWithField(current, 'dockerImage', event.target.value))}
+                    placeholder="dockerImage 예: gradle:8.14-jdk21"
+                    className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                  />
+                  <input
+                    value={getValidationStringField(validationText, 'testCommand')}
+                    onChange={(event) => setValidationText((current) => buildValidationTextWithField(current, 'testCommand', event.target.value))}
+                    placeholder="testCommand 예: gradle test --no-daemon"
+                    className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                <input
+                  value={getValidationStringField(validationText, 'timeLimitMillis')}
+                  onChange={(event) => setValidationText((current) => buildValidationTextWithField(current, 'timeLimitMillis', event.target.value))}
+                  placeholder="timeLimitMillis: 120000"
+                  className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                />
+                <input
+                  value={getValidationStringField(validationText, 'memoryLimitMb')}
+                  onChange={(event) => setValidationText((current) => buildValidationTextWithField(current, 'memoryLimitMb', event.target.value))}
+                  placeholder="memoryLimitMb: 512"
+                  className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                />
+              </div>
               <textarea
                 value={validationText}
                 onChange={(event) => setValidationText(event.target.value)}
@@ -823,6 +906,51 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
                 placeholder="연결 파일 경로 예: src/main/java/com/cobip/auth/controller/AuthController.java"
                 className="md:col-span-2 h-10 rounded-md border border-slate-300 px-3 text-sm"
               />
+              <div className="md:col-span-2 rounded-md border border-emerald-100 bg-emerald-50 p-3 text-sm text-slate-700">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Spring 파일을 수정하는 문제는 Gradle 테스트 명령으로 채점하세요.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProblemValidationText((current) => buildValidationTextWithProjectDefaults(current))}
+                    className="rounded-md border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700"
+                  >
+                    프로젝트 채점 기본값
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <input
+                    value={getValidationStringField(problemValidationText, 'dockerImage')}
+                    onChange={(event) => setProblemValidationText((current) => buildValidationTextWithField(current, 'dockerImage', event.target.value))}
+                    placeholder="dockerImage 예: gradle:8.14-jdk21"
+                    className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                  />
+                  <input
+                    value={getValidationStringField(problemValidationText, 'testCommand')}
+                    onChange={(event) => setProblemValidationText((current) => buildValidationTextWithField(current, 'testCommand', event.target.value))}
+                    placeholder="testCommand 예: gradle test --no-daemon"
+                    className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                <input
+                  value={getValidationStringField(problemValidationText, 'timeLimitMillis')}
+                  onChange={(event) => setProblemValidationText((current) => buildValidationTextWithField(current, 'timeLimitMillis', event.target.value))}
+                  placeholder="timeLimitMillis: 120000"
+                  className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                />
+                <input
+                  value={getValidationStringField(problemValidationText, 'memoryLimitMb')}
+                  onChange={(event) => setProblemValidationText((current) => buildValidationTextWithField(current, 'memoryLimitMb', event.target.value))}
+                  placeholder="memoryLimitMb: 512"
+                  className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                />
+              </div>
               <textarea
                 value={problemValidationText}
                 onChange={(event) => setProblemValidationText(event.target.value)}
