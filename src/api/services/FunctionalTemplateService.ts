@@ -75,6 +75,7 @@ export type TemplatePracticeFileApiResponse = {
   filePath: string;
   language: string;
   content: string;
+  userContent?: string | null;
   readOnly: boolean;
   orderIndex: number;
 };
@@ -88,6 +89,7 @@ export type TemplatePracticeMissionApiResponse = {
   orderIndex: number;
   guideContent: string;
   validationJson: Record<string, unknown> | null;
+  progressStatus?: TemplatePracticeProgressStatus | null;
 };
 
 export type TemplatePracticeProgressApiResponse = {
