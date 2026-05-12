@@ -33,7 +33,7 @@ export default function CodingTestPage() {
     // =================================================================
 
     const totalPages = data?.totalPages || 1;
-    const currentPage = (data?.page || 0) + 1; // UI는 1부터 시작 (백엔드는 0부터)
+    const currentPage = (data?.page ?? data?.number ?? 0) + 1; 
 
     return (
         <>
