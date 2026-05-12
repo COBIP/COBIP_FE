@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getProblemDetail, runCode, submitCode } from '@/api/services/CodingProblemService';
 import type { 
     CodingProblemDetailResponse, CodingLanguage, CodingCodeRunResponse, 
-    CodingSubmissionResponse, CodingProblemStarterCodeResponse 
+    CodingSubmissionResponse 
 } from '@/types/CodingProblemTypes';
 
 export const useCodingSolving = (problemId: number) => {
