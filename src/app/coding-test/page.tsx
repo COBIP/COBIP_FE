@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ProblemGrid from '@/features/coding-test/components/ProblemGrid';
 import CodingTestFilter from '@/features/coding-test/components/CodingTestFilter';
 import { useCodingTest } from '@/hooks/useCodingTest';
+import { Header } from '@/features/main-home/components/Header'
 
 // 한 페이지에 보여줄 문제 개수 상수 선언
 const ITEMS_PER_PAGE = 16;
@@ -48,6 +49,8 @@ export default function CodingTestPage() {
     );
 
     return (
+        <>
+        <Header/>
         <div className="bg-white min-h-screen pb-20">
             <main className="flex-grow max-w-[1440px] mx-auto w-full px-8 py-10">
                 <CodingTestFilter 
@@ -101,5 +104,6 @@ export default function CodingTestPage() {
                 )}
             </main>
         </div>
+        </>
     );
 }
