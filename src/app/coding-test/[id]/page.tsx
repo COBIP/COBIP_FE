@@ -6,14 +6,14 @@ import ProblemDescription from '@/features/coding-test/components/ProblemDescrip
 import CodeEditor from '@/features/coding-test/components/CodeEditor';
 import ConsolePanel from '@/features/coding-test/components/ConsolePanel';
 import { Header } from '@/features/main-home/components/Header';
-import type { CodingProblemDetailResponse } from '@/types/CodingProblemTypes';
 
 export default function CodingProblemDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const problemId = Number(resolvedParams.id);
     
+    // apiProblem으로 이름을 바꾸던 부분을 원래 이름인 problem으로 단순화
     const { 
-        problem: apiProblem,
+        problem,
         isLoading, 
         selectedLanguage, changeLanguage, 
         sourceCode, setSourceCode,
@@ -21,31 +21,8 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
         runResult, submissionResult, resetCode
     } = useCodingSolving(problemId);
 
-    const dummyProblem: CodingProblemDetailResponse = {
-        id: problemId,
-        workbookId: 999,
-        title: "두 수의 합 (더미 데이터)",
-        category: "알고리즘",
-        difficulty: "MEDIUM",
-        contentJson: "문제 설명입니다.",
-        explanationJson: null,
-        orderIndex: 1,
-        timeLimitMillis: 1000,
-        memoryLimitMb: 256,
-        sampleTestCases: [
-            { id: 1, input: "nums = [2, 7], target = 9", expectedOutput: "[0, 1]", orderIndex: 1 }
-        ],
-        starterCodes: [
-            { language: 'JAVA', code: 'public class Solution { }' },
-            { language: 'PYTHON', code: 'def solution(): pass' }
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-    };
-
-    const problem = apiProblem || dummyProblem;
-
-    if (isLoading && !apiProblem) {
+    // 로딩 중이거나 아직 API 데이터를 받아오지 못한 경우 안전하게 예외 처리
+    if (isLoading || !problem) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
     }
 
