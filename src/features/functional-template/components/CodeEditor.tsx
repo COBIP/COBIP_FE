@@ -2,6 +2,13 @@
 
 import { FileText, History, MessageCircle, Play, Save } from 'lucide-react';
 
+interface SubmissionResultView {
+  status: string;
+  passedCount: number;
+  totalCount: number;
+  message?: string | null;
+}
+
 interface CodeEditorProps {
   fileName?: string;
   code?: string;
@@ -16,6 +23,7 @@ interface CodeEditorProps {
   isRunning?: boolean;
   isSubmitting?: boolean;
   runOutput?: string;
+  submissionResult?: SubmissionResultView | null;
   showRunner?: boolean;
 }
 
@@ -33,6 +41,7 @@ export function CodeEditor({
   isRunning = false,
   isSubmitting = false,
   runOutput,
+  submissionResult,
   showRunner = true,
 }: CodeEditorProps) {
   const editorCode = code ?? '';
@@ -162,7 +171,30 @@ export function CodeEditor({
               <span>실행 결과</span>
             </div>
             <div className={`flex-1 overflow-y-auto px-4 py-3 font-mono text-[13px] ${isDarkMode ? 'text-[#E2E8F0]' : 'text-[#1E293B]'}`}>
-              {runOutput ? (
+              {submissionResult ? (
+                <div className="space-y-3 font-sans">
+                  <div
+                    className={`rounded-lg border px-3 py-2 ${
+                      submissionResult.status === 'ACCEPTED'
+                        ? isDarkMode
+                          ? 'border-emerald-500/50 bg-emerald-950/30 text-emerald-200'
+                          : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                        : isDarkMode
+                          ? 'border-rose-500/50 bg-rose-950/30 text-rose-200'
+                          : 'border-rose-200 bg-rose-50 text-rose-800'
+                    }`}
+                  >
+                    <p className="text-sm font-bold">
+                      {submissionResult.status === 'ACCEPTED' ? '정답입니다' : '오답입니다'}
+                    </p>
+                    <p className="mt-1 text-xs">
+                      통과 {submissionResult.passedCount}/{submissionResult.totalCount} · {submissionResult.status}
+                    </p>
+                    {submissionResult.message && <p className="mt-1 text-xs">{submissionResult.message}</p>}
+                  </div>
+                  {runOutput && <pre className="whitespace-pre-wrap font-mono">{runOutput}</pre>}
+                </div>
+              ) : runOutput ? (
                 <pre className="whitespace-pre-wrap">{runOutput}</pre>
               ) : (
                 <div className={isDarkMode ? 'text-[#64748B]' : 'text-[#94A3B8]'}>실행 결과가 여기에 표시됩니다.</div>
