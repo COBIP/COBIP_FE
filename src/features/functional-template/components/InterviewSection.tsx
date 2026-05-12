@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 
+import { MarkdownTextView } from './MarkdownTextView';
+
 interface InterviewQuestion {
   question: string;
   answerHint?: string | null;
+  answer_hint?: string | null;
 }
 
 interface InterviewSectionProps {
@@ -15,11 +18,16 @@ interface InterviewSectionProps {
 export function InterviewSection({ isDarkMode = false, questions }: InterviewSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const visibleQuestions = questions && questions.length > 0
-    ? questions.map((item) =>
-        typeof item === 'string'
-          ? { question: item, answerHint: '' }
-          : { question: item.question, answerHint: item.answerHint ?? '' },
-      )
+    ? questions
+        .map((item) =>
+          typeof item === 'string'
+            ? { question: item.trim(), answerHint: '' }
+            : {
+                question: item.question.trim(),
+                answerHint: (item.answerHint ?? item.answer_hint ?? '').trim(),
+              },
+        )
+        .filter((item) => item.question.length > 0)
     : [];
 
   return (
@@ -64,7 +72,25 @@ export function InterviewSection({ isDarkMode = false, questions }: InterviewSec
                 <div className={`border-t px-4 py-3 text-[14px] leading-relaxed transition-colors duration-300 ${
                   isDarkMode ? 'border-[#334155] text-[#CBD5E1]' : 'border-[#E2E8F0] text-[#475569]'
                 }`}>
-                  {item.answerHint || '답변 힌트가 없습니다.'}
+                  {item.answerHint ? (
+                    <div className="space-y-2">
+                      <p className={`text-[12px] font-semibold ${
+                        isDarkMode ? 'text-[#C4B5FD]' : 'text-[#6D28D9]'
+                      }`}>
+                        답변 힌트
+                      </p>
+                      <MarkdownTextView
+                        content={item.answerHint}
+                        isDarkMode={isDarkMode}
+                        compact
+                        className={isDarkMode ? 'text-[#CBD5E1]' : 'text-[#475569]'}
+                      />
+                    </div>
+                  ) : (
+                    <p className={isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'}>
+                      답변 힌트가 없습니다.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
