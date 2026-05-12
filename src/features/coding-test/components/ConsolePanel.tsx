@@ -9,7 +9,7 @@ interface ConsolePanelProps {
     submissionResult: CodingSubmissionResponse | null;
 }
 
-export default function ConsolePanel({ isExecuting, handleRun, handleSubmit, runResult, submissionResult }: ConsolePanelProps) {
+export default function ConsolePanel({ isExecuting, handleRun, handleSubmit, submissionResult }: ConsolePanelProps) {
     const [activeTab, setActiveTab] = useState<'TESTCASE' | 'RUN_RESULT' | 'SUBMIT_RESULT'>('TESTCASE');
 
     return (
