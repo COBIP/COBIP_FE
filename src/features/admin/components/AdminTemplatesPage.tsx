@@ -327,9 +327,22 @@ function parseOwnerId(value: string) {
 }
 
 function validateTemplatePayload(payload: AdminTemplatePayload) {
+  const assertMaxLength = (value: string | undefined, maxLength: number, label: string) => {
+    if (value && value.length > maxLength) {
+      throw new Error(`${label}은(는) ${maxLength}자 이하여야 합니다. 현재 ${value.length}자입니다.`);
+    }
+  };
   if (!payload.title) {
     throw new Error('제목은 필수입니다.');
   }
+
+  assertMaxLength(payload.title, 120, '제목');
+  assertMaxLength(payload.summary, 500, '요약');
+  assertMaxLength(payload.category, 80, '카테고리');
+  assertMaxLength(payload.runtime, 40, '런타임');
+  assertMaxLength(payload.previewImage, 1000, '미리보기 이미지 URL');
+  assertMaxLength(payload.license, 80, '라이선스');
+  assertMaxLength(payload.source, 120, '출처');
 
   if (!payload.description) {
     throw new Error('상세설명은 필수입니다.');
@@ -347,11 +360,24 @@ function validateTemplatePayload(payload: AdminTemplatePayload) {
     throw new Error('요구사항은 type과 description을 모두 입력해야 합니다.');
   }
 
+  if (payload.techStacks.length > 20) {
+    throw new Error(`기술 스택은 최대 20개까지 입력할 수 있습니다. 현재 ${payload.techStacks.length}개입니다.`);
+  }
+
+  if ((payload.tags?.length ?? 0) > 20) {
+    throw new Error(`태그는 최대 20개까지 입력할 수 있습니다. 현재 ${payload.tags?.length ?? 0}개입니다.`);
+  }
+
   const hasInvalidMission = payload.missions?.some((mission) => !mission.title || !mission.missionType);
 
   if (hasInvalidMission) {
     throw new Error('미션/문제는 title과 missionType을 입력해야 합니다.');
   }
+
+  payload.interviewQuestions.forEach((question, index) => {
+    assertMaxLength(question.question, 1000, `면접 질문 ${index + 1}번 질문`);
+    assertMaxLength(question.answerHint, 1000, `면접 질문 ${index + 1}번 답변 힌트`);
+  });
 
   const hasInvalidQuestion = payload.interviewQuestions.some((question) => !question.question);
 
@@ -364,6 +390,10 @@ function validateTemplatePayload(payload: AdminTemplatePayload) {
   if (hasInvalidTestCase) {
     throw new Error('테스트케이스는 입력과 기대 출력을 모두 입력해야 합니다.');
   }
+
+  payload.testCases?.forEach((testCase, index) => {
+    assertMaxLength(testCase.description, 1000, `테스트케이스 ${index + 1}번 설명`);
+  });
 
   if (payload.previewImage) {
     try {
