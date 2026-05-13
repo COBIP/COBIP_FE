@@ -61,6 +61,12 @@ export interface Subscription {
 export interface WeeklyActivity {
     date: string; // LocalDate
     activityCount: number;
+    studySeconds: number; // ✨ 추가: 해당 날짜의 총 학습 시간(초)
+}
+
+export interface HeartbeatRequest {
+    templateId: number;
+    activeSeconds: number; // 주기(최대 60초)
 }
 
 export interface MyDashboardData {
