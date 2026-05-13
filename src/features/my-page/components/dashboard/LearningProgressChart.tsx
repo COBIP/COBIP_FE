@@ -50,7 +50,7 @@ export function LearningProgressChart({ activities }: LearningProgressChartProps
       <div className="mt-6 flex items-center justify-center gap-4">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-purple-600 rounded-full" />
-          <span className="text-xs text-gray-600">일간 학습 시간 (분)</span>
+          <span className="text-xs text-gray-600">일간 학습 시간</span>
         </div>
       </div>
     </div>
