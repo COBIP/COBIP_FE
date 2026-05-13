@@ -1,5 +1,5 @@
 import axiosInstance from '@/api/AxiosInstance';
-import type { GrammarTemplateItem, GrammarTemplateDetail } from '@/features/grammar-template/Constants';
+import type { GrammarTemplateItem, GrammarTemplateDetail, CodeRunRequest, ExecutionFlowRequest, CodeRunResponse, ExecutionFlowResponse } from '@/features/grammar-template/Constants';
 
 /** API 응답 래퍼 */
 interface ApiResponse<T> {
@@ -51,4 +51,31 @@ export const grammarTemplateService = {
     );
     return response.data.data;
   },
+
+  /** 챕터 코드 실행 */
+  runCode: async (
+    templateId: number,
+    chapterId: number,
+    request: CodeRunRequest
+  ): Promise<CodeRunResponse> => {
+    const response = await axiosInstance.post<ApiResponse<CodeRunResponse>>(
+      `/api/v1/grammar-templates/${templateId}/chapters/${chapterId}/run`,
+      request
+    );
+    return response.data.data;
+  },
+
+  /** 챕터 실행흐름 조회 */
+  getExecutionFlow: async (
+    templateId: number,
+    chapterId: number,
+    request: ExecutionFlowRequest
+  ): Promise<ExecutionFlowResponse> => {
+    const response = await axiosInstance.post<ApiResponse<ExecutionFlowResponse>>(
+      `/api/v1/grammar-templates/${templateId}/chapters/${chapterId}/execution-flow`,
+      request
+    );
+    return response.data.data;
+  },
 };
+

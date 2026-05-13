@@ -278,10 +278,13 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
               {(!template?.chapters || template.chapters.length === 0) && <TiptapRenderer content={template?.contentJson} />}
             </div>
           </main>
-          {/* 실행 환경 패널 */}
-          {isRunnerOpen && (
-            <CodeRunner
-              runnerWidth={runnerWidth}
+                                        {/* 실행 환경 패널 */}
+                    {isRunnerOpen && (
+                      <CodeRunner
+                        templateId={templateId}
+                        chapterId={template?.chapters?.[currentChapterIndex]?.id}
+                        language={template?.language}
+                        runnerWidth={runnerWidth}
               explorerWidth={explorerWidth}
               outputHeight={outputHeight}
               explorerTree={explorerTree}

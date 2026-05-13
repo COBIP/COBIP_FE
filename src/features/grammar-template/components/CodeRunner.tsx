@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
+import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import type { ExplorerNode, ExplorerFolder } from './GrammarDetailView';
+import type { ExecutionFlowStep } from '@/features/grammar-template/Constants';
+import { ExecutionFlowPanel } from './ExecutionFlowPanel';
 
 // ===== 탐색기 노드 컴포넌트 (재귀) =====
 function ExplorerFolderNode({
@@ -142,6 +145,9 @@ function ExplorerFolderNode({
 
 // ===== Props =====
 interface CodeRunnerProps {
+  templateId: number;
+  chapterId?: number;
+  language?: string;
   runnerWidth: number;
   explorerWidth: number;
   outputHeight: number;
@@ -161,6 +167,9 @@ interface CodeRunnerProps {
 
 // ===== Code Runner 메인 컴포넌트 =====
 export function CodeRunner({
+  templateId,
+  chapterId,
+  language,
   runnerWidth,
   explorerWidth,
   outputHeight,
@@ -177,8 +186,88 @@ export function CodeRunner({
   onOpenFile,
   setFileContents,
 }: CodeRunnerProps) {
-  const [isRootInputOpen, setIsRootInputOpen] = useState(false);
-  const [rootInputValue, setRootInputValue] = useState('');
+    const [isRootInputOpen, setIsRootInputOpen] = useState(false);
+    const [rootInputValue, setRootInputValue] = useState('');
+        const [executionSteps, setExecutionSteps] = useState<ExecutionFlowStep[] | null>(null);
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [isFlowLoading, setIsFlowLoading] = useState(false);
+    const [isRunning, setIsRunning] = useState(false);
+    const [outputText, setOutputText] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    /** 코드 실행 */
+    const handleRun = useCallback(async () => {
+      if (!activeFilePath || !fileContents[activeFilePath]) {
+        setOutputText('// 실행할 코드를 입력해주세요.');
+        setErrorMessage('');
+        return;
+      }
+      if (!chapterId || !templateId || isRunning) return;
+      setIsRunning(true);
+      setOutputText('// 실행 중...');
+      setErrorMessage('');
+      setExecutionSteps(null);
+
+            try {
+        const result = await grammarTemplateService.runCode(templateId, chapterId, {
+          sourceCode: fileContents[activeFilePath],
+          language: language ?? 'PYTHON',
+        });
+        const isSuccess = result.status === 'ACCEPTED';
+        if (isSuccess) {
+          setOutputText(result.stdout || '// 실행 완료 (출력 없음)');
+        } else {
+          const errMsg = result.message || result.stderr || result.compileOutput || '알 수 없는 오류';
+          setOutputText(`// 오류 (${result.status}): ${errMsg}`);
+        }
+            } catch (err) {
+              setOutputText('');
+              let detail = '알 수 없는 오류';
+              try {
+                if (err && typeof err === 'object') {
+                  const axiosErr = err as { response?: { data?: unknown; status?: number }; message?: string };
+                  if (axiosErr.response?.data) {
+                    detail = JSON.stringify(axiosErr.response.data);
+                  } else if (axiosErr.message) {
+                    detail = axiosErr.message;
+                  }
+                } else if (err instanceof Error) {
+                  detail = err.message;
+                }
+              } catch {
+                detail = String(err);
+              }
+              setErrorMessage(`// 실행 실패 (500): ${detail}`);
+            } finally {
+        setIsRunning(false);
+      }
+    }, [templateId, chapterId, activeFilePath, fileContents, language, isRunning]);
+
+    /** 실행흐름 조회 */
+    const handleExecutionFlow = useCallback(async () => {
+      if (!activeFilePath || !fileContents[activeFilePath]) {
+        setErrorMessage('// 실행흐름을 볼 코드를 입력해주세요.');
+        setExecutionSteps(null);
+        return;
+      }
+      if (!chapterId || !templateId || isFlowLoading) return;
+      setIsFlowLoading(true);
+      setErrorMessage('');
+      setExecutionSteps(null);
+      setCurrentStepIndex(0);
+
+      try {
+        const result = await grammarTemplateService.getExecutionFlow(templateId, chapterId, {
+          sourceCode: fileContents[activeFilePath],
+          language: language ?? 'PYTHON',
+        });
+        setExecutionSteps(result.steps);
+      } catch (err) {
+        setErrorMessage(`// 실행흐름 조회 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+      } finally {
+        setIsFlowLoading(false);
+      }
+    }, [templateId, chapterId, activeFilePath, fileContents, language, isFlowLoading]);
 
   const handleRootConfirm = useCallback(() => {
     const val = rootInputValue.trim();
@@ -204,8 +293,19 @@ export function CodeRunner({
           </div>
         </div>
 
-        {/* 본문: 파일트리 + 코드 영역 */}
+                {/* 본문: 실행흐름 패널 + 파일트리 + 코드 영역 */}
         <div className="flex flex-1 overflow-hidden">
+          {/* 왼쪽: 실행흐름 패널 (실행흐름 로드 시에만 표시) */}
+          {executionSteps && (
+            <div className="shrink-0 overflow-hidden border-r border-gray-200" style={{ width: '280px' }}>
+              <ExecutionFlowPanel
+                steps={executionSteps}
+                currentStepIndex={currentStepIndex}
+                onStepClick={setCurrentStepIndex}
+              />
+            </div>
+          )}
+
           {/* 왼쪽: 파일 탐색기 */}
           <div className="flex flex-col shrink-0 overflow-hidden" style={{ width: `${explorerWidth}px` }}>
             <div className="px-3 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-100/50 shrink-0">탐색기</div>
@@ -265,31 +365,75 @@ export function CodeRunner({
               <div className="w-full h-full bg-gray-200 group-hover:bg-purple-500 transition-colors" />
             </div>
 
-            {/* 하단 도구 모음 */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-white shrink-0">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-[11px] font-medium rounded-md hover:bg-purple-700 transition cursor-pointer">
-                <Play className="w-3 h-3 fill-white" /> 실행
-              </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-[11px] font-medium rounded-md border border-gray-200 hover:bg-gray-50 hover:border-purple-200 hover:text-purple-600 transition cursor-pointer">
-                <span>▶</span> 실행흐름
-              </button>
-              <div className="flex-1" />
-              <span className="text-[10px] text-gray-400">{'// 실행 결과'}</span>
-            </div>
+                        {/* 하단 도구 모음 */}
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white shrink-0">
+                                                    <button
+                            onClick={handleRun}
+                            disabled={isRunning}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-[11px] font-medium rounded-md hover:bg-purple-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isRunning ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Play className="w-3 h-3 fill-white" />
+                            )}
+                            실행
+                          </button>
+                          <button
+                            onClick={handleExecutionFlow}
+                            disabled={isFlowLoading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-[11px] font-medium rounded-md border border-gray-200 hover:bg-gray-50 hover:border-purple-200 hover:text-purple-600 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isFlowLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <span>▶</span>
+                            )}
+                            실행흐름
+                          </button>
+                          <div className="flex-1" />
+                          {executionSteps && (
+                            <span className="text-[10px] text-purple-600 font-medium">
+                              {currentStepIndex + 1}/{executionSteps.length} 단계
+                            </span>
+                          )}
+                          <span className="text-[10px] text-gray-400">{'// 실행 결과'}</span>
+                        </div>
 
-            {/* 출력 영역 */}
-            <div className="border-t border-gray-200 bg-gray-50 overflow-y-auto shrink-0" style={{ height: `${outputHeight}px` }}>
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 sticky top-0">
-                <span className="text-[10px] text-gray-500 font-medium">출력</span>
-              </div>
-              <div className="p-3">
-                <p className="text-xs text-gray-400 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
-              </div>
-            </div>
+                        {/* 출력 영역 */}
+                        <div className="border-t border-gray-200 bg-gray-50 overflow-y-auto shrink-0" style={{ height: `${outputHeight}px` }}>
+                          <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 sticky top-0">
+                            <span className="text-[10px] text-gray-500 font-medium">출력</span>
+                            {executionSteps && (
+                              <span className="text-[10px] text-purple-600 font-medium">| 실행흐름 모드</span>
+                            )}
+                          </div>
+                                                    <div className="p-3">
+                            {errorMessage ? (
+                              <pre className="text-xs text-red-500 font-mono whitespace-pre-wrap">{errorMessage}</pre>
+                            ) : outputText ? (
+                              <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{outputText}</pre>
+                            ) : executionSteps && currentStepIndex < executionSteps.length ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-xs text-purple-700 font-medium">
+                                  <span>🔍 {executionSteps[currentStepIndex].eventType}</span>
+                                  <span className="text-gray-400">라인 {executionSteps[currentStepIndex].lineNumber}</span>
+                                </div>
+                                <pre className="text-xs text-gray-800 font-mono bg-gray-100 rounded p-2">
+                                  {executionSteps[currentStepIndex].sourceLine}
+                                </pre>
+                                <p className="text-xs text-gray-500">{executionSteps[currentStepIndex].description}</p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
+                            )}
+                          </div>
+                        </div>
           </div>
         </div>
       </div>
     </aside>
   );
 }
+
 
