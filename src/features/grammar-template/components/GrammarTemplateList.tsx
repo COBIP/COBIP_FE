@@ -136,8 +136,7 @@ export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListPro
             ))}
           </div>
         )}
-
-                {/* 결과 없음 */}
+        {/* 결과 없음 */}
         {!isLoading && templates.length === 0 && (
           <div className="text-center py-16">
             <p className="text-gray-400 text-sm">검색 결과가 없습니다.</p>

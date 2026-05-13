@@ -26,6 +26,19 @@ export interface GrammarTemplateDetail {
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   summary: string;
   contentJson: Record<string, unknown>;
+  chapters: GrammarTemplateChapter[];
+}
+
+/** 문법 템플릿 챕터 (목차) */
+export interface GrammarTemplateChapter {
+  id: number;
+  templateId: number;
+  title: string;
+  orderIndex: number;
+  contentJson: Record<string, unknown>;
+  practiceFiles: unknown[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 /* ================== 레슨 콘텐츠 타입 ================== */

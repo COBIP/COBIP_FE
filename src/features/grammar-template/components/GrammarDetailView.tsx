@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Menu, Bookmark, Bot, Settings, ChevronLeft, Check, Loader2 } from 'lucide-react';
+import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
-import type { GrammarTemplateDetail } from '@/features/grammar-template/Constants';
+import type { GrammarTemplateDetail, GrammarTemplateChapter } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
 
 interface GrammarDetailViewProps {
@@ -43,9 +43,10 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [runnerWidth, setRunnerWidth] = useState(480);
   const [explorerWidth, setExplorerWidth] = useState(200);
   const [outputHeight, setOutputHeight] = useState(140);
-  const [activeFilePath, setActiveFilePath] = useState('');
+    const [activeFilePath, setActiveFilePath] = useState('');
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
   const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([]);
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
 
   /** API에서 템플릿 상세 정보 불러오기 */
   useEffect(() => {
@@ -232,21 +233,40 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
       <div className="flex flex-1 overflow-hidden">
         {/* 좌측 사이드바 */}
         <aside className={`border-r border-gray-200 bg-gray-50 transition-all duration-300 shrink-0 overflow-y-auto ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
-          {isSidebarOpen && (
+                    {isSidebarOpen && (
             <div className="p-4">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
                 📖 {template?.title || '문법 템플릿'}
               </h3>
-              <div className="space-y-2">
-                <p className="text-xs text-gray-500">{template?.summary}</p>
-                <div className="flex flex-wrap gap-1">
-                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] rounded-md border border-purple-100">
-                    {template?.language}
-                  </span>
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-md border border-gray-100">
-                    {template?.difficulty}
-                  </span>
-                </div>
+              {/* 챕터 목록 */}
+              {template?.chapters && template.chapters.length > 0 && (
+                <ul className="space-y-0.5 mb-4">
+                  {template.chapters.map((chapter, i) => (
+                    <li key={chapter.id}>
+                      <button
+                        onClick={() => setCurrentChapterIndex(i)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition cursor-pointer ${
+                          i === currentChapterIndex
+                            ? 'bg-purple-100 text-purple-700 font-semibold'
+                            : 'text-gray-500 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="truncate">{chapter.title}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {template?.summary && (
+                <p className="text-xs text-gray-500 mb-2">{template.summary}</p>
+              )}
+              <div className="flex flex-wrap gap-1">
+                <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] rounded-md border border-purple-100">
+                  {template?.language}
+                </span>
+                <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-md border border-gray-100">
+                  {template?.difficulty}
+                </span>
               </div>
             </div>
           )}
@@ -266,14 +286,19 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
               </span>
             </button>
 
-          <main className="overflow-y-auto flex-1">
+                    <main className="overflow-y-auto flex-1">
             <div className="max-w-4xl mx-auto px-8 py-10">
               <h1 className="text-2xl font-bold text-gray-900 mb-6">{template?.title}</h1>
-              {template?.summary && (
+              {template?.chapters && template.chapters.length > 0 && currentChapterIndex < template.chapters.length && (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">{template.chapters[currentChapterIndex].title}</h2>
+                  {renderContentJson(template.chapters[currentChapterIndex].contentJson)}
+                </>
+              )}
+              {(!template?.chapters || template.chapters.length === 0) && template?.summary && (
                 <p className="text-gray-500 text-sm mb-8">{template.summary}</p>
               )}
-              {/* API의 contentJson을 렌더링 */}
-              {renderContentJson(template?.contentJson)}
+              {(!template?.chapters || template.chapters.length === 0) && renderContentJson(template?.contentJson)}
             </div>
           </main>
           {/* 실행 환경 패널 */}
@@ -299,10 +324,18 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         </div>
       </div>
 
-      {/* 하단 고정바 */}
+            {/* 하단 고정바 */}
       <footer className="h-14 border-t border-gray-200 bg-white flex items-center justify-between px-6 shrink-0 relative z-10">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {/* 이전 레슨 (없으면 빈 공간) */}
+          {template?.chapters && currentChapterIndex > 0 && (
+            <button
+              onClick={() => setCurrentChapterIndex(currentChapterIndex - 1)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4 shrink-0" />
+              <span className="truncate">{template.chapters[currentChapterIndex - 1].title}</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center shrink-0">
@@ -319,7 +352,15 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         </div>
 
         <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-          {/* 다음 레슨 (없으면 빈 공간) */}
+          {template?.chapters && currentChapterIndex < template.chapters.length - 1 && (
+            <button
+              onClick={() => setCurrentChapterIndex(currentChapterIndex + 1)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
+            >
+              <span className="truncate">{template.chapters[currentChapterIndex + 1].title}</span>
+              <ChevronRight className="w-4 h-4 shrink-0" />
+            </button>
+          )}
         </div>
       </footer>
     </div>
