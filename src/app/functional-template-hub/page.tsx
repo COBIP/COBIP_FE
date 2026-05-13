@@ -1,132 +1,169 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { Header } from '@/features/main-home/components/Header';
 import { Search } from 'lucide-react';
+import { Header } from '@/features/main-home/components/Header';
 import {
   AISection,
-  TemplateGrid,
+  AiGeneratedTemplatePreview,
   InfoSection,
+  TemplateGrid,
 } from '@/features/functional-template-hub/components/Index';
-import type { FunctionalTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
-import { getTemplates, mapTemplateCardViewModel } from '@/api/services/FunctionalTemplateService';
+import {
+  getTemplates,
+  mapTemplateCardViewModel,
+  type FunctionalTemplateCardViewModel,
+} from '@/api/services/FunctionalTemplateService';
+import {
+  fetchAiFeatureTemplate,
+  type AiFeatureTemplateGenerateRequest,
+  type AiFeatureTemplateGenerateResult,
+} from '@/api/services/AiService';
 
-/**
- * 기능 템플릿 탐색 메인 페이지 (Hub)
- * API에서 동적으로 템플릿 데이터를 로드합니다.
- */
+type TemplateFilter = '전체' | '인기' | '추천';
+
+export const AI_TEMPLATE_SESSION_KEY = 'cobip.aiFeatureTemplateDraft';
+
+function setAiTemplateDraft(request: AiFeatureTemplateGenerateRequest, result: AiFeatureTemplateGenerateResult) {
+  if (typeof window === 'undefined') return;
+
+  sessionStorage.setItem(
+    AI_TEMPLATE_SESSION_KEY,
+    JSON.stringify({
+      request,
+      result,
+      savedAt: new Date().toISOString(),
+    }),
+  );
+}
+
 export default function FunctionalTemplatesPage() {
   const router = useRouter();
   const [cardSearchQuery, setCardSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'전체' | '인기' | '추천'>('전체');
+  const [activeFilter, setActiveFilter] = useState<TemplateFilter>('전체');
   const [templates, setTemplates] = useState<FunctionalTemplateCardViewModel[]>([]);
+  const [generatedTemplate, setGeneratedTemplate] = useState<AiFeatureTemplateGenerateResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 템플릿 데이터 로드
   useEffect(() => {
     const loadTemplates = async () => {
       try {
         setIsLoading(true);
         const data = await getTemplates();
-        const mapped = data.map(mapTemplateCardViewModel);
-        setTemplates(mapped);
+        setTemplates(data.map(mapTemplateCardViewModel));
         setError(null);
       } catch (err) {
         console.error('Failed to load templates:', err);
-        setError(err instanceof Error ? err.message : '템플릿을 로드할 수 없습니다.');
+        setError(err instanceof Error ? err.message : '템플릿을 불러오지 못했습니다.');
         setTemplates([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadTemplates();
+    void loadTemplates();
   }, []);
 
-  // AI 기반 맞춤 기능 설계 요청 핸들러
-  const handleAIDesign = (requirements: string) => {
-    // TODO: AI API 연동 로직
-    console.log('AI 맞춤 설계 요구사항:', requirements);
+  const handleAIDesign = async (request: AiFeatureTemplateGenerateRequest) => {
+    const result = await fetchAiFeatureTemplate(request);
+    setAiTemplateDraft(request, result);
+    setGeneratedTemplate(result);
+    router.push('/functional-template-ai');
   };
 
-  // 템플릿 카드 클릭 핸들러
+  const handleOpenGeneratedTemplate = () => {
+    if (!generatedTemplate) return;
+
+    const request: AiFeatureTemplateGenerateRequest = {
+      featureName: generatedTemplate.template.overview.featureName,
+      language: generatedTemplate.template.codeFiles[0]?.language ?? 'java',
+      framework: null,
+      level: 'intermediate',
+      includeCode: true,
+      includeMissions: true,
+      includeInterview: true,
+      referenceContext: null,
+    };
+
+    setAiTemplateDraft(request, generatedTemplate);
+    router.push('/functional-template-ai');
+  };
+
   const handleTemplateClick = (templateId: string) => {
     router.push(`/functional-template/${templateId}`);
   };
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
-      {/* 메인 헤더 재사용 */}
       <Header />
 
-      {/* 페이지 타이틀 (문법 템플릿과 동일한 형태) */}
-      <header className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
+      <header className="border-b border-gray-200 bg-white px-8 py-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex items-center justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Search className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">기능 템플릿</h1>
+              <div className="mb-1 flex items-center gap-2">
+                <Search className="h-5 w-5 text-purple-600" />
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">기능 템플릿</h1>
               </div>
-              <p className="text-sm text-gray-500">다양한 실습 템플릿을 탐색하거나 AI로 맞춤 템플릿을 생성해보세요.</p>
+              <p className="text-sm text-gray-500">
+                원하는 템플릿이 없다면 AI로 기능 템플릿 초안을 생성해 보세요.
+              </p>
             </div>
 
-            {/* 헤더 검색창: 카드 리스트 검색을 제어 */}
             <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="템플릿 검색..."
+                placeholder="템플릿 검색"
                 value={cardSearchQuery}
                 onChange={(e) => setCardSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition placeholder:text-gray-400"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pr-3 pl-9 text-sm transition placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 focus:outline-none"
               />
             </div>
           </div>
         </div>
       </header>
 
-      {/* 메인 콘텐츠: AI 섹션 + 필터 + 그리드 (문법 템플릿과 동일한 흐름) */}
-      <main className="max-w-7xl mx-auto px-8 py-8 space-y-12">
-        {/* AI 섹션 (헤더 바로 아래에 자연스럽게 위치, 박스 제거) */}
-        <section>
-          <AISection onGenerate={handleAIDesign} />
-        </section>
+      <main className="mx-auto max-w-7xl space-y-12 px-8 py-8">
+        <AISection onGenerate={handleAIDesign} />
 
-        {/* 필터 버튼 */}
+        {generatedTemplate && (
+          <AiGeneratedTemplatePreview result={generatedTemplate} onOpen={handleOpenGeneratedTemplate} />
+        )}
+
         <div className="flex items-center gap-2">
-          {(['전체', '인기', '추천'] as const).map((f) => (
+          {(['전체', '인기', '추천'] as const).map((filter) => (
             <button
-              key={f}
-              onClick={() => setActiveFilter(f as '전체' | '인기' | '추천')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer ${
-                activeFilter === f ? 'bg-purple-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              key={filter}
+              type="button"
+              onClick={() => setActiveFilter(filter)}
+              className={`cursor-pointer rounded-lg px-4 py-1.5 text-sm font-medium transition-all ${
+                activeFilter === filter
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
-              {f}
+              {filter}
             </button>
           ))}
         </div>
 
-        {/* 에러 메시지 */}
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
             {error}
           </div>
         )}
 
-        {/* 템플릿 그리드 (개별 카드들이 문법 템플릿과 동일한 느낌) */}
-        <TemplateGrid 
+        <TemplateGrid
           templates={templates}
-          onTemplateClick={handleTemplateClick} 
+          onTemplateClick={handleTemplateClick}
           searchQuery={cardSearchQuery}
           isLoading={isLoading}
         />
 
-        {/* 서비스 통계 및 가이드 섹션 */}
-        <section className="pt-10 border-t border-gray-100">
+        <section className="border-t border-gray-100 pt-10">
           <InfoSection />
         </section>
       </main>
