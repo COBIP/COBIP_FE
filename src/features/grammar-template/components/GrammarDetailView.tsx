@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
-import type { GrammarTemplateDetail, GrammarTemplateChapter } from '@/features/grammar-template/Constants';
+import type { GrammarTemplateDetail } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
 
 interface GrammarDetailViewProps {
@@ -202,12 +202,20 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
-          <div className="flex items-center gap-1.5 text-sm">
+                    <div className="flex items-center gap-1.5 text-sm">
             <span className="text-purple-700 font-semibold">{template?.title || '문법 템플릿'}</span>
             {template?.category && (
               <>
                 <span className="text-gray-300">·</span>
                 <span className="text-gray-500">{template.category}</span>
+              </>
+            )}
+            {template?.difficulty && (
+              <>
+                <span className="text-gray-300">·</span>
+                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">
+                  {template.difficulty === 'BEGINNER' ? '초급' : template.difficulty === 'INTERMEDIATE' ? '중급' : '고급'}
+                </span>
               </>
             )}
           </div>
@@ -257,17 +265,6 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                   ))}
                 </ul>
               )}
-              {template?.summary && (
-                <p className="text-xs text-gray-500 mb-2">{template.summary}</p>
-              )}
-              <div className="flex flex-wrap gap-1">
-                <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] rounded-md border border-purple-100">
-                  {template?.language}
-                </span>
-                <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-md border border-gray-100">
-                  {template?.difficulty}
-                </span>
-              </div>
             </div>
           )}
         </aside>
