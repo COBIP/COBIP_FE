@@ -36,19 +36,6 @@ export interface TemplateSummary {
     createdAt: string; // LocalDateTime
 }
 
-export interface LearningProgress {
-    templateId: number;
-    templateTitle: string;
-    thumbnailUrl: string | null;
-    progressPercent: number;
-    lastStep: string | null;
-    solvedCount: number;
-    correctCount: number;
-    studySeconds: number;
-    lastAccessedAt: string; // LocalDateTime
-    completed: boolean;
-}
-
 export interface Subscription {
     planName: string | null;
     status: string | null; // SubscriptionStatus (Enum)
@@ -64,10 +51,6 @@ export interface WeeklyActivity {
     studySeconds: number; // ✨ 추가: 해당 날짜의 총 학습 시간(초)
 }
 
-export interface HeartbeatRequest {
-    templateId: number;
-    activeSeconds: number; // 주기(최대 60초)
-}
 
 export interface MyDashboardData {
     registeredTemplateCount: number;
