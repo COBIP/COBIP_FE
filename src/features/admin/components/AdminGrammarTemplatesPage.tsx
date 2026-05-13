@@ -195,7 +195,20 @@ export function AdminGrammarTemplatesPage() {
     [practiceFiles, selectedFileId],
   );
 
-  const previewSections = useMemo(() => buildPreviewSections(activeChapter), [activeChapter]);
+  const previewSections = useMemo<AdminGrammarSection[]>(() => {
+    if (activeChapter) {
+      return buildPreviewSections(activeChapter);
+    }
+
+    return [
+      {
+        id: 'template-content',
+        heading: form.title || '템플릿 본문',
+        content: buildNormalizedContent(form.contentJson),
+        isCollapsed: false,
+      },
+    ];
+  }, [activeChapter, form.contentJson, form.title]);
 
   const loadTemplates = useCallback(async () => {
     setIsLoading(true);
@@ -397,7 +410,7 @@ export function AdminGrammarTemplatesPage() {
         contentJson: buildNormalizedContent(form.contentJson),
       };
 
-      if (payload.status === 'PUBLISHED') {
+      if (nextStatus === 'PUBLISHED') {
         const publishError = validatePublish();
 
         if (publishError) {
@@ -488,28 +501,53 @@ export function AdminGrammarTemplatesPage() {
   };
 
   const handleAddChapter = async () => {
-    if (!selectedId) {
-      setError('챕터를 추가하려면 먼저 템플릿을 저장해야 합니다.');
-      return;
-    }
-
     setIsSaving(true);
     setError('');
     setMessage('');
 
     try {
+      let templateId = selectedId;
+
+      if (!templateId) {
+        if (!form.title.trim()) {
+          throw new Error('챕터를 추가하려면 템플릿 제목을 먼저 입력해야 합니다.');
+        }
+
+        const saved = await adminService.createGrammarTemplate({
+          ...form,
+          slug: form.slug || buildSlug(form.title),
+          status: 'DRAFT',
+          contentJson: buildNormalizedContent(form.contentJson),
+        });
+
+        templateId = saved.id;
+        setSelectedId(saved.id);
+        setForm({
+          slug: saved.slug,
+          title: saved.title,
+          language: saved.language,
+          category: saved.category,
+          difficulty: saved.difficulty,
+          summary: saved.summary,
+          status: saved.status,
+          contentJson: buildNormalizedContent(saved.contentJson ?? form.contentJson),
+        });
+        setIsTemplateDirty(false);
+        await loadTemplates();
+      }
+
       const orderIndex = getNextOrderIndex(chapters);
-      const chapter = await adminService.createGrammarTemplateChapter(selectedId, {
+      const chapter = await adminService.createGrammarTemplateChapter(templateId, {
         title: `${orderIndex}. 새 챕터`,
         orderIndex,
-        contentJson: buildClonedContent(),
+        contentJson: chapters.length ? buildClonedContent() : buildNormalizedContent(form.contentJson),
       });
       const nextChapters = buildSortedChapters([...chapters, chapter]);
       setChapters(nextChapters);
       setActiveChapterId(chapter.id);
       setIsChapterDirty(false);
       setMessage('챕터를 추가했습니다.');
-      await loadPracticeFiles(selectedId, chapter.id, chapter.practiceFiles ?? []);
+      await loadPracticeFiles(templateId, chapter.id, chapter.practiceFiles ?? []);
     } catch (chapterError) {
       setError(chapterError instanceof Error ? chapterError.message : '챕터 추가에 실패했습니다.');
     } finally {
@@ -1067,7 +1105,7 @@ export function AdminGrammarTemplatesPage() {
                 <button
                   type="button"
                   onClick={() => void handleAddChapter()}
-                  disabled={!selectedId || isSaving}
+                  disabled={isSaving}
                   className="inline-flex items-center gap-1 rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
                 >
                   <Plus className="h-4 w-4" />
@@ -1075,9 +1113,7 @@ export function AdminGrammarTemplatesPage() {
                 </button>
               </div>
 
-              {!selectedId ? (
-                <AdminEmpty message="템플릿 저장 후 챕터를 추가할 수 있습니다." />
-              ) : !chapters.length ? (
+              {!chapters.length ? (
                 <AdminEmpty message="챕터가 없습니다." />
               ) : (
                 <div className="space-y-2">
@@ -1160,7 +1196,9 @@ export function AdminGrammarTemplatesPage() {
                 </div>
 
                 {!activeChapter ? (
-                  <AdminEmpty message="선택된 챕터가 없습니다." />
+                  <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    챕터가 없으면 기존 템플릿 본문을 편집합니다. 챕터를 추가하면 이 본문을 첫 챕터로 이어서 사용할 수 있습니다.
+                  </div>
                 ) : (
                   <label className="block text-sm font-semibold text-slate-700">
                     챕터 제목
@@ -1173,19 +1211,20 @@ export function AdminGrammarTemplatesPage() {
                 )}
               </AdminCard>
 
-              {activeChapter &&
-                (isPreviewOpen ? (
-                  <AdminCard>
-                    <TemplatePreview sections={previewSections} />
-                  </AdminCard>
-                ) : (
-                  <RichTextEditor
-                    key={activeChapter.id}
-                    value={buildNormalizedContent(activeChapter.contentJson)}
-                    onChange={(content) => updateActiveChapter({ contentJson: content })}
-                    onMediaUpload={handleMediaUpload}
-                  />
-                ))}
+              {isPreviewOpen ? (
+                <AdminCard>
+                  <TemplatePreview sections={previewSections} />
+                </AdminCard>
+              ) : (
+                <RichTextEditor
+                  key={activeChapter?.id ?? `template-${selectedId ?? 'new'}`}
+                  value={buildNormalizedContent(activeChapter?.contentJson ?? form.contentJson)}
+                  onChange={(content) =>
+                    activeChapter ? updateActiveChapter({ contentJson: content }) : updateForm('contentJson', content)
+                  }
+                  onMediaUpload={handleMediaUpload}
+                />
+              )}
             </div>
 
             <AdminCard className="min-w-0">
