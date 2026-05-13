@@ -1,77 +1,89 @@
+// src/features/coding-test/components/CodingTestFilter.tsx
+'use client';
+
+import { useState } from 'react';
+import type { GetWorkbooksParams } from '@/types/CodingWorkbookTypes';
+
+// DB 약속에 맞춘 최종 카테고리 & 난이도 세팅
 const FILTER_CATEGORIES = [
-    { id: 'testType', label: '테스트 구분', options: ['전체', '기본 코딩테스트', '실무 코드테스트', '대기업 코딩 테스트'] },
-    { id: 'difficulty', label: '난이도', options: ['전체', '입문', '초급', '중급', '고급'] },
-    { id: 'language', label: '언어', options: ['전체', 'Spring', 'Java', 'React', 'Kotlin', 'Vue.js', 'Nest', 'Python'] },
-    { id: 'type', label: '유형', options: ['전체', '구현', '문자열', '배열', '정렬', 'DFS/BFS', 'DP', 'SQL'] },
+    { 
+        id: 'category', 
+        label: '출제 기관', 
+        options: [
+            { label: '전체', value: undefined }, 
+            { label: '네이버', value: '네이버' }, 
+            { label: '삼성', value: '삼성' }, 
+            { label: '다음', value: '다음' }
+        ] 
+    },
+    { 
+        id: 'difficulty', 
+        label: '난이도', 
+        options: [
+            { label: '전체', value: undefined }, 
+            { label: '초급', value: 'EASY' }, 
+            { label: '중급', value: 'MEDIUM' }, 
+            { label: '고급', value: 'HARD' }
+        ] 
+    },
 ];
 
-// 부모(page.tsx)한테서 받을 속성(Props) 정의
 interface CodingTestFilterProps {
-    selectedFilters: { [key: string]: string };
-    onFilterChange: (categoryId: string, option: string) => void;
+    selectedParams: GetWorkbooksParams;
+    onFilterChange: (categoryId: string, optionValue: string | undefined) => void;
+    onSearch: (keyword: string) => void;
 }
 
-const getBorderColor = (id: string) => {
-    switch (id) {
-        case 'testType': return 'border-blue-500';
-        case 'difficulty': return 'border-emerald-500';
-        case 'language': return 'border-violet-500';
-        case 'type': return 'border-amber-500';
-        default: return 'border-gray-300';
-    }
-};
+export default function CodingTestFilter({ selectedParams, onFilterChange, onSearch }: CodingTestFilterProps) {
+    const [searchInput, setSearchInput] = useState(selectedParams.keyword || '');
 
-export default function CodingTestFilter({ selectedFilters, onFilterChange }: CodingTestFilterProps){
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            onSearch(searchInput);
+        }
+    };
+
     return (
         <>
-            {/* 상단 헤더 & 검색 바 */}
             <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">코딩 테스트 연습</h1>
-                    <p className="text-lg text-gray-600">다양한 언어와 알고리즘 문제를 통해 실력을 향상시키세요.</p>
+                    <h1 className="text-4xl font-bold text-gray-900 mb-2">문제집 목록</h1>
+                    <p className="text-lg text-gray-600">다양한 출제 기관의 문제집을 통해 실력을 향상시키세요.</p>
                 </div>
-                    <div className="w-full md:w-80 relative group">
-                <input 
-                    className="w-full h-11 pl-11 pr-4 bg-white border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20 transition-all shadow-sm" 
-                    placeholder="문제 제목 또는 번호 검색" 
-                    type="text"
-                />
-                    <svg className="w-5 h-5 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-full md:w-80 relative group">
+                    <input 
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
+                        className="w-full h-11 pl-11 pr-4 bg-white border border-gray-300 rounded-xl text-sm" 
+                        placeholder="문제집 제목 검색 (Enter)" 
+                        type="text"
+                    />
+                    <svg className="w-5 h-5 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
             </div>
 
-            {/* 가로형 다중 필터 시스템 */}
             <div className="bg-white rounded-2xl p-6 border border-gray-200 mb-8 flex flex-col gap-4 shadow-sm">
-                {FILTER_CATEGORIES.map((category, index) => (
-                    <div 
-                        key={category.id} 
-                        className={`flex flex-col md:flex-row md:items-center gap-4 ${index !== FILTER_CATEGORIES.length - 1 ? 'pb-4 border-b border-gray-100' : ''}`}
-                    >
-
-                        {/* 카테고리 제목: 좌측 보더 포인트 추가 */}
-                        <div className={`w-32 flex-shrink-0 border-l-4 pl-3 ${getBorderColor(category.id)}`}>
+                {FILTER_CATEGORIES.map((category) => (
+                    <div key={category.id} className="flex flex-col md:flex-row md:items-center gap-4 border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                        <div className="w-32 flex-shrink-0 border-l-4 pl-3 border-blue-500">
                             <span className="text-sm font-bold text-gray-800">{category.label}</span>
                         </div>
-                                                
                         <div className="flex flex-wrap gap-2">
                             {category.options.map((option) => {
-
-                                // 현재 내 카테고리의 선택된 값이 이 버튼의 값과 같은지 확인
-                                const isSelected = selectedFilters[category.id] === option;
-                                
+                                // 타입 안전성을 위해 타입 단언 사용
+                                const isSelected = (selectedParams as Record<string, unknown>)[category.id] === option.value;
                                 return (
                                     <button 
-                                        key={option} 
-                                        onClick={() => onFilterChange(category.id, option)} // 클릭하면 부모한테 알려줌
+                                        key={option.label} 
+                                        onClick={() => onFilterChange(category.id, option.value)}
                                         className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
-                                        isSelected 
-                                            ? 'bg-violet-600 text-white' // 선택됐을 때 보라색
-                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700' // 안 선택됐을 때 회색
+                                            isSelected ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                                         }`}
                                     >
-                                        {option}
+                                        {option.label}
                                     </button>
                                 );
                             })}
@@ -81,4 +93,4 @@ export default function CodingTestFilter({ selectedFilters, onFilterChange }: Co
             </div>
         </>
     );
-};
+}

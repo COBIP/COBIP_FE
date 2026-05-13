@@ -47,6 +47,12 @@ export type TemplateSummaryApiResponse = {
   createdAt: string;
 };
 
+export type TemplateInterviewQuestionApiResponse = {
+  question: string;
+  answerHint?: string | null;
+  answer_hint?: string | null;
+};
+
 export type TemplateDetailApiResponse = TemplateSummaryApiResponse & {
   visibility: string;
   designIntent: string;
@@ -54,7 +60,7 @@ export type TemplateDetailApiResponse = TemplateSummaryApiResponse & {
   erd: string;
   apiSpec: string;
   projectStructure: string;
-  interviewQuestions: Array<string | { question: string; answerHint?: string | null }>;
+  interviewQuestions: Array<string | TemplateInterviewQuestionApiResponse>;
   fileUrl: string | null;
   favorited: boolean;
   updatedAt: string;
@@ -69,6 +75,7 @@ export type TemplatePracticeFileApiResponse = {
   filePath: string;
   language: string;
   content: string;
+  userContent?: string | null;
   readOnly: boolean;
   orderIndex: number;
 };
@@ -82,6 +89,7 @@ export type TemplatePracticeMissionApiResponse = {
   orderIndex: number;
   guideContent: string;
   validationJson: Record<string, unknown> | null;
+  progressStatus?: TemplatePracticeProgressStatus | null;
 };
 
 export type TemplatePracticeProgressApiResponse = {

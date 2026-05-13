@@ -66,6 +66,11 @@ type TemplateFormState = {
 
 type PracticeFileFormState = PracticeFilePayload;
 
+type MissionTestCaseDraft = {
+  input: string;
+  expectedOutput: string;
+};
+
 const emptyForm: TemplateFormState = {
   title: '',
   summary: '',
@@ -322,9 +327,22 @@ function parseOwnerId(value: string) {
 }
 
 function validateTemplatePayload(payload: AdminTemplatePayload) {
+  const assertMaxLength = (value: string | undefined, maxLength: number, label: string) => {
+    if (value && value.length > maxLength) {
+      throw new Error(`${label}은(는) ${maxLength}자 이하여야 합니다. 현재 ${value.length}자입니다.`);
+    }
+  };
   if (!payload.title) {
     throw new Error('제목은 필수입니다.');
   }
+
+  assertMaxLength(payload.title, 120, '제목');
+  assertMaxLength(payload.summary, 500, '요약');
+  assertMaxLength(payload.category, 80, '카테고리');
+  assertMaxLength(payload.runtime, 40, '런타임');
+  assertMaxLength(payload.previewImage, 1000, '미리보기 이미지 URL');
+  assertMaxLength(payload.license, 80, '라이선스');
+  assertMaxLength(payload.source, 120, '출처');
 
   if (!payload.description) {
     throw new Error('상세설명은 필수입니다.');
@@ -342,11 +360,24 @@ function validateTemplatePayload(payload: AdminTemplatePayload) {
     throw new Error('요구사항은 type과 description을 모두 입력해야 합니다.');
   }
 
+  if (payload.techStacks.length > 20) {
+    throw new Error(`기술 스택은 최대 20개까지 입력할 수 있습니다. 현재 ${payload.techStacks.length}개입니다.`);
+  }
+
+  if ((payload.tags?.length ?? 0) > 20) {
+    throw new Error(`태그는 최대 20개까지 입력할 수 있습니다. 현재 ${payload.tags?.length ?? 0}개입니다.`);
+  }
+
   const hasInvalidMission = payload.missions?.some((mission) => !mission.title || !mission.missionType);
 
   if (hasInvalidMission) {
     throw new Error('미션/문제는 title과 missionType을 입력해야 합니다.');
   }
+
+  payload.interviewQuestions.forEach((question, index) => {
+    assertMaxLength(question.question, 1000, `면접 질문 ${index + 1}번 질문`);
+    assertMaxLength(question.answerHint, 1000, `면접 질문 ${index + 1}번 답변 힌트`);
+  });
 
   const hasInvalidQuestion = payload.interviewQuestions.some((question) => !question.question);
 
@@ -359,6 +390,10 @@ function validateTemplatePayload(payload: AdminTemplatePayload) {
   if (hasInvalidTestCase) {
     throw new Error('테스트케이스는 입력과 기대 출력을 모두 입력해야 합니다.');
   }
+
+  payload.testCases?.forEach((testCase, index) => {
+    assertMaxLength(testCase.description, 1000, `테스트케이스 ${index + 1}번 설명`);
+  });
 
   if (payload.previewImage) {
     try {
@@ -411,6 +446,79 @@ function getMissionTargetFilePath(mission: AdminTemplateMissionDraft) {
     validationJson.entryFile;
 
   return typeof filePath === 'string' ? filePath : '';
+}
+
+function getMissionTestCases(mission: AdminTemplateMissionDraft) {
+  const testCases = getMissionValidationJson(mission).testCases;
+
+  if (!Array.isArray(testCases)) {
+    return [];
+  }
+
+  return testCases
+    .map((testCase) => {
+      if (!testCase || typeof testCase !== 'object') return null;
+      const record = testCase as Record<string, unknown>;
+      const input = typeof record.input === 'string' ? record.input : '';
+      const expectedOutput = typeof record.expectedOutput === 'string' ? record.expectedOutput : '';
+
+      return { input, expectedOutput };
+    })
+    .filter((testCase): testCase is { input: string; expectedOutput: string } => Boolean(testCase));
+}
+
+function buildMissionValidationJsonWithTestCases(
+  mission: AdminTemplateMissionDraft,
+  testCases: MissionTestCaseDraft[],
+) {
+  return {
+    ...getMissionValidationJson(mission),
+    testCases,
+  };
+}
+
+function getMissionValidationStringField(mission: AdminTemplateMissionDraft, key: string) {
+  const value = getMissionValidationJson(mission)[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function buildMissionValidationJsonWithField(
+  mission: AdminTemplateMissionDraft,
+  key: string,
+  value: string,
+) {
+  const validationJson = { ...getMissionValidationJson(mission) };
+  const nextValue = value.trim();
+
+  if (nextValue) {
+    if (key === 'timeLimitMillis' || key === 'memoryLimitMb') {
+      const numericValue = Number(nextValue);
+      if (Number.isFinite(numericValue) && numericValue > 0) {
+        validationJson[key] = numericValue;
+      }
+    } else {
+      validationJson[key] = nextValue;
+    }
+  } else {
+    delete validationJson[key];
+  }
+
+  return validationJson;
+}
+
+function buildMissionProjectValidationJson(mission: AdminTemplateMissionDraft) {
+  const validationJson: Record<string, unknown> = {
+    ...getMissionValidationJson(mission),
+    dockerImage: getMissionValidationStringField(mission, 'dockerImage') || 'gradle:8.14-jdk21',
+    testCommand: getMissionValidationStringField(mission, 'testCommand') || 'gradle test --no-daemon',
+    timeLimitMillis: getMissionValidationJson(mission).timeLimitMillis || 120000,
+    memoryLimitMb: getMissionValidationJson(mission).memoryLimitMb || 512,
+  };
+
+  delete validationJson.testCases;
+  delete validationJson.expectedOutput;
+
+  return validationJson;
 }
 
 async function fetchMergedTemplateDetail(templateId: number): Promise<AdminTemplateDetail> {
@@ -778,6 +886,86 @@ export function AdminTemplatesPage() {
         return {
           ...mission,
           validationJson: nextValidationJson,
+        };
+      }),
+    }));
+  };
+
+  const updateTemplateMissionValidationField = (index: number, key: string, value: string) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, missionIndex) =>
+        missionIndex === index
+          ? { ...mission, validationJson: buildMissionValidationJsonWithField(mission, key, value) }
+          : mission,
+      ),
+    }));
+  };
+
+  const applyTemplateMissionProjectValidation = (index: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, missionIndex) =>
+        missionIndex === index
+          ? { ...mission, validationJson: buildMissionProjectValidationJson(mission) }
+          : mission,
+      ),
+    }));
+  };
+
+  const updateTemplateMissionTestCase = (
+    missionIndex: number,
+    testCaseIndex: number,
+    key: keyof MissionTestCaseDraft,
+    value: string,
+  ) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, index) => {
+        if (index !== missionIndex) return mission;
+
+        const testCases = getMissionTestCases(mission);
+        const nextTestCases = testCases.map((testCase, currentTestCaseIndex) =>
+          currentTestCaseIndex === testCaseIndex ? { ...testCase, [key]: value } : testCase,
+        );
+
+        return {
+          ...mission,
+          validationJson: buildMissionValidationJsonWithTestCases(mission, nextTestCases),
+        };
+      }),
+    }));
+  };
+
+  const addTemplateMissionTestCase = (missionIndex: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, index) => {
+        if (index !== missionIndex) return mission;
+
+        return {
+          ...mission,
+          validationJson: buildMissionValidationJsonWithTestCases(mission, [
+            ...getMissionTestCases(mission),
+            { input: '', expectedOutput: '' },
+          ]),
+        };
+      }),
+    }));
+  };
+
+  const deleteTemplateMissionTestCase = (missionIndex: number, testCaseIndex: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, index) => {
+        if (index !== missionIndex) return mission;
+
+        return {
+          ...mission,
+          validationJson: buildMissionValidationJsonWithTestCases(
+            mission,
+            getMissionTestCases(mission).filter((_, currentTestCaseIndex) => currentTestCaseIndex !== testCaseIndex),
+          ),
         };
       }),
     }));
@@ -1424,6 +1612,104 @@ export function AdminTemplatesPage() {
                         rows={4}
                         className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
+                      <div className="mt-2 rounded-md border border-emerald-100 bg-emerald-50 p-3 text-sm text-slate-700">
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Spring 프로젝트 문제는 Gradle 테스트 명령으로 채점하는 것을 권장합니다.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => applyTemplateMissionProjectValidation(index)}
+                            className="rounded-md border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700"
+                          >
+                            프로젝트 채점 기본값
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <input
+                            value={getMissionValidationStringField(mission, 'dockerImage')}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'dockerImage', event.target.value)}
+                            placeholder="dockerImage 예: gradle:8.14-jdk21"
+                            className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                          />
+                          <input
+                            value={getMissionValidationStringField(mission, 'testCommand')}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'testCommand', event.target.value)}
+                            placeholder="testCommand 예: gradle test --no-daemon"
+                            className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <input
+                          value={String(getMissionValidationJson(mission).timeLimitMillis ?? '')}
+                          onChange={(event) => updateTemplateMissionValidationField(index, 'timeLimitMillis', event.target.value)}
+                          placeholder="timeLimitMillis: 120000"
+                          className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                        />
+                        <input
+                          value={String(getMissionValidationJson(mission).memoryLimitMb ?? '')}
+                          onChange={(event) => updateTemplateMissionValidationField(index, 'memoryLimitMb', event.target.value)}
+                          placeholder="memoryLimitMb: 512"
+                          className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                        />
+                      </div>
+                      <div className="mt-2 rounded-md border border-violet-100 bg-violet-50 p-3 text-sm text-slate-700">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-slate-950">단일 출력 채점 케이스</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Main.java처럼 단일 파일 출력 비교가 필요한 경우에만 사용하세요.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addTemplateMissionTestCase(index)}
+                            className="rounded-md border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-700"
+                          >
+                            케이스 추가
+                          </button>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {getMissionTestCases(mission).length > 0 ? (
+                            getMissionTestCases(mission).map((testCase, testCaseIndex) => (
+                              <div key={`mission-${index}-case-${testCaseIndex}`} className="rounded-md bg-white p-2">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <p className="font-mono text-xs font-semibold text-violet-700">case {testCaseIndex + 1}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteTemplateMissionTestCase(index, testCaseIndex)}
+                                    className="text-xs font-semibold text-rose-600"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                  <textarea
+                                    value={testCase.input}
+                                    onChange={(event) => updateTemplateMissionTestCase(index, testCaseIndex, 'input', event.target.value)}
+                                    placeholder="input"
+                                    rows={3}
+                                    className="rounded-md border border-slate-200 px-2 py-1 font-mono text-xs"
+                                  />
+                                  <textarea
+                                    value={testCase.expectedOutput}
+                                    onChange={(event) => updateTemplateMissionTestCase(index, testCaseIndex, 'expectedOutput', event.target.value)}
+                                    placeholder="expectedOutput"
+                                    rows={3}
+                                    className="rounded-md border border-slate-200 px-2 py-1 font-mono text-xs"
+                                  />
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-slate-500">채점하지 않는 설명형 미션이면 비워둬도 됩니다.</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1497,6 +1783,106 @@ export function AdminTemplatesPage() {
                         rows={4}
                         className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
+                      <div className="mt-2 rounded-md border border-emerald-100 bg-emerald-50 p-3 text-sm text-slate-700">
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              현재처럼 Spring 파일을 고치는 문제는 Gradle 테스트 명령으로 채점하세요.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => applyTemplateMissionProjectValidation(index)}
+                            className="rounded-md border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-700"
+                          >
+                            프로젝트 채점 기본값
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <input
+                            value={getMissionValidationStringField(mission, 'dockerImage')}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'dockerImage', event.target.value)}
+                            placeholder="dockerImage 예: gradle:8.14-jdk21"
+                            className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                          />
+                          <input
+                            value={getMissionValidationStringField(mission, 'testCommand')}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'testCommand', event.target.value)}
+                            placeholder="testCommand 예: gradle test --no-daemon"
+                            className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <input
+                          value={String(getMissionValidationJson(mission).timeLimitMillis ?? '')}
+                          onChange={(event) => updateTemplateMissionValidationField(index, 'timeLimitMillis', event.target.value)}
+                          placeholder="timeLimitMillis: 120000"
+                          className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                        />
+                        <input
+                          value={String(getMissionValidationJson(mission).memoryLimitMb ?? '')}
+                          onChange={(event) => updateTemplateMissionValidationField(index, 'memoryLimitMb', event.target.value)}
+                          placeholder="memoryLimitMb: 512"
+                          className="h-10 rounded-md border border-emerald-200 px-3 text-sm"
+                        />
+                      </div>
+                      <div className="mt-2 rounded-md border border-violet-100 bg-violet-50 p-3 text-sm text-slate-700">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-slate-950">단일 출력 채점 케이스</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Main.java처럼 단일 파일 출력 비교가 필요한 경우에만 사용하세요.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addTemplateMissionTestCase(index)}
+                            className="rounded-md border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-700"
+                          >
+                            케이스 추가
+                          </button>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {getMissionTestCases(mission).length > 0 ? (
+                            getMissionTestCases(mission).map((testCase, testCaseIndex) => (
+                              <div key={`problem-${index}-case-${testCaseIndex}`} className="rounded-md bg-white p-2">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <p className="font-mono text-xs font-semibold text-violet-700">case {testCaseIndex + 1}</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteTemplateMissionTestCase(index, testCaseIndex)}
+                                    className="text-xs font-semibold text-rose-600"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                  <textarea
+                                    value={testCase.input}
+                                    onChange={(event) => updateTemplateMissionTestCase(index, testCaseIndex, 'input', event.target.value)}
+                                    placeholder="input"
+                                    rows={3}
+                                    className="rounded-md border border-slate-200 px-2 py-1 font-mono text-xs"
+                                  />
+                                  <textarea
+                                    value={testCase.expectedOutput}
+                                    onChange={(event) => updateTemplateMissionTestCase(index, testCaseIndex, 'expectedOutput', event.target.value)}
+                                    placeholder="expectedOutput"
+                                    rows={3}
+                                    className="rounded-md border border-slate-200 px-2 py-1 font-mono text-xs"
+                                  />
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-slate-500">
+                              아직 채점 케이스가 없습니다. 케이스를 추가한 뒤 input과 expectedOutput을 입력하세요.
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
