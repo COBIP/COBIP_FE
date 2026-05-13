@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { ExecutionFlowStep } from '@/features/grammar-template/Constants';
 
 interface ExecutionFlowPanelProps {
@@ -20,7 +19,6 @@ const EVENT_STYLE: Record<string, { icon: string; color: string; bg: string }> =
 /** 실행흐름 한 스텝을 시각화한 카드 */
 function FlowStepCard({
   step,
-  index,
   isActive,
   isLast,
   onClick,

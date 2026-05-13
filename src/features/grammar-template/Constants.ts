@@ -86,14 +86,8 @@ export interface ExecutionFlowResponse {
   steps: ExecutionFlowStep[];
 }
 
-/** 코드 실행 응답 */
+/** 코드 실행 응답 (POST /api/run) */
 export interface CodeRunResponse {
-  status: 'PENDING' | 'RUNNING' | 'ACCEPTED' | 'WRONG_ANSWER' | 'COMPILE_ERROR' | 'RUNTIME_ERROR' | 'TIME_LIMIT_EXCEEDED' | 'INTERNAL_ERROR';
-  stdout: string | null;
-  stderr: string | null;
-  compileOutput: string | null;
-  message: string | null;
-  time: string | null;
-  memory: number | null;
+  output: string;
 }
 

@@ -208,37 +208,29 @@ export function CodeRunner({
       setErrorMessage('');
       setExecutionSteps(null);
 
-            try {
+                  try {
         const result = await grammarTemplateService.runCode(templateId, chapterId, {
           sourceCode: fileContents[activeFilePath],
           language: language ?? 'PYTHON',
         });
-        const isSuccess = result.status === 'ACCEPTED';
-        if (isSuccess) {
-          setOutputText(result.stdout || '// 실행 완료 (출력 없음)');
-        } else {
-          const errMsg = result.message || result.stderr || result.compileOutput || '알 수 없는 오류';
-          setOutputText(`// 오류 (${result.status}): ${errMsg}`);
+        setOutputText(result.output || '// 실행 완료 (출력 없음)');
+      } catch (err) {
+        setOutputText('');
+        let detail = '알 수 없는 오류';
+        try {
+          if (err && typeof err === 'object') {
+            const axiosErr = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
+            if (axiosErr.response?.data?.message) {
+              detail = axiosErr.response.data.message;
+            } else if (axiosErr.message) {
+              detail = axiosErr.message;
+            }
+          }
+        } catch {
+          detail = String(err);
         }
-            } catch (err) {
-              setOutputText('');
-              let detail = '알 수 없는 오류';
-              try {
-                if (err && typeof err === 'object') {
-                  const axiosErr = err as { response?: { data?: unknown; status?: number }; message?: string };
-                  if (axiosErr.response?.data) {
-                    detail = JSON.stringify(axiosErr.response.data);
-                  } else if (axiosErr.message) {
-                    detail = axiosErr.message;
-                  }
-                } else if (err instanceof Error) {
-                  detail = err.message;
-                }
-              } catch {
-                detail = String(err);
-              }
-              setErrorMessage(`// 실행 실패 (500): ${detail}`);
-            } finally {
+        setErrorMessage(`// 실행 실패: ${detail}`);
+      } finally {
         setIsRunning(false);
       }
     }, [templateId, chapterId, activeFilePath, fileContents, language, isRunning]);
