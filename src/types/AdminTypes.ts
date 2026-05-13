@@ -185,6 +185,7 @@ export interface GrammarTemplateSummary {
 
 export interface GrammarTemplateDetail extends GrammarTemplateSummary {
   contentJson: JSONContent;
+  chapters?: GrammarTemplateChapter[];
   searchableText?: string;
   deletedAt?: string | null;
 }
@@ -206,6 +207,48 @@ export interface GrammarTemplateMediaUploadResponse {
   fileKey: string;
   fileUrl: string;
   contentType: string;
+}
+
+export type GrammarTemplatePracticeFileNodeType = 'FILE' | 'FOLDER';
+
+export interface GrammarTemplatePracticeFile {
+  id: number;
+  templateId: number;
+  chapterId: number;
+  nodeType: GrammarTemplatePracticeFileNodeType;
+  filePath: string;
+  language: string | null;
+  content: string | null;
+  readOnly: boolean;
+  orderIndex: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GrammarTemplateChapter {
+  id: number;
+  templateId: number;
+  title: string;
+  orderIndex: number;
+  contentJson: JSONContent;
+  practiceFiles?: GrammarTemplatePracticeFile[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GrammarTemplateChapterPayload {
+  title: string;
+  orderIndex: number;
+  contentJson: JSONContent;
+}
+
+export interface GrammarTemplatePracticeFilePayload {
+  nodeType: GrammarTemplatePracticeFileNodeType;
+  filePath: string;
+  language: string | null;
+  content: string | null;
+  readOnly: boolean;
+  orderIndex: number;
 }
 
 export interface SubscriptionPlan {
