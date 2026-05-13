@@ -1,9 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check } from 'lucide-react';
-import { PYTHON_LESSONS } from '@/features/grammar-template/Constants';
+import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
+import type { GrammarTemplateDetail } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
+import { TiptapRenderer } from './TiptapRenderer';
 
 interface GrammarDetailViewProps {
+  templateId: number;
   onBack: () => void;
 }
 
@@ -12,42 +15,43 @@ export interface ExplorerFile { name: string; type: 'file'; }
 export interface ExplorerFolder { name: string; type: 'folder'; isOpen: boolean; children: ExplorerNode[]; }
 export type ExplorerNode = ExplorerFile | ExplorerFolder;
 
-/** 볼드 처리 (**텍스트**) */
-function renderContent(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="text-gray-900 font-semibold">{part.slice(2, -2)}</strong>;
-    }
-    const codeParts = part.split(/(`[^`]+`)/g);
-    return codeParts.map((cp, j) => {
-      if (cp.startsWith('`') && cp.endsWith('`')) {
-        return <code key={`${i}-${j}`} className="text-purple-600 bg-purple-50 px-1 rounded text-sm font-mono">{cp.slice(1, -1)}</code>;
-      }
-      return <span key={`${i}-${j}`}>{cp}</span>;
-    });
-  });
-}
-
-export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
+export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps) {
+    const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
-  const [currentLessonIndex, setCurrentLessonIndex] = useState(1);
   const [runnerWidth, setRunnerWidth] = useState(480);
   const [explorerWidth, setExplorerWidth] = useState(200);
   const [outputHeight, setOutputHeight] = useState(140);
-  const [activeFilePath, setActiveFilePath] = useState('변수/main.py');
-  const [fileContents, setFileContents] = useState<Record<string, string>>({
-    '변수/main.py': `name = "COBIP"\ncount = 3\nis_active = True\nprint(name, count, is_active)`,
-    '변수/example.py': `# 예제 코드\nprint("Hello")`,
-    '조건문/condition.py': `score = 72\nif score >= 80:\n    result = "합격"\nelse:\n    result = "불합격"\nprint(result)`,
-    '반복문/loop.py': `values = [3, 7, 2, 5]\ntotal = 0\nfor value in values:\n    total += value\n    print(total)`,
-  });
-  const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([
-    { name: '변수', type: 'folder', isOpen: true, children: [{ name: 'main.py', type: 'file' }, { name: 'example.py', type: 'file' }] },
-    { name: '조건문', type: 'folder', isOpen: false, children: [{ name: 'condition.py', type: 'file' }] },
-    { name: '반복문', type: 'folder', isOpen: false, children: [{ name: 'loop.py', type: 'file' }] },
-  ]);
+    const [activeFilePath, setActiveFilePath] = useState('');
+  const [fileContents, setFileContents] = useState<Record<string, string>>({});
+  const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([]);
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+
+  /** API에서 템플릿 상세 정보 불러오기 */
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchDetail = async () => {
+      setIsLoading(true);
+      try {
+        const result = await grammarTemplateService.getTemplateDetail(templateId);
+        if (!isCancelled) {
+          setTemplate(result);
+        }
+      } catch (err) {
+        console.error('문법 템플릿 상세 조회 실패:', err);
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    };
+
+    fetchDetail();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [templateId]);
 
   const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
   const startXRef = useRef(0);
@@ -55,15 +59,7 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
   const startWidthRef = useRef(480);
   const startHeightRef = useRef(140);
 
-  const currentLesson = PYTHON_LESSONS[currentLessonIndex];
-  const totalLessons = PYTHON_LESSONS.length;
-
-  const goToLesson = (index: number) => {
-    if (index >= 0 && index < totalLessons) setCurrentLessonIndex(index);
-  };
-
   // ===== 탐색기 함수 (재귀) =====
-  /** 경로(path)로 폴더를 찾아 isOpen 토글 (재귀) */
   const toggleFolder = useCallback((targetPath: string) => {
     setExplorerTree((prev) => {
       const parts = targetPath.split('/').filter(Boolean);
@@ -83,7 +79,6 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
     });
   }, []);
 
-  /** 경로(path)로 특정 폴더를 찾아 파일 추가 (재귀), 폴더는 펼쳐짐 */
   const handleAddFile = useCallback((targetPath: string, fileName: string) => {
     setExplorerTree((prev) => {
       const parts = targetPath.split('/').filter(Boolean);
@@ -105,7 +100,6 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
     setActiveFilePath(`${targetPath}/${fileName}`);
   }, []);
 
-  /** 경로(path)로 특정 폴더를 찾아 하위 폴더 추가 (재귀) */
   const handleAddSubFolder = useCallback((targetPath: string, folderName: string) => {
     setExplorerTree((prev) => {
       const parts = targetPath.split('/').filter(Boolean);
@@ -168,6 +162,18 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
     return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
   }, []);
 
+    // 로딩 중
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">템플릿을 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* 헤더바 */}
@@ -176,13 +182,22 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
-          <div className="flex items-center gap-1.5 text-sm">
-            {PYTHON_LESSONS.map((lesson, i) => (
-              <span key={lesson.id} className={`${i === currentLessonIndex ? 'text-purple-700 font-semibold' : i < currentLessonIndex ? 'text-gray-400' : 'text-gray-300'}`}>
-                {i > 0 && <span className="mx-1 text-gray-300">·</span>}
-                {i === currentLessonIndex ? lesson.title : lesson.id}
-              </span>
-            ))}
+                    <div className="flex items-center gap-1.5 text-sm">
+            <span className="text-purple-700 font-semibold">{template?.title || '문법 템플릿'}</span>
+            {template?.category && (
+              <>
+                <span className="text-gray-300">·</span>
+                <span className="text-gray-500">{template.category}</span>
+              </>
+            )}
+            {template?.difficulty && (
+              <>
+                <span className="text-gray-300">·</span>
+                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">
+                  {template.difficulty === 'BEGINNER' ? '초급' : template.difficulty === 'INTERMEDIATE' ? '중급' : '고급'}
+                </span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -206,21 +221,30 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* 좌측 사이드바 */}
         <aside className={`border-r border-gray-200 bg-gray-50 transition-all duration-300 shrink-0 overflow-y-auto ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
-          {isSidebarOpen && (
+                    {isSidebarOpen && (
             <div className="p-4">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">📖 파이썬 프로그래밍</h3>
-              <ul className="space-y-0.5">
-                {PYTHON_LESSONS.map((lesson, i) => (
-                  <li key={lesson.id}>
-                    <button onClick={() => goToLesson(i)} className={`w-full text-left px-3 py-2 rounded-lg text-sm transition cursor-pointer ${i === currentLessonIndex ? 'bg-purple-100 text-purple-700 font-semibold' : i < currentLessonIndex ? 'text-gray-500 hover:bg-gray-100' : 'text-gray-400 hover:bg-gray-100'}`}>
-                      <div className="flex items-center gap-2">
-                        {i < currentLessonIndex && <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />}
-                        <span className="truncate">{lesson.title}</span>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                📖 {template?.title || '문법 템플릿'}
+              </h3>
+              {/* 챕터 목록 */}
+              {template?.chapters && template.chapters.length > 0 && (
+                <ul className="space-y-0.5 mb-4">
+                  {template.chapters.map((chapter, i) => (
+                    <li key={chapter.id}>
+                      <button
+                        onClick={() => setCurrentChapterIndex(i)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition cursor-pointer ${
+                          i === currentChapterIndex
+                            ? 'bg-purple-100 text-purple-700 font-semibold'
+                            : 'text-gray-500 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="truncate">{chapter.title}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </aside>
@@ -239,37 +263,28 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
               </span>
             </button>
 
-          <main className="overflow-y-auto flex-1">
+                    <main className="overflow-y-auto flex-1">
             <div className="max-w-4xl mx-auto px-8 py-10">
-              <h1 className="text-2xl font-bold text-gray-900 mb-6">{currentLesson.title}</h1>
-              <div className="space-y-4 mb-8">
-                {currentLesson.contentParagraphs.map((paragraph, i) => (
-                  <p key={i} className="text-gray-700 leading-relaxed">{renderContent(paragraph)}</p>
-                ))}
-              </div>
-              {currentLesson.highlights?.map((h, i) => (
-                <div key={i} className={`${h.bgColor || 'bg-blue-50'} border ${h.borderColor || 'border-blue-200'} rounded-lg p-4 mb-8`}>
-                  <h4 className="text-sm font-bold text-gray-900 mb-2">{h.title}</h4>
-                  <ul className={`text-sm ${h.textColor || 'text-blue-800'} space-y-1`}>{h.lines.map((line, j) => <li key={j}>{line}</li>)}</ul>
-                </div>
-              ))}
-              {currentLesson.code && (
-                <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">
-                  <div className="flex items-center gap-2 bg-gray-900 px-4 py-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                    <span className="ml-2 text-xs text-gray-400 font-mono">{currentLesson.codeLanguage === 'python' ? 'example.py' : 'example.js'}</span>
-                  </div>
-                  <pre className="bg-[#1e1e1e] text-gray-200 p-5 text-sm font-mono leading-relaxed overflow-x-auto"><code>{currentLesson.code}</code></pre>
-                </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-6">{template?.title}</h1>
+              {template?.chapters && template.chapters.length > 0 && currentChapterIndex < template.chapters.length && (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">{template.chapters[currentChapterIndex].title}</h2>
+                  <TiptapRenderer content={template.chapters[currentChapterIndex].contentJson} />
+                </>
               )}
+              {(!template?.chapters || template.chapters.length === 0) && template?.summary && (
+                <p className="text-gray-500 text-sm mb-8">{template.summary}</p>
+              )}
+              {(!template?.chapters || template.chapters.length === 0) && <TiptapRenderer content={template?.contentJson} />}
             </div>
           </main>
-          {/* 실행 환경 패널 */}
-          {isRunnerOpen && (
-            <CodeRunner
-              runnerWidth={runnerWidth}
+                                        {/* 실행 환경 패널 */}
+                    {isRunnerOpen && (
+                      <CodeRunner
+                        templateId={templateId}
+                        chapterId={template?.chapters?.[currentChapterIndex]?.id}
+                        language={template?.language}
+                        runnerWidth={runnerWidth}
               explorerWidth={explorerWidth}
               outputHeight={outputHeight}
               explorerTree={explorerTree}
@@ -289,16 +304,16 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
         </div>
       </div>
 
-      {/* 하단 고정바 */}
+            {/* 하단 고정바 */}
       <footer className="h-14 border-t border-gray-200 bg-white flex items-center justify-between px-6 shrink-0 relative z-10">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {currentLessonIndex > 0 && (
+          {template?.chapters && currentChapterIndex > 0 && (
             <button
-            onClick={() => goToLesson(currentLessonIndex - 1)}
+              onClick={() => setCurrentChapterIndex(currentChapterIndex - 1)}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
-          >
+            >
               <ChevronLeft className="w-4 h-4 shrink-0" />
-              <span className="truncate">{PYTHON_LESSONS[currentLessonIndex - 1].title}</span>
+              <span className="truncate">{template.chapters[currentChapterIndex - 1].title}</span>
             </button>
           )}
         </div>
@@ -312,21 +327,21 @@ export function GrammarDetailView({ onBack }: GrammarDetailViewProps) {
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-            <span>홈</span>
+            <span>목록</span>
           </button>
         </div>
 
         <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-          {currentLessonIndex < totalLessons - 1 && (
+          {template?.chapters && currentChapterIndex < template.chapters.length - 1 && (
             <button
-              onClick={() => goToLesson(currentLessonIndex + 1)}
+              onClick={() => setCurrentChapterIndex(currentChapterIndex + 1)}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
             >
-              <span className="truncate">{PYTHON_LESSONS[currentLessonIndex + 1].title}</span>
+              <span className="truncate">{template.chapters[currentChapterIndex + 1].title}</span>
               <ChevronRight className="w-4 h-4 shrink-0" />
             </button>
           )}
-    </div>
+        </div>
       </footer>
     </div>
   );
