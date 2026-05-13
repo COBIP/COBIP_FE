@@ -195,7 +195,20 @@ export function AdminGrammarTemplatesPage() {
     [practiceFiles, selectedFileId],
   );
 
-  const previewSections = useMemo(() => buildPreviewSections(activeChapter), [activeChapter]);
+  const previewSections = useMemo<AdminGrammarSection[]>(() => {
+    if (activeChapter) {
+      return buildPreviewSections(activeChapter);
+    }
+
+    return [
+      {
+        id: 'template-content',
+        heading: form.title || '?쒗뵆由?蹂몃Ц',
+        content: buildNormalizedContent(form.contentJson),
+        isCollapsed: false,
+      },
+    ];
+  }, [activeChapter, form.contentJson, form.title]);
 
   const loadTemplates = useCallback(async () => {
     setIsLoading(true);
@@ -1173,19 +1186,20 @@ export function AdminGrammarTemplatesPage() {
                 )}
               </AdminCard>
 
-              {activeChapter &&
-                (isPreviewOpen ? (
-                  <AdminCard>
-                    <TemplatePreview sections={previewSections} />
-                  </AdminCard>
-                ) : (
-                  <RichTextEditor
-                    key={activeChapter.id}
-                    value={buildNormalizedContent(activeChapter.contentJson)}
-                    onChange={(content) => updateActiveChapter({ contentJson: content })}
-                    onMediaUpload={handleMediaUpload}
-                  />
-                ))}
+              {isPreviewOpen ? (
+                <AdminCard>
+                  <TemplatePreview sections={previewSections} />
+                </AdminCard>
+              ) : (
+                <RichTextEditor
+                  key={activeChapter?.id ?? `template-${selectedId ?? 'new'}`}
+                  value={buildNormalizedContent(activeChapter?.contentJson ?? form.contentJson)}
+                  onChange={(content) =>
+                    activeChapter ? updateActiveChapter({ contentJson: content }) : updateForm('contentJson', content)
+                  }
+                  onMediaUpload={handleMediaUpload}
+                />
+              )}
             </div>
 
             <AdminCard className="min-w-0">

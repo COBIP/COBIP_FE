@@ -246,6 +246,18 @@ function getPracticeCompletedStorageKey(templateId?: number | null) {
   return templateId ? `cobip:template:${templateId}:completed-missions` : null;
 }
 
+function checkProjectConfigFile(filePath: string) {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  return (
+    normalizedPath === 'build.gradle' ||
+    normalizedPath === 'settings.gradle' ||
+    normalizedPath === 'gradle.properties' ||
+    normalizedPath.endsWith('/build.gradle') ||
+    normalizedPath.endsWith('/settings.gradle') ||
+    normalizedPath.endsWith('/gradle.properties')
+  );
+}
+
 function getJsonFromStorage<T>(key: string | null, fallback: T): T {
   if (!key || typeof window === 'undefined') return fallback;
 
@@ -267,7 +279,11 @@ function getPracticeFileContent(
   file: TemplatePracticeFileApiResponse,
   storedCode: Record<string, string>,
 ) {
-  return file.userContent ?? storedCode[file.filePath] ?? file.content;
+  if (checkProjectConfigFile(file.filePath)) {
+    return file.content;
+  }
+
+  return storedCode[file.filePath] ?? file.userContent ?? file.content;
 }
 
 function getCompletedMissionIdSet(
@@ -461,7 +477,7 @@ export function FunctionalTemplateLayout({
   const buildProjectFiles = () =>
     practiceFiles.map((file) => ({
       filePath: file.filePath,
-      content: fileContents[file.filePath] ?? file.content,
+      content: checkProjectConfigFile(file.filePath) ? file.content : fileContents[file.filePath] ?? file.content,
     }));
 
   const persistFileContents = (nextFileContents: Record<string, string>) => {
