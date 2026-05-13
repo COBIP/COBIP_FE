@@ -1,18 +1,22 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useDashboard } from '@/hooks/useDashboard';
 import { StatisticsCard } from '@/features/my-page/components/dashboard/StatisticsCard';
 import { LearningProgressChart } from '@/features/my-page/components/dashboard/LearningProgressChart';
 import { RecentLearningSection } from '@/features/my-page/components/dashboard/RecentLearningSection';
-import { RecommendedCoursesSection } from '@/features/my-page/components/dashboard/RecommendedCoursesSection';
+// import { RecommendedCoursesSection } from '@/features/my-page/components/dashboard/RecommendedCoursesSection';
 import { Loader2 } from 'lucide-react'; // 로딩 아이콘
 import type { WeeklyActivity } from '@/types/WeeklyActivityTypes'; // 상단에 임포트 추가 (경로 확인)
 import type { LearningProgress } from '@/types/LearningProgressTypes';
-import type { TemplateSummary } from '@/types/TemplateSummaryTypes';
+// import type { TemplateSummary } from '@/types/TemplateSummaryTypes';
+import { PopularTemplates } from '@/features/my-page/components/dashboard/PopularTemplates'
+// 인기 템플릿 이상 없을시 RecommendedCoursesSection, TemplateSummary 삭제 div쪽 삭제
 
 export default function DashboardPage() {
   const { dashboardData, isLoading, error } = useDashboard();
+  const router = useRouter();
 
   // 1. 로딩 상태 처리
   if (isLoading) {
@@ -33,8 +37,11 @@ export default function DashboardPage() {
     );
   }
 
-  // 3. UI 컴포넌트 형식에 맞게 데이터 변환 (Data Mapping)
-  
+  // 인기 템플릿
+  const handleSelectTemplate = (templateId: string) => {
+    router.push(`/grammar-template/${templateId}`);
+  };
+
   // (1) 통계 카드 데이터 변환
   const statsCards = [
     {
@@ -120,9 +127,9 @@ export default function DashboardPage() {
           <RecentLearningSection learnings={recentLearnings} />
         </div>
       </div>
-
+      <PopularTemplates onSelectTemplate={handleSelectTemplate}/>
       {/* 하단: 인기 템플릿 (기존 RecommendedCoursesSection 재활용) */}
-      <RecommendedCoursesSection 
+      {/* <RecommendedCoursesSection 
         courses={dashboardData.popularTemplates.map((t: TemplateSummary) => ({
             id: t.id,
             title: t.title,
@@ -131,7 +138,7 @@ export default function DashboardPage() {
             category: t.category,
             difficulty: t.difficulty.toLowerCase() as 'beginner' | 'intermediate' | 'advanced'
         }))} 
-    />
+    /> */}
     </div>
   );
 }
