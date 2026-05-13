@@ -3,6 +3,7 @@ import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import type { GrammarTemplateDetail } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
+import { TiptapRenderer } from './TiptapRenderer';
 
 interface GrammarDetailViewProps {
   templateId: number;
@@ -13,27 +14,6 @@ interface GrammarDetailViewProps {
 export interface ExplorerFile { name: string; type: 'file'; }
 export interface ExplorerFolder { name: string; type: 'folder'; isOpen: boolean; children: ExplorerNode[]; }
 export type ExplorerNode = ExplorerFile | ExplorerFolder;
-
-/** JSON 콘텐츠를 렌더링 */
-function renderContentJson(json: Record<string, unknown> | null | undefined) {
-  if (!json) return null;
-  return (
-    <div className="space-y-6">
-      {Object.entries(json).map(([key, value]) => (
-        <div key={key}>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">{key}</h3>
-          {typeof value === 'string' ? (
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{value}</p>
-          ) : (
-            <pre className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 overflow-x-auto">
-              {JSON.stringify(value, null, 2)}
-            </pre>
-          )}
-    </div>
-      ))}
-    </div>
-  );
-}
 
 export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps) {
     const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
@@ -289,13 +269,13 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
               {template?.chapters && template.chapters.length > 0 && currentChapterIndex < template.chapters.length && (
                 <>
                   <h2 className="text-xl font-semibold text-gray-800 mb-4">{template.chapters[currentChapterIndex].title}</h2>
-                  {renderContentJson(template.chapters[currentChapterIndex].contentJson)}
+                  <TiptapRenderer content={template.chapters[currentChapterIndex].contentJson} />
                 </>
               )}
               {(!template?.chapters || template.chapters.length === 0) && template?.summary && (
                 <p className="text-gray-500 text-sm mb-8">{template.summary}</p>
               )}
-              {(!template?.chapters || template.chapters.length === 0) && renderContentJson(template?.contentJson)}
+              {(!template?.chapters || template.chapters.length === 0) && <TiptapRenderer content={template?.contentJson} />}
             </div>
           </main>
           {/* 실행 환경 패널 */}
