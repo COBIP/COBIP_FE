@@ -18,9 +18,13 @@ import type {
   AdminUserSummary,
   ApiResponse,
   GrammarTemplateDetail,
+  GrammarTemplateChapter,
+  GrammarTemplateChapterPayload,
   GrammarTemplateLanguage,
   GrammarTemplateMediaUploadResponse,
   GrammarTemplatePayload,
+  GrammarTemplatePracticeFile,
+  GrammarTemplatePracticeFilePayload,
   GrammarTemplateStatus,
   PageQuery,
   PageResponse,
@@ -264,6 +268,86 @@ export const adminService = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
+  },
+
+  getGrammarTemplateChapters(templateId: number) {
+    return fetchAdminRequest<GrammarTemplateChapter[]>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters`,
+    );
+  },
+
+  createGrammarTemplateChapter(templateId: number, payload: GrammarTemplateChapterPayload) {
+    return fetchAdminRequest<GrammarTemplateChapter>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
+  updateGrammarTemplateChapter(
+    templateId: number,
+    chapterId: number,
+    payload: GrammarTemplateChapterPayload,
+  ) {
+    return fetchAdminRequest<GrammarTemplateChapter>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
+  deleteGrammarTemplateChapter(templateId: number, chapterId: number) {
+    return fetchAdminRequest<void>(`/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getGrammarTemplatePracticeFiles(templateId: number, chapterId: number) {
+    return fetchAdminRequest<GrammarTemplatePracticeFile[]>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/practice-files`,
+    );
+  },
+
+  createGrammarTemplatePracticeFile(
+    templateId: number,
+    chapterId: number,
+    payload: GrammarTemplatePracticeFilePayload,
+  ) {
+    return fetchAdminRequest<GrammarTemplatePracticeFile>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/practice-files`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
+  updateGrammarTemplatePracticeFile(
+    templateId: number,
+    chapterId: number,
+    fileId: number,
+    payload: GrammarTemplatePracticeFilePayload,
+  ) {
+    return fetchAdminRequest<GrammarTemplatePracticeFile>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/practice-files/${fileId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
+  deleteGrammarTemplatePracticeFile(templateId: number, chapterId: number, fileId: number) {
+    return fetchAdminRequest<void>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/practice-files/${fileId}`,
+      {
+        method: 'DELETE',
+      },
+    );
   },
 
   uploadGrammarTemplateMedia(templateId: number, file: File, type: 'IMAGE' | 'VIDEO') {
