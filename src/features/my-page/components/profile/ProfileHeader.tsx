@@ -1,8 +1,10 @@
 'use client';
 
 import Image from 'next/image';
+import Link from "next/link";
 import { Camera, Edit2, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useUser'; // 혹은 파일명에 맞게 useAuth/useUser 임포트
+
 
 export default function ProfileHeader() {
     const { user, isLoading } = useAuth();
@@ -50,10 +52,12 @@ export default function ProfileHeader() {
             </div>
 
             {/* 4. 버튼: flex-shrink-0 추가 */}
-            <button className="flex items-center gap-2 px-6 h-12 flex-shrink-0 bg-[#6938d6] text-white rounded-[12px] text-[14px] font-semibold tracking-wide hover:bg-[#8255f0] transition-all active:scale-95 mt-4 md:mt-0">
-                <Edit2 size={18} />
-                프로필 수정
-            </button>
+            <Link href="profile/edit">
+                <button className="flex items-center gap-2 px-6 h-12 flex-shrink-0 bg-[#6938d6] text-white rounded-[12px] text-[14px] font-semibold tracking-wide hover:bg-[#8255f0] transition-all active:scale-95 mt-4 md:mt-0">
+                    <Edit2 size={18} />
+                    프로필 수정
+                </button>
+            </Link>
             
         </section>
     );
