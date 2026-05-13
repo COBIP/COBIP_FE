@@ -1,6 +1,52 @@
-import { Code, Layers, Sparkles, Lightbulb } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Code, Layers, Sparkles, Loader2, Lightbulb } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { grammarTemplateService } from "@/api/services/GrammarTemplateService";
+import { useUserStore } from '@/store/UseUserStore';
+import type { GrammarTemplateItem } from "@/features/grammar-template/Constants";
+
+/** 언어별 아이콘 */
+const LANGUAGE_ICONS: Record<string, string> = {
+  PYTHON: '🐍',
+  JAVA: '☕',
+  JAVASCRIPT: '🟨',
+};
 
 export function TemplatesSection() {
+  const router = useRouter();
+  const isLoggedIn = useUserStore((s) => s.isLoggedIn);
+  const [templates, setTemplates] = useState<GrammarTemplateItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const requireAuth = (path: string) => {
+    if (!isLoggedIn) {
+      router.push('/login');
+    } else {
+      router.push(path);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setIsLoading(false);
+      return;
+    }
+    let isCancelled = false;
+    const fetchData = async () => {
+      try {
+        const result = await grammarTemplateService.getTemplates({ page: 0, size: 8 });
+        if (!isCancelled) setTemplates(result.content);
+      } catch {
+        if (!isCancelled) setTemplates([]);
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    };
+    fetchData();
+    return () => { isCancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <section className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6">
@@ -14,8 +60,11 @@ export function TemplatesSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 문법 템플릿 */}
-          <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-lg transition-shadow cursor-pointer">
+                    {/* 문법 템플릿 */}
+          <div
+            onClick={() => requireAuth('/grammar-template')}
+            className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-lg transition-shadow cursor-pointer"
+          >
             <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
               <Code className="w-6 h-6 text-purple-600" />
             </div>
@@ -26,7 +75,7 @@ export function TemplatesSection() {
               기초부터 심화까지 체계적으로 정리되어 있어요.
             </p>
             <div className="flex flex-wrap gap-2">
-              {["React", "Vue.js", "Spring", "Python", "Java", "Nest"].map((lang) => (
+              {["Python", "Java", "JavaScript"].map((lang) => (
                 <span
                   key={lang}
                   className="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full"
@@ -70,7 +119,28 @@ export function TemplatesSection() {
             <p className="text-gray-500">코드 한 줄 한 줄을 시각화하며 학습할 수 있어요</p>
           </div>
 
-          <GrammarPreviewMockup />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {templates.slice(0, 4).map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => requireAuth(`/grammar-template/${t.id}`)}
+                  className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md hover:border-purple-200 transition-all cursor-pointer"
+                >
+                  <div className="text-2xl mb-2">{LANGUAGE_ICONS[t.language] || '📄'}</div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">{t.title}</h4>
+                  <p className="text-xs text-gray-500 line-clamp-2">{t.summary}</p>
+                  <div className="flex gap-1 mt-2">
+                    <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">{t.category}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── 실제 화면 미리보기: 기능 템플릿 ── */}
@@ -100,89 +170,6 @@ export function TemplatesSection() {
         </div>
       </div>
     </section>
-  );
-}
-
-/* 문법 템플릿 미리보기 목업 */
-function GrammarPreviewMockup() {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* 탭 바 */}
-      <div className="flex border-b border-gray-100">
-        <div className="px-6 py-3 text-sm font-medium text-purple-700 border-b-2 border-purple-600">변수 선언</div>
-        <div className="px-6 py-3 text-sm font-medium text-gray-400">조건문</div>
-        <div className="px-6 py-3 text-sm font-medium text-gray-400">반복문</div>
-        <div className="px-6 py-3 text-sm font-medium text-gray-400">함수</div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-        {/* 왼쪽: 코드 에디터 목업 */}
-        <div className="bg-gray-900 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="ml-2 text-xs text-gray-500 font-mono">script.py</span>
-          </div>
-          <div className="font-mono text-sm leading-relaxed space-y-1">
-            <div className="flex gap-4">
-              <span className="text-gray-600 w-8 text-right shrink-0">1</span>
-              <span className="text-blue-300">name</span>
-              <span className="text-gray-300">=</span>
-              <span className="text-green-300">&quot;COBIP&quot;</span>
-            </div>
-            <div className="flex gap-4 bg-blue-900/30 rounded">
-              <span className="text-gray-600 w-8 text-right shrink-0">2</span>
-              <span className="text-blue-300">count</span>
-              <span className="text-gray-300">=</span>
-              <span className="text-yellow-300">3</span>
-              <span className="text-blue-400 shrink-0">◀</span>
-            </div>
-            <div className="flex gap-4">
-              <span className="text-gray-600 w-8 text-right shrink-0">3</span>
-              <span className="text-blue-300">is_active</span>
-              <span className="text-gray-300">=</span>
-              <span className="text-yellow-300">True</span>
-            </div>
-            <div className="flex gap-4">
-              <span className="text-gray-600 w-8 text-right shrink-0">4</span>
-              <span className="text-gray-300">print(name, count, is_active)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 오른쪽: 시각화 패널 목업 */}
-        <div className="bg-white p-6 space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-900">
-              <span className="font-semibold">현재 단계:</span> count 변수에 숫자 3을 할당한다
-            </p>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-bold text-gray-700 mb-2">변수 상태</h4>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { name: 'name', value: 'COBIP', type: 'string' },
-                { name: 'count', value: '3', type: 'number' },
-                { name: 'is_active', value: 'True', type: 'bool' },
-              ].map((v) => (
-                <div key={v.name} className="bg-gray-50 rounded-lg border border-gray-200 p-4 text-center">
-                  <p className="text-xs text-gray-500 mb-1">{v.name}</p>
-                  <p className="text-xl font-bold text-blue-600">{v.value}</p>
-                  <p className="text-xs text-gray-400 mt-1">{v.type}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-bold text-gray-700 mb-2">출력 결과</h4>
-            <div className="bg-gray-900 rounded-lg p-3 font-mono text-sm text-green-400">COBIP 3 True</div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -302,3 +289,4 @@ function FunctionalPreviewMockup() {
     </div>
   );
 }
+
