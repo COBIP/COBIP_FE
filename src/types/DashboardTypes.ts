@@ -1,8 +1,67 @@
-import type { ActivityHistory } from './ActivityHistoryTypes';
-import type { TemplateSummary } from './TemplateSummaryTypes';
-import type { LearningProgress } from './LearningProgressTypes';
-import type { Subscription } from './SubscriptionTypes';
-import type { WeeklyActivity } from './WeeklyActivityTypes';
+export interface ActivityHistory {
+    id: number;
+    type: string; // ActivityType (Enum)
+    message: string;
+    targetType: string;
+    targetId: number;
+    createdAt: string; // LocalDateTime
+}
+
+export interface LearningProgress {
+    templateId: number;
+    templateTitle: string;
+    thumbnailUrl: string | null;
+    progressPercent: number;
+    lastStep: string | null;
+    solvedCount: number;
+    correctCount: number;
+    studySeconds: number;
+    lastAccessedAt: string; // LocalDateTime
+    completed: boolean;
+}
+
+export interface TemplateSummary {
+    id: number;
+    title: string;
+    description: string;
+    category: string;
+    difficulty: string; // TemplateDifficulty (Enum)
+    accessLevel: string; // TemplateAccessLevel (Enum)
+    techStacks: string[];
+    thumbnailUrl: string | null;
+    viewCount: number;
+    favoriteCount: number;
+    ownerId: number;
+    ownerNickname: string;
+    createdAt: string; // LocalDateTime
+}
+
+export interface LearningProgress {
+    templateId: number;
+    templateTitle: string;
+    thumbnailUrl: string | null;
+    progressPercent: number;
+    lastStep: string | null;
+    solvedCount: number;
+    correctCount: number;
+    studySeconds: number;
+    lastAccessedAt: string; // LocalDateTime
+    completed: boolean;
+}
+
+export interface Subscription {
+    planName: string | null;
+    status: string | null; // SubscriptionStatus (Enum)
+    startedAt: string | null; // LocalDate
+    expiredAt: string | null; // LocalDate
+    nextPaymentAt: string | null; // LocalDate
+    active: boolean;
+}
+
+export interface WeeklyActivity {
+    date: string; // LocalDate
+    activityCount: number;
+}
 
 export interface MyDashboardData {
     registeredTemplateCount: number;

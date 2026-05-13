@@ -8,10 +8,10 @@ import { LearningProgressChart } from '@/features/my-page/components/dashboard/L
 import { RecentLearningSection } from '@/features/my-page/components/dashboard/RecentLearningSection';
 // import { RecommendedCoursesSection } from '@/features/my-page/components/dashboard/RecommendedCoursesSection';
 import { Loader2 } from 'lucide-react'; // 로딩 아이콘
-import type { WeeklyActivity } from '@/types/WeeklyActivityTypes'; // 상단에 임포트 추가 (경로 확인)
-import type { LearningProgress } from '@/types/LearningProgressTypes';
 // import type { TemplateSummary } from '@/types/TemplateSummaryTypes';
 import { PopularTemplates } from '@/features/my-page/components/dashboard/PopularTemplates'
+import type { WeeklyActivity, LearningProgress } from '@/types/DashboardTypes';
+
 // 인기 템플릿 이상 없을시 RecommendedCoursesSection, TemplateSummary 삭제 div쪽 삭제
 
 export default function DashboardPage() {
