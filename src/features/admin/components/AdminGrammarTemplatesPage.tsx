@@ -515,7 +515,9 @@ export function AdminGrammarTemplatesPage() {
       const chapter = await adminService.createGrammarTemplateChapter(selectedId, {
         title: `${orderIndex}. 새 챕터`,
         orderIndex,
-        contentJson: buildClonedContent(),
+        contentJson: chapters.length
+          ? buildClonedContent()
+          : buildClonedContent(buildNormalizedContent(form.contentJson)),
       });
       const nextChapters = buildSortedChapters([...chapters, chapter]);
       setChapters(nextChapters);
@@ -1149,12 +1151,11 @@ export function AdminGrammarTemplatesPage() {
             <div className="min-w-0 space-y-3">
               <AdminCard>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-bold text-slate-950">챕터 본문</h2>
+                  <h2 className="text-sm font-bold text-slate-950">{activeChapter ? '챕터 본문' : '템플릿 본문'}</h2>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => setIsPreviewOpen((current) => !current)}
-                      disabled={!activeChapter}
                       className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-40"
                     >
                       <Eye className="h-4 w-4" />
@@ -1162,19 +1163,24 @@ export function AdminGrammarTemplatesPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void handleSaveChapter()}
-                      disabled={!activeChapter || isSaving}
+                      onClick={() => {
+                        if (activeChapter) {
+                          void handleSaveChapter();
+                          return;
+                        }
+
+                        void handleSaveTemplate();
+                      }}
+                      disabled={isSaving}
                       className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
                     >
                       <Save className="h-4 w-4" />
-                      챕터 저장
+                      {activeChapter ? '챕터 저장' : '템플릿 저장'}
                     </button>
                   </div>
                 </div>
 
-                {!activeChapter ? (
-                  <AdminEmpty message="선택된 챕터가 없습니다." />
-                ) : (
+                {activeChapter ? (
                   <label className="block text-sm font-semibold text-slate-700">
                     챕터 제목
                     <input
@@ -1183,7 +1189,7 @@ export function AdminGrammarTemplatesPage() {
                       className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
                     />
                   </label>
-                )}
+                ) : null}
               </AdminCard>
 
               {isPreviewOpen ? (
