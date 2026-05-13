@@ -70,9 +70,9 @@ export default function DashboardPage() {
     },
   ];
 
-  const chartActivities = dashboardData.weeklyActivities.map((activity: WeeklyActivity) => ({
-      day: new Date(activity.date).toLocaleDateString('ko-KR', { weekday: 'short' }),
-      studySeconds: activity.studySeconds 
+  const chartActivities = dashboardData.weeklyActivities.map((activity: WeeklyActivity) => ({ 
+    day: new Date(activity.date).toLocaleDateString('ko-KR', { weekday: 'short' }), 
+    studySeconds: activity.studySeconds 
   }));
   // (3) 최근 학습 데이터 변환
   const recentLearnings = dashboardData.recentLearning.map((item: LearningProgress) => ({
