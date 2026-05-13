@@ -55,9 +55,10 @@ export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListPro
 
     fetchTemplates();
 
-    return () => {
+        return () => {
       isCancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, activeFilter]);
 
   return (

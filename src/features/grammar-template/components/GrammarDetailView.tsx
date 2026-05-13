@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { Menu, Bookmark, Bot, Settings, ChevronLeft, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import type { GrammarTemplateDetail } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
