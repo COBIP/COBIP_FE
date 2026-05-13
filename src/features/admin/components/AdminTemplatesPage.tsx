@@ -18,6 +18,7 @@ import type {
   AdminVisibility,
   PracticeFile,
   PracticeFilePayload,
+  PracticeMission,
   PracticeMissionPayload,
   PracticeMissionType,
   PageResponse,
@@ -448,6 +449,43 @@ function getMissionTargetFilePath(mission: AdminTemplateMissionDraft) {
   return typeof filePath === 'string' ? filePath : '';
 }
 
+function buildPracticeMissionPayload(
+  mission: AdminTemplateMissionDraft,
+  missionType: PracticeMissionType,
+  orderIndex: number,
+): PracticeMissionPayload {
+  const missionSteps = (mission.steps ?? []).map((step) => step.trim()).filter(Boolean);
+  const missionDescription = mission.description?.trim() ?? '';
+  const missionGuideContent = missionSteps.join('\n') || mission.guideContent?.trim() || missionDescription;
+
+  return {
+    title: mission.title.trim(),
+    description: missionDescription,
+    type: missionType,
+    missionType,
+    guideContent: missionGuideContent,
+    validationJson: mission.validationJson ?? {},
+    orderIndex,
+  };
+}
+
+function buildExistingPracticeMissionPayload(
+  mission: PracticeMission,
+  orderIndex: number,
+): PracticeMissionPayload {
+  const missionType = mission.missionType ?? mission.type ?? 'CONCEPT';
+
+  return {
+    title: mission.title,
+    description: mission.description ?? '',
+    type: missionType,
+    missionType,
+    guideContent: mission.guideContent ?? mission.description ?? '',
+    validationJson: mission.validationJson ?? {},
+    orderIndex,
+  };
+}
+
 function getMissionTestCases(mission: AdminTemplateMissionDraft) {
   const testCases = getMissionValidationJson(mission).testCases;
 
@@ -633,8 +671,18 @@ export function AdminTemplatesPage() {
     const existingMissions = existingPractice?.missions ?? [];
     const existingMissionIds = new Set(existingMissions.map((mission) => mission.id));
     const savedMissionIds = new Set<number>();
+    const matchedMissionIds = new Set<number>();
 
     const errors: string[] = [];
+    const temporaryOrderOffset = 10_000;
+    for (const [index, existingMission] of existingMissions.entries()) {
+      await adminService.updatePracticeMission(
+        templateId,
+        existingMission.id,
+        buildExistingPracticeMissionPayload(existingMission, temporaryOrderOffset + index),
+      );
+    }
+
     for (const [index, mission] of missions.entries()) {
       if (!mission.title?.trim()) {
         const errMsg = '미션 제목이 비어있습니다. 건너뜁니다.';
@@ -650,18 +698,7 @@ export function AdminTemplatesPage() {
         continue;
       }
 
-      const missionSteps = (mission.steps ?? []).map((step) => step.trim()).filter(Boolean);
-      const missionDescription = mission.description?.trim() ?? '';
-      const missionGuideContent = missionSteps.join('\n') || mission.guideContent?.trim() || missionDescription;
-      const missionPayload: PracticeMissionPayload = {
-        title: mission.title.trim(),
-        description: missionDescription,
-        type: missionType,
-        missionType,
-        guideContent: missionGuideContent,
-        validationJson: mission.validationJson ?? {},
-        orderIndex: mission.orderIndex ?? index,
-      };
+      const missionPayload = buildPracticeMissionPayload(mission, missionType, index);
 
       const missionId = Number(mission.id);
       const existingById = Number.isFinite(missionId) && missionId > 0 && existingMissionIds.has(missionId)
@@ -669,11 +706,15 @@ export function AdminTemplatesPage() {
         : undefined;
       const existingByStableKey = existingMissions.find(
         (existingMission) =>
-          !savedMissionIds.has(existingMission.id) &&
+          !matchedMissionIds.has(existingMission.id) &&
           existingMission.title === missionPayload.title &&
           (existingMission.missionType ?? existingMission.type) === missionPayload.missionType,
       );
       const targetMission = existingById ?? existingByStableKey;
+
+      if (targetMission) {
+        matchedMissionIds.add(targetMission.id);
+      }
 
       try {
         if (targetMission) {
