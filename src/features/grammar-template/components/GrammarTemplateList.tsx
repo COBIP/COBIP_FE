@@ -1,38 +1,64 @@
-import { useState } from 'react';
-import { Search, BookOpen } from 'lucide-react';
-import { GRAMMAR_TEMPLATES } from '@/features/grammar-template/Constants';
+import { useState, useEffect } from 'react';
+import { Search, BookOpen, Loader2 } from 'lucide-react';
+import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
+import { useUserStore } from '@/store/UseUserStore';
+import type { GrammarTemplateItem } from '@/features/grammar-template/Constants';
 import { GrammarTemplateCard } from './GrammarTemplateCard';
 import { Header } from '@/features/main-home/components/Header';
 
 interface GrammarTemplateListProps {
-  onSelectTemplate: (templateId: string) => void;
+  onSelectTemplate: (templateId: number) => void;
 }
 
-const FILTERS = ['전체', '인기', '추천', '신규'] as const;
-type Filter = typeof FILTERS[number];
+const DIFFICULTY_FILTERS = [
+  { label: '전체', value: '' },
+  { label: '초급', value: 'BEGINNER' },
+  { label: '중급', value: 'INTERMEDIATE' },
+  { label: '고급', value: 'ADVANCED' },
+] as const;
 
 export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListProps) {
+  const isLoggedIn = useUserStore((s) => s.isLoggedIn);
+  const [templates, setTemplates] = useState<GrammarTemplateItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<Filter>('전체');
+  const [activeFilter, setActiveFilter] = useState('');
 
-  const filteredTemplates = GRAMMAR_TEMPLATES.filter((t) => {
-    // 검색어 필터
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (
-        !t.title.toLowerCase().includes(q) &&
-        !t.description.toLowerCase().includes(q) &&
-        !t.tags.some((tag) => tag.toLowerCase().includes(q))
-      ) {
-        return false;
+    /** API에서 템플릿 목록 불러오기 */
+    useEffect(() => {
+      if (!isLoggedIn) {
+        setIsLoading(false);
+        return;
       }
-    }
-    // 필터 버튼
-    if (activeFilter === '인기') return t.badge === '인기';
-    if (activeFilter === '추천') return t.badge === '추천';
-    if (activeFilter === '신규') return t.badge === '신규';
-    return true; // 전체
-  });
+
+      let isCancelled = false;
+
+    const fetchTemplates = async () => {
+      setIsLoading(true);
+      try {
+        const result = await grammarTemplateService.getTemplates({
+          keyword: searchQuery || undefined,
+          difficulty: activeFilter || undefined,
+          page: 0,
+          size: 50,
+        });
+        if (!isCancelled) {
+          setTemplates(result.content);
+        }
+      } catch (err) {
+        console.error('문법 템플릿 목록 조회 실패:', err);
+        if (!isCancelled) setTemplates([]);
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    };
+
+    fetchTemplates();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [searchQuery, activeFilter]);
 
   return (
     <div className="min-h-screen bg-[#F9FAFB]">
@@ -72,36 +98,46 @@ export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListPro
 
       {/* 메인 콘텐츠 */}
       <main className="max-w-7xl mx-auto px-8 py-8">
-        {/* 필터 버튼 */}
+        {/* 필터 버튼 (난이도별) */}
         <div className="flex items-center gap-2 mb-8">
-          {FILTERS.map((filter) => (
+          {DIFFICULTY_FILTERS.map((filter) => (
             <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
+              key={filter.value}
+              onClick={() => setActiveFilter(filter.value)}
               className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer ${
-                activeFilter === filter
+                activeFilter === filter.value
                   ? 'bg-purple-600 text-white shadow-sm'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              {filter}
+              {filter.label}
             </button>
           ))}
         </div>
 
-        {/* 템플릿 그리드 (4열) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredTemplates.map((template) => (
-            <GrammarTemplateCard
-              key={template.id}
-              template={template}
-              onClick={onSelectTemplate}
-            />
-          ))}
-        </div>
+                {/* 로딩 상태 */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+            <span className="ml-2 text-sm text-gray-500">불러오는 중...</span>
+          </div>
+        )}
 
-        {/* 결과 없음 */}
-        {filteredTemplates.length === 0 && (
+                {/* 템플릿 그리드 (4열) */}
+        {!isLoading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {templates.map((template) => (
+              <GrammarTemplateCard
+                key={template.id}
+                template={template}
+                onClick={onSelectTemplate}
+              />
+            ))}
+          </div>
+        )}
+
+                {/* 결과 없음 */}
+        {!isLoading && templates.length === 0 && (
           <div className="text-center py-16">
             <p className="text-gray-400 text-sm">검색 결과가 없습니다.</p>
           </div>
