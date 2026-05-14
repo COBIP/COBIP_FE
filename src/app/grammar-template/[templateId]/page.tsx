@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { GrammarDetailView } from '@/features/grammar-template/components/GrammarDetailView';
 
 /**
@@ -9,10 +9,12 @@ import { GrammarDetailView } from '@/features/grammar-template/components/Gramma
  */
 export default function GrammarTemplateLessonPage() {
   const router = useRouter();
+  const params = useParams();
+  const templateId = Number(params.templateId);
 
   const handleBack = () => {
     router.push('/grammar-template');
   };
 
-  return <GrammarDetailView onBack={handleBack} />;
+  return <GrammarDetailView templateId={templateId} onBack={handleBack} />;
 }
