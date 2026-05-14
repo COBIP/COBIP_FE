@@ -36,7 +36,7 @@ export interface GrammarTemplateChapter {
   title: string;
   orderIndex: number;
   contentJson: Record<string, unknown>;
-    practiceFiles: GrammarTemplatePracticeFile[];
+  practiceFiles: GrammarTemplatePracticeFile[];
   createdAt: string;
   updatedAt: string;
 }

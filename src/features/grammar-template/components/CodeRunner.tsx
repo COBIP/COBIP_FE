@@ -5,6 +5,31 @@ import type { ExplorerNode, ExplorerFolder } from './GrammarDetailView';
 import type { ExecutionFlowStep } from '@/features/grammar-template/Constants';
 import { ExecutionFlowPanel } from './ExecutionFlowPanel';
 
+const CODE_EDITOR_LINE_HEIGHT = 24;
+
+function formatRunResponseText(result: { output?: string; stdout?: string | null; compileOutput?: string | null; stderr?: string | null; message?: string | null; status?: string }) {
+  const text = [result.output, result.stdout, result.compileOutput, result.stderr, result.message]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join('\n');
+
+  if (text) return text;
+  if (result.status && result.status !== 'ACCEPTED') return `// 실행 결과: ${result.status}`;
+  return '// 실행 완료 (출력 없음)';
+}
+
+function formatErrorText(err: unknown) {
+  if (err && typeof err === 'object') {
+    const axiosErr = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
+    if (axiosErr.response?.data?.message) {
+      return axiosErr.response.data.message;
+    }
+    if (axiosErr.message) {
+      return axiosErr.message;
+    }
+  }
+  return '알 수 없는 오류';
+}
+
 // ===== 탐색기 노드 컴포넌트 (재귀) =====
 function ExplorerFolderNode({
   node,
@@ -194,6 +219,10 @@ export function CodeRunner({
     const [isRunning, setIsRunning] = useState(false);
     const [outputText, setOutputText] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [editorScrollTop, setEditorScrollTop] = useState(0);
+    const activeExecutionLine = executionSteps?.[currentStepIndex]?.lineNumber;
+    const activeCode = fileContents[activeFilePath] || '';
+    const codeLines = activeCode.split('\n');
 
     /** 코드 실행 */
     const handleRun = useCallback(async () => {
@@ -213,23 +242,10 @@ export function CodeRunner({
           sourceCode: fileContents[activeFilePath],
           language: language ?? 'PYTHON',
         });
-        setOutputText(result.output || '// 실행 완료 (출력 없음)');
+        setOutputText(formatRunResponseText(result));
       } catch (err) {
         setOutputText('');
-        let detail = '알 수 없는 오류';
-        try {
-          if (err && typeof err === 'object') {
-            const axiosErr = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
-            if (axiosErr.response?.data?.message) {
-              detail = axiosErr.response.data.message;
-            } else if (axiosErr.message) {
-              detail = axiosErr.message;
-            }
-          }
-        } catch {
-          detail = String(err);
-        }
-        setErrorMessage(`// 실행 실패: ${detail}`);
+        setErrorMessage(`// 실행 실패: ${formatErrorText(err)}`);
       } finally {
         setIsRunning(false);
       }
@@ -255,7 +271,7 @@ export function CodeRunner({
         });
         setExecutionSteps(result.steps);
       } catch (err) {
-        setErrorMessage(`// 실행흐름 조회 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+        setErrorMessage(`// 실행흐름 조회 실패: ${formatErrorText(err)}`);
       } finally {
         setIsFlowLoading(false);
       }
@@ -314,7 +330,12 @@ export function CodeRunner({
                     onAddSubFolder={onAddSubFolder}
                     path={node.name}
                   />
-                ) : null
+                ) : (
+                  <div key={node.name} onClick={() => onOpenFile(node.name)} className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${node.name === activeFilePath ? 'bg-purple-100 text-purple-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
+                    <span className="text-[10px]">📄</span>
+                    <span>{node.name}</span>
+                  </div>
+                )
               )}
               {isRootInputOpen ? (
                 <div className="flex items-center gap-1.5 px-2 py-1 mt-1">
@@ -347,8 +368,32 @@ export function CodeRunner({
             </div>
 
             {/* 코드 에디터 */}
-            <div className="flex-1 bg-gray-50 overflow-hidden">
-              <textarea className="w-full h-full bg-gray-50 text-gray-800 p-4 text-sm font-mono resize-none outline-none leading-relaxed" value={fileContents[activeFilePath] || ''} onChange={(e) => setFileContents((prev) => ({ ...prev, [activeFilePath]: e.target.value }))} placeholder="# 여기에 코드를 입력하세요" />
+            <div className="relative flex-1 bg-gray-50 overflow-hidden">
+              {activeExecutionLine && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 overflow-hidden px-4 py-4 font-mono text-sm"
+                  style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
+                >
+                  <div style={{ transform: `translateY(-${editorScrollTop}px)` }}>
+                    {codeLines.map((_, index) => (
+                      <div
+                        key={index}
+                        className={index + 1 === activeExecutionLine ? 'rounded bg-purple-100/80 ring-1 ring-purple-200' : ''}
+                        style={{ height: `${CODE_EDITOR_LINE_HEIGHT}px` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <textarea
+                className="relative z-10 w-full h-full bg-transparent text-gray-800 p-4 text-sm font-mono resize-none outline-none"
+                style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
+                value={activeCode}
+                onChange={(e) => setFileContents((prev) => ({ ...prev, [activeFilePath]: e.target.value }))}
+                onScroll={(e) => setEditorScrollTop(e.currentTarget.scrollTop)}
+                placeholder="# 여기에 코드를 입력하세요"
+              />
             </div>
 
             {/* 가로 리사이즈 핸들 */}
