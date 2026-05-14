@@ -23,10 +23,10 @@ export function FunctionalTemplateHeader({
 
         {/* 오른쪽: 액션 버튼들 */}
         <div className="flex items-center gap-4">
-          {/* GURU AI Chat */}
+          {/* AI Chat */}
           <button className="flex items-center gap-2 px-4 py-2 border border-purple-200 bg-purple-50 text-purple-600 rounded-full hover:bg-purple-100 transition-colors">
             <Code2 className="w-4 h-4" />
-            <span className="text-sm font-medium">GURU AI Chat</span>
+            <span className="text-sm font-medium">AI 채팅</span>
           </button>
 
           {/* 무제한 수강하기 */}
