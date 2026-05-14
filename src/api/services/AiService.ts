@@ -26,8 +26,10 @@ export type AiFeatureTemplateDifficulty = 'beginner' | 'intermediate' | 'advance
 export type AiFeatureTemplateGenerateRequest = {
   language: string;
   framework?: string | null;
+  techStack?: string[] | null;
   featureName: string;
   level: AiFeatureTemplateDifficulty;
+  difficulty?: AiFeatureTemplateDifficulty;
   includeCode?: boolean;
   includeMissions?: boolean;
   includeInterview?: boolean;
@@ -149,6 +151,7 @@ export type AiFeatureTemplateGenerateResult = {
 export type AiFeatureTemplateRegenerateSectionRequest = AiFeatureTemplateGenerateRequest & {
   templateId?: number | null;
   section: AiFeatureTemplateSection;
+  sectionName?: AiFeatureTemplateSection;
   previousContent?: Record<string, unknown> | null;
   userInstruction?: string | null;
   techStack?: string[] | null;
@@ -237,6 +240,38 @@ function getResolvedSection(value: unknown): AiFeatureTemplateSection {
   if (typeof value !== 'string') return 'overview';
   const key = value.trim();
   return sectionAliases[key] ?? sectionAliases[key.toLowerCase().replace(/-/g, '_')] ?? 'overview';
+}
+
+function getNormalizedTechStack(request: AiFeatureTemplateGenerateRequest) {
+  const techStack = Array.isArray(request.techStack)
+    ? request.techStack.map((item) => item.trim()).filter(Boolean)
+    : [];
+  const framework = request.framework?.trim();
+  const language = request.language.trim();
+
+  return Array.from(new Set([...techStack, framework, language].filter((item): item is string => Boolean(item))));
+}
+
+function buildGeneratePayload(request: AiFeatureTemplateGenerateRequest) {
+  const framework = request.framework?.trim() ? request.framework.trim() : null;
+  const featureName = request.featureName.trim();
+  const language = request.language.trim();
+  const level = request.level;
+  const techStack = getNormalizedTechStack(request);
+
+  return {
+    includeCode: true,
+    includeMissions: true,
+    includeInterview: true,
+    referenceContext: null,
+    ...request,
+    framework,
+    featureName,
+    language,
+    level,
+    difficulty: request.difficulty ?? level,
+    techStack,
+  };
 }
 
 function getSectionValue(source: Record<string, unknown>, section: AiFeatureTemplateSection) {
@@ -410,14 +445,14 @@ function mapGenerateResult(value: unknown): AiFeatureTemplateGenerateResult {
   const result = checkRecord(value) ? value : {};
 
   return {
-    template: mapTemplateData(result.template),
+    template: mapTemplateData(result.template ?? result),
     source: result.source === 'ollama' ? 'ollama' : 'fallback',
   };
 }
 
 function mapRegenerateSectionResult(value: unknown): AiFeatureTemplateRegenerateSectionResult {
   const result = checkRecord(value) ? value : {};
-  const section = getResolvedSection(result.section);
+  const section = getResolvedSection(result.section ?? result.sectionName);
 
   return {
     section,
@@ -434,16 +469,7 @@ export async function fetchAiFeatureTemplate(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      includeCode: true,
-      includeMissions: true,
-      includeInterview: true,
-      referenceContext: null,
-      ...request,
-      framework: request.framework?.trim() ? request.framework.trim() : null,
-      featureName: request.featureName.trim(),
-      language: request.language.trim(),
-    }),
+    body: JSON.stringify(buildGeneratePayload(request)),
   });
 
   const result = await parseAiResponse<AiApiResponse<unknown>>(response);
@@ -453,24 +479,19 @@ export async function fetchAiFeatureTemplate(
 export async function fetchAiFeatureTemplateSection(
   request: AiFeatureTemplateRegenerateSectionRequest,
 ): Promise<AiFeatureTemplateRegenerateSectionResult> {
+  const payload = buildGeneratePayload(request);
   const response = await fetch(`${AI_API_BASE_URL}/ai/feature-template/regenerate-section`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      includeCode: true,
-      includeMissions: true,
-      includeInterview: true,
-      referenceContext: null,
-      previousContent: null,
-      userInstruction: null,
-      techStack: null,
-      currentTemplate: null,
-      ...request,
-      framework: request.framework?.trim() ? request.framework.trim() : null,
-      featureName: request.featureName.trim(),
-      language: request.language.trim(),
+      ...payload,
+      previousContent: request.previousContent ?? null,
+      userInstruction: request.userInstruction ?? null,
+      currentTemplate: request.currentTemplate ?? null,
+      section: request.section,
+      sectionName: request.sectionName ?? request.section,
     }),
   });
 
