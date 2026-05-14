@@ -569,6 +569,13 @@ export function FunctionalTemplateLayout({
     }
   };
 
+  const handleOpenAiChat = () => {
+    setIsAiChatOpen(true);
+    if (!isEditorOpen) {
+      void openEditor();
+    }
+  };
+
   const buildProjectFiles = () =>
     practiceFiles.map((file) => ({
       filePath: file.filePath,
@@ -856,7 +863,7 @@ export function FunctionalTemplateLayout({
         nickname={nickname}
         onFavoriteToggle={() => void handleFavoriteToggle()}
         onProfileClick={() => router.push('/my-page/profile')}
-        onAiChatOpen={() => setIsAiChatOpen(true)}
+        onAiChatOpen={handleOpenAiChat}
         onSettingsClick={() => setIsShowSettings(true)}
         onMemoToggle={() => setIsMemoOpen(!isMemoOpen)}
         isMemoOpen={isMemoOpen}
@@ -948,7 +955,10 @@ export function FunctionalTemplateLayout({
                 aria-label={TEXT.editorClose}
                 title={TEXT.editorClose}
                 onMouseDown={(event) => event.stopPropagation()}
-                onClick={() => setIsEditorOpen(false)}
+                onClick={() => {
+                  setIsEditorOpen(false);
+                  setIsAiChatOpen(false);
+                }}
                 className={`absolute left-1/2 top-8 z-20 flex h-12 w-8 -translate-x-1/2 items-center justify-center rounded-l-lg border-2 text-[#7C3AED] shadow-md transition-colors ${
                   isDarkMode
                     ? 'border-[#7C3AED] bg-[#1E293B] hover:bg-[#334155]'
@@ -959,52 +969,63 @@ export function FunctionalTemplateLayout({
               </button>
             </div>
 
-            <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <div className={`flex h-14 items-center justify-between border-b px-4 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'}`}>
-                <div className="inline-flex items-center gap-2 font-semibold text-[#1E293B]">
-                  <Play className="h-5 w-5 text-[#7C3AED]" />
-                  <span className={isDarkMode ? 'text-white' : 'text-[#1E293B]'}>코드 실행기</span>
+            <section className="flex min-w-0 flex-1 overflow-hidden">
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <div className={`flex h-14 items-center justify-between border-b px-4 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'}`}>
+                  <div className="inline-flex items-center gap-2 font-semibold text-[#1E293B]">
+                    <Play className="h-5 w-5 text-[#7C3AED]" />
+                    <span className={isDarkMode ? 'text-white' : 'text-[#1E293B]'}>코드 실행기</span>
+                  </div>
+                </div>
+
+                <div className="flex min-h-0 flex-1 overflow-hidden">
+                  <div
+                    style={{ width: `${explorerWidth}px` }}
+                    className={`min-w-0 border-r ${isDarkMode ? 'border-[#334155]' : 'border-[#E2E8F0]'}`}
+                  >
+                    <FileExplorer
+                      isDarkMode={isDarkMode}
+                      activeFile={resolvedActiveFile}
+                      files={editorFiles}
+                      onFileSelect={setActiveFile}
+                    />
+                  </div>
+
+                  <div
+                    onMouseDown={handleExplorerResizeStart}
+                    className={`w-1 cursor-col-resize transition-colors hover:bg-[#7C3AED] ${isDarkMode ? 'bg-[#334155]' : 'bg-[#E2E8F0]'}`}
+                  />
+
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <CodeEditor
+                      fileName={resolvedActiveFile}
+                      code={editorCode}
+                      onCodeChange={(value) => updateEditorCode(resolvedActiveFile, value)}
+                      fileTabs={currentTabs}
+                      activeFile={resolvedActiveFile}
+                      onFileSelect={setActiveFile}
+                      isDarkMode={isDarkMode}
+                      hasContent={hasPracticeFiles}
+                      onRun={() => void handleRunProject()}
+                      onSubmit={() => void handleSubmitProject()}
+                      onAiChatOpen={handleOpenAiChat}
+                      isRunning={isRunning}
+                      isSubmitting={isSubmitting}
+                      runOutput={runOutput}
+                      submissionResult={submissionResult}
+                    />
+                  </div>
                 </div>
               </div>
-
-              <div className="flex min-h-0 flex-1 overflow-hidden">
-                <div
-                  style={{ width: `${explorerWidth}px` }}
-                  className={`min-w-0 border-r ${isDarkMode ? 'border-[#334155]' : 'border-[#E2E8F0]'}`}
-                >
-                  <FileExplorer
-                    isDarkMode={isDarkMode}
-                    activeFile={resolvedActiveFile}
-                    files={editorFiles}
-                    onFileSelect={setActiveFile}
-                  />
-                </div>
-
-                <div
-                  onMouseDown={handleExplorerResizeStart}
-                  className={`w-1 cursor-col-resize transition-colors hover:bg-[#7C3AED] ${isDarkMode ? 'bg-[#334155]' : 'bg-[#E2E8F0]'}`}
-                />
-
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <CodeEditor
-                    fileName={resolvedActiveFile}
-                    code={editorCode}
-                    onCodeChange={(value) => updateEditorCode(resolvedActiveFile, value)}
-                    fileTabs={currentTabs}
-                    activeFile={resolvedActiveFile}
-                    onFileSelect={setActiveFile}
-                    isDarkMode={isDarkMode}
-                    hasContent={hasPracticeFiles}
-                    onRun={() => void handleRunProject()}
-                    onSubmit={() => void handleSubmitProject()}
-                    onAiChatOpen={() => setIsAiChatOpen(true)}
-                    isRunning={isRunning}
-                    isSubmitting={isSubmitting}
-                    runOutput={runOutput}
-                    submissionResult={submissionResult}
-                  />
-                </div>
-              </div>
+              <AiChatPanel
+                isOpen={isAiChatOpen}
+                title="AI 채팅"
+                context={aiChatContext}
+                isDarkMode={isDarkMode}
+                variant="sidecar"
+                className="w-[26rem] shrink-0"
+                onClose={() => setIsAiChatOpen(false)}
+              />
             </section>
           </div>
         ) : (
@@ -1055,13 +1076,6 @@ export function FunctionalTemplateLayout({
           onClose={() => setIsShowSettings(false)}
         />
       )}
-      <AiChatPanel
-        isOpen={isAiChatOpen}
-        title="기능 템플릿 AI 채팅"
-        context={aiChatContext}
-        isDarkMode={isDarkMode}
-        onClose={() => setIsAiChatOpen(false)}
-      />
     </div>
   );
 }

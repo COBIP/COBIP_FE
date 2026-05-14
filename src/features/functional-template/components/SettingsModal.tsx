@@ -92,7 +92,7 @@ export function SettingsModal({
             </div>
           </div>
 
-          {/* AI GURU 활성화 설정 */}
+          {/* AI 활성화 설정 */}
           <div
             className={`flex items-center justify-between p-4 rounded-lg transition-colors duration-300 ${
               isDarkMode ? 'bg-[#334155]' : 'bg-[#F8FAFC]'
