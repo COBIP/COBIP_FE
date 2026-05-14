@@ -17,6 +17,7 @@ import {
 } from '@/api/services/FunctionalTemplateService';
 import {
   fetchAiFeatureTemplate,
+  formatFeatureTemplateFramework,
   type AiFeatureTemplateGenerateRequest,
   type AiFeatureTemplateGenerateResult,
 } from '@/api/services/AiService';
@@ -44,6 +45,7 @@ export default function FunctionalTemplatesPage() {
   const [activeFilter, setActiveFilter] = useState<TemplateFilter>('전체');
   const [templates, setTemplates] = useState<FunctionalTemplateCardViewModel[]>([]);
   const [generatedTemplate, setGeneratedTemplate] = useState<AiFeatureTemplateGenerateResult | null>(null);
+  const [generatedTemplateRequest, setGeneratedTemplateRequest] = useState<AiFeatureTemplateGenerateRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +72,7 @@ export default function FunctionalTemplatesPage() {
     const result = await fetchAiFeatureTemplate(request);
     setAiTemplateDraft(request, result);
     setGeneratedTemplate(result);
+    setGeneratedTemplateRequest(request);
     router.push('/functional-template-ai');
   };
 
@@ -77,14 +80,17 @@ export default function FunctionalTemplatesPage() {
     if (!generatedTemplate) return;
 
     const request: AiFeatureTemplateGenerateRequest = {
-      featureName: generatedTemplate.template.overview.featureName,
-      language: generatedTemplate.template.codeFiles[0]?.language ?? 'java',
-      framework: null,
-      level: 'intermediate',
+      ...(generatedTemplateRequest ?? {}),
+      featureName: generatedTemplateRequest?.featureName ?? generatedTemplate.template.overview.featureName,
+      language: generatedTemplateRequest?.language ?? generatedTemplate.template.codeFiles[0]?.language ?? 'java',
+      framework: formatFeatureTemplateFramework(generatedTemplateRequest?.framework),
+      techStack: generatedTemplateRequest?.techStack ?? generatedTemplate.template.overview.techStack,
+      level: generatedTemplateRequest?.level ?? 'intermediate',
+      difficulty: generatedTemplateRequest?.difficulty ?? generatedTemplateRequest?.level ?? 'intermediate',
       includeCode: true,
       includeMissions: true,
       includeInterview: true,
-      referenceContext: null,
+      referenceContext: generatedTemplateRequest?.referenceContext ?? null,
     };
 
     setAiTemplateDraft(request, generatedTemplate);

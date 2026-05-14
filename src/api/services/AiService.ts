@@ -1,4 +1,5 @@
 const AI_API_BASE_URL = (process.env.NEXT_PUBLIC_AI_API_BASE_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+const SPRING_BOOT_FRAMEWORK = 'Spring Boot';
 
 async function parseAiResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get('content-type') ?? '';
@@ -34,6 +35,12 @@ export type AiFeatureTemplateGenerateRequest = {
   includeMissions?: boolean;
   includeInterview?: boolean;
   referenceContext?: Record<string, unknown> | null;
+};
+
+export type AiChatRequest = {
+  message: string;
+  context?: string | null;
+  useRag?: boolean | null;
 };
 
 export type AiFeatureTemplateSection =
@@ -164,6 +171,14 @@ export type AiFeatureTemplateRegenerateSectionResult = {
   source: 'ollama' | 'fallback';
 };
 
+export type AiChatResponse = {
+  answer: string;
+  source: 'ollama' | 'fallback';
+  ragUsed: boolean;
+  references?: unknown[];
+  agent?: unknown;
+};
+
 type AiApiResponse<T> = {
   success: boolean;
   message: string;
@@ -246,14 +261,19 @@ function getNormalizedTechStack(request: AiFeatureTemplateGenerateRequest) {
   const techStack = Array.isArray(request.techStack)
     ? request.techStack.map((item) => item.trim()).filter(Boolean)
     : [];
-  const framework = request.framework?.trim();
+  const framework = formatFeatureTemplateFramework(request.framework);
   const language = request.language.trim();
 
   return Array.from(new Set([...techStack, framework, language].filter((item): item is string => Boolean(item))));
 }
 
+export function formatFeatureTemplateFramework(framework?: string | null) {
+  if (framework?.trim()) return SPRING_BOOT_FRAMEWORK;
+  return SPRING_BOOT_FRAMEWORK;
+}
+
 function buildGeneratePayload(request: AiFeatureTemplateGenerateRequest) {
-  const framework = request.framework?.trim() ? request.framework.trim() : null;
+  const framework = formatFeatureTemplateFramework(request.framework);
   const featureName = request.featureName.trim();
   const language = request.language.trim();
   const level = request.level;
@@ -497,4 +517,21 @@ export async function fetchAiFeatureTemplateSection(
 
   const result = await parseAiResponse<AiApiResponse<unknown>>(response);
   return mapRegenerateSectionResult(result.data);
+}
+
+export async function fetchAiChat(request: AiChatRequest): Promise<AiChatResponse> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: request.message,
+      context: request.context ?? null,
+      useRag: request.useRag ?? null,
+    }),
+  });
+
+  const result = await parseAiResponse<AiApiResponse<AiChatResponse>>(response);
+  return result.data;
 }
