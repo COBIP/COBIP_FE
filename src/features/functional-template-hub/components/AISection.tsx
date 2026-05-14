@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 import { BrainCircuit, Sparkles, Zap } from 'lucide-react';
 import { RECOMMENDED_FEATURES, LOADING_STEPS } from '@/features/functional-template-hub/Constants';
 import { LoadingState } from '@/features/functional-template-hub/components/LoadingState';
-import type { AiFeatureTemplateDifficulty, AiFeatureTemplateGenerateRequest } from '@/api/services/AiService';
+import {
+  formatFeatureTemplateFramework,
+  type AiFeatureTemplateDifficulty,
+  type AiFeatureTemplateGenerateRequest,
+} from '@/api/services/AiService';
 
 interface AISectionProps {
   onGenerate: (request: AiFeatureTemplateGenerateRequest) => Promise<void>;
@@ -19,7 +23,7 @@ const difficultyOptions: Array<{ value: AiFeatureTemplateDifficulty; label: stri
 export function AISection({ onGenerate }: AISectionProps) {
   const [featureName, setFeatureName] = useState('');
   const [language, setLanguage] = useState('java');
-  const [framework, setFramework] = useState('spring-boot');
+  const [framework, setFramework] = useState('Spring Boot');
   const [techStack, setTechStack] = useState('Spring Boot, Spring Security, JWT');
   const [level, setLevel] = useState<AiFeatureTemplateDifficulty>('intermediate');
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +56,7 @@ export function AISection({ onGenerate }: AISectionProps) {
       await onGenerate({
         featureName: nextFeatureName,
         language: language.trim() || 'java',
-        framework: framework.trim() || null,
+        framework: formatFeatureTemplateFramework(framework),
         techStack: techStack
           .split(',')
           .map((item) => item.trim())
@@ -135,7 +139,7 @@ export function AISection({ onGenerate }: AISectionProps) {
               value={framework}
               onChange={(e) => setFramework(e.target.value)}
               className="rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-purple-200 focus:outline-none"
-              placeholder="spring-boot"
+              placeholder="Spring Boot"
               disabled={isLoading}
             />
 
