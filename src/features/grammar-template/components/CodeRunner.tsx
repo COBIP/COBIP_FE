@@ -305,7 +305,7 @@ export function CodeRunner({
         <div className="flex flex-1 overflow-hidden">
           {/* 왼쪽: 실행흐름 패널 (실행흐름 로드 시에만 표시) */}
           {executionSteps && (
-            <div className="shrink-0 overflow-hidden border-r border-gray-200" style={{ width: '280px' }}>
+            <div className="shrink-0 overflow-hidden border-r border-gray-200" style={{ width: '320px' }}>
               <ExecutionFlowPanel
                 steps={executionSteps}
                 currentStepIndex={currentStepIndex}

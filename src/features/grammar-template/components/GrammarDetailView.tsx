@@ -93,7 +93,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
-  const [runnerWidth, setRunnerWidth] = useState(480);
+  const [runnerWidth, setRunnerWidth] = useState(760);
   const [explorerWidth, setExplorerWidth] = useState(200);
   const [outputHeight, setOutputHeight] = useState(140);
     const [activeFilePath, setActiveFilePath] = useState('');
@@ -145,7 +145,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
-  const startWidthRef = useRef(480);
+  const startWidthRef = useRef(760);
   const startHeightRef = useRef(140);
 
   // ===== 탐색기 함수 (재귀) =====
@@ -236,7 +236,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizingRef.current) return;
       if (resizingRef.current === 'runner') {
-        setRunnerWidth(Math.min(Math.max(startWidthRef.current + (startXRef.current - e.clientX), 320), 800));
+        setRunnerWidth(Math.min(Math.max(startWidthRef.current + (startXRef.current - e.clientX), 520), 960));
       } else if (resizingRef.current === 'explorer') {
         setExplorerWidth(Math.min(Math.max(startWidthRef.current + (e.clientX - startXRef.current), 100), 300));
       } else if (resizingRef.current === 'output') {
