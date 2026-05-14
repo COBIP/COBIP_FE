@@ -275,7 +275,7 @@ function buildStepTitle(step: ExecutionFlowStep | undefined, visualState: Visual
   if (visualState.activeVariable) {
     return `${visualState.activeVariable.name} 값이 ${visualState.activeVariable.status === 'created' ? '생성됩니다' : '변경됩니다'}`;
   }
-  if (visualState.activeOutput) return `출력값 ${visualState.activeOutput.value || '확인'}을 보여줍니다`;
+  if (visualState.activeOutput) return '출력 결과를 갱신합니다';
   if (step.eventType === 'LOOP') return '반복문을 한 단계 진행합니다';
   if (step.eventType === 'CONDITION') return '조건문 분기를 확인합니다';
   return '현재 줄을 실행합니다';
@@ -286,6 +286,15 @@ function buildStepSubtitle(step: ExecutionFlowStep | undefined, visualState: Vis
   if (visualState.activeVariable) return `${visualState.activeVariable.valueSource} → ${visualState.activeVariable.value}`;
   if (visualState.activeOutput) return visualState.activeOutput.source;
   return step.sourceLine.trim() || step.description;
+}
+
+function getLatestOutput(outputs: OutputState[]) {
+  return outputs.length ? outputs[outputs.length - 1] : undefined;
+}
+
+function formatOutputSourceLabel(output?: OutputState) {
+  if (!output) return '';
+  return output.source.trim() || '줄바꿈';
 }
 
 function ScalarVariableCard({ variable, active }: { variable: VariableState; active: boolean }) {
@@ -372,6 +381,8 @@ export function ExecutionFlowPanel({ steps, currentStepIndex, onStepClick, onClo
   const stepTitle = buildStepTitle(activeStep, visualState);
   const stepSubtitle = buildStepSubtitle(activeStep, visualState);
   const isAutoPlaying = isPlaying && currentStepIndex < steps.length - 1;
+  const latestOutput = getLatestOutput(visualState.outputs);
+  const consoleOutput = visualState.activeOutput ?? latestOutput;
 
   useEffect(() => {
     if (!isAutoPlaying || steps.length === 0) return undefined;
@@ -509,35 +520,29 @@ export function ExecutionFlowPanel({ steps, currentStepIndex, onStepClick, onClo
               <Terminal className="h-4 w-4 text-emerald-600" />
               <span className="text-xs font-bold text-slate-900">출력</span>
             </div>
-            <span className="text-[10px] text-slate-400">{visualState.outputs.length}</span>
+            <span className="text-[10px] text-slate-400">{visualState.outputs.length}회</span>
           </div>
-          {visualState.outputs.length ? (
-            <div className="space-y-2">
-              {visualState.outputs.map((output) => (
-                <div
-                  key={`${output.stepOrder}-${output.lineNumber}`}
-                  className={`rounded-md border p-2 transition ${
-                    visualState.activeOutput?.stepOrder === output.stepOrder
-                      ? 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-100'
-                      : 'border-slate-200 bg-slate-950'
-                  }`}
-                >
-                  <pre
-                    className={`whitespace-pre-wrap font-mono text-xs ${
-                      visualState.activeOutput?.stepOrder === output.stepOrder ? 'text-emerald-900' : 'text-emerald-200'
-                    }`}
-                  >
-                    {output.value}
-                  </pre>
-                  <div
-                    className={`mt-1 text-[10px] ${
-                      visualState.activeOutput?.stepOrder === output.stepOrder ? 'text-emerald-700' : 'text-slate-400'
-                    }`}
-                  >
-                    {output.source}
-                  </div>
-                </div>
-              ))}
+          {consoleOutput ? (
+            <div
+              className={`rounded-md border p-3 transition ${
+                visualState.activeOutput ? 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-100' : 'border-slate-200 bg-slate-950'
+              }`}
+            >
+              <pre
+                className={`min-h-24 max-h-64 overflow-auto whitespace-pre font-mono text-sm leading-6 ${
+                  visualState.activeOutput ? 'text-emerald-900' : 'text-emerald-200'
+                }`}
+              >
+                {consoleOutput.value}
+              </pre>
+              <div
+                className={`mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] ${
+                  visualState.activeOutput ? 'text-emerald-700' : 'text-slate-400'
+                }`}
+              >
+                <span>{visualState.activeOutput ? '현재 출력문' : '마지막 출력 상태'}</span>
+                <code className="font-mono">{formatOutputSourceLabel(consoleOutput)}</code>
+              </div>
             </div>
           ) : (
             <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-xs text-slate-400">
