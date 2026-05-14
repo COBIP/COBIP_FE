@@ -1,5 +1,5 @@
 // src/features/coding-test/components/ProblemCard.tsx
-import type { CodingWorkbookSummary } from '@/types/CodingWorkbookTypes';
+import type { CodingWorkbookSummary } from '@/features/coding-test/types/CodingWorkbookTypes';
 import Link from 'next/link';
 
 interface ProblemCardProps {

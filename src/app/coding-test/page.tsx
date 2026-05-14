@@ -3,7 +3,7 @@
 
 import ProblemGrid from '@/features/coding-test/components/ProblemGrid';
 import CodingTestFilter from '@/features/coding-test/components/CodingTestFilter';
-import { useCodingWorkbooks } from '@/hooks/useCodingWorkbooks';
+import { useCodingWorkbooks } from '@/features/coding-test/hooks/useCodingWorkbooks';
 import { Header } from '@/features/main-home/components/Header';
 
 export default function CodingTestPage() {

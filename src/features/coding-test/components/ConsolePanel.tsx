@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CodingCodeRunResponse, CodingSubmissionResponse } from '@/types/CodingProblemTypes';
+import type { CodingCodeRunResponse, CodingSubmissionResponse } from '@/features/coding-test/types/CodingProblemTypes';
 
 interface ConsolePanelProps {
     isExecuting: boolean;
