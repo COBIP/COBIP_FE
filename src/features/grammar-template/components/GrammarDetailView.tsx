@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
+import { AiChatPanel } from '@/components/ai/AiChatPanel';
 import type { GrammarTemplateDetail, GrammarTemplatePracticeFile } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
 import { TiptapRenderer } from './TiptapRenderer';
@@ -93,11 +94,16 @@ function buildPracticeWorkspace(practiceFiles: GrammarTemplatePracticeFile[], la
   return { tree, contents, firstFilePath };
 }
 
+function formatTextPreview(value: string, maxLength = 3000) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}\n...` : value;
+}
+
 export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps) {
     const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [runnerWidth, setRunnerWidth] = useState(760);
   const [explorerWidth, setExplorerWidth] = useState(200);
   const [outputHeight, setOutputHeight] = useState(140);
@@ -105,7 +111,22 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
   const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
-  const currentChapterId = template?.chapters?.[currentChapterIndex]?.id ?? null;
+  const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
+  const currentChapterId = currentChapter?.id ?? null;
+  const aiChatContext = useMemo(() => {
+    const activeCode = fileContents[activeFilePath] ?? '';
+    const parts = [
+      '화면: 문법 템플릿 학습',
+      template?.title ? `템플릿: ${template.title}` : '',
+      template?.category ? `카테고리: ${template.category}` : '',
+      template?.difficulty ? `난이도: ${template.difficulty}` : '',
+      currentChapter ? `현재 챕터: ${currentChapter.title}` : '',
+      activeFilePath ? `현재 파일: ${activeFilePath}` : '',
+      activeCode ? `현재 코드:\n${formatTextPreview(activeCode)}` : '',
+    ];
+
+    return parts.filter(Boolean).join('\n\n');
+  }, [activeFilePath, currentChapter, fileContents, template?.category, template?.difficulty, template?.title]);
   const studyHeartbeatPendingSecondsRef = useRef(0);
   const studyHeartbeatLastTickRef = useRef<number | null>(null);
 
@@ -376,7 +397,13 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           <button className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative">
             <Bookmark className="w-4 h-4 text-gray-500 group-hover:text-purple-600" />
           </button>
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative">
+          <button
+            type="button"
+            onClick={() => setIsAiChatOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative"
+            title="AI 채팅"
+            aria-label="AI 채팅"
+          >
             <Bot className="w-4 h-4 text-gray-500 group-hover:text-purple-600" />
           </button>
           <button className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative">
@@ -515,6 +542,12 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           )}
         </div>
       </footer>
+      <AiChatPanel
+        isOpen={isAiChatOpen}
+        title="문법 템플릿 AI 채팅"
+        context={aiChatContext}
+        onClose={() => setIsAiChatOpen(false)}
+      />
     </div>
   );
 }

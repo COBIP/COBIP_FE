@@ -1,11 +1,12 @@
 'use client';
 
-import { Bookmark, Settings, SquarePen } from 'lucide-react';
+import { Bookmark, Bot, Settings, SquarePen } from 'lucide-react';
 
 const TEXT = {
   bookmarkAdd: '\uBD81\uB9C8\uD06C \uCD94\uAC00',
   bookmarkRemove: '\uBD81\uB9C8\uD06C \uD574\uC81C',
   memo: '\uBA54\uBAA8',
+  aiChat: 'AI \uCC44\uD305',
   settings: '\uC124\uC815',
   profile: '\uB9C8\uC774\uD398\uC774\uC9C0\uB85C \uC774\uB3D9',
 };
@@ -18,6 +19,7 @@ interface HeaderProps {
   nickname?: string | null;
   onFavoriteToggle: () => void;
   onProfileClick: () => void;
+  onAiChatOpen?: () => void;
   onSettingsClick: () => void;
   onMemoToggle: () => void;
   isMemoOpen: boolean;
@@ -32,6 +34,7 @@ export function Header({
   nickname,
   onFavoriteToggle,
   onProfileClick,
+  onAiChatOpen,
   onSettingsClick,
   onMemoToggle,
   isMemoOpen,
@@ -82,6 +85,21 @@ export function Header({
         >
           <SquarePen className="h-5 w-5" />
         </button>
+
+        {onAiChatOpen && (
+          <button
+            type="button"
+            onClick={onAiChatOpen}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-300 ${
+              isDarkMode ? 'bg-[#2D1B69] text-[#C4B5FD] hover:bg-[#3B2478]' : 'bg-purple-50 text-[#7C3AED] hover:bg-purple-100'
+            }`}
+            title={TEXT.aiChat}
+            aria-label={TEXT.aiChat}
+          >
+            <Bot className="h-4 w-4" />
+            <span>{TEXT.aiChat}</span>
+          </button>
+        )}
 
         <button
           type="button"
