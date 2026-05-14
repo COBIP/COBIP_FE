@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
 import { Bot, Loader2, Send, X } from 'lucide-react';
 import { fetchAiChat } from '@/api/services/AiService';
 
@@ -74,6 +74,13 @@ export function AiChatPanel({
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
   };
 
   if (!isOpen) return null;
@@ -160,6 +167,7 @@ export function AiChatPanel({
             <textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
+              onKeyDown={handleInputKeyDown}
               className={`max-h-32 min-h-10 flex-1 resize-none bg-transparent text-sm outline-none ${
                 isDarkMode ? 'text-white placeholder:text-[#64748B]' : 'text-slate-900 placeholder:text-slate-400'
               }`}
