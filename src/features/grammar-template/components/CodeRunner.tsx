@@ -285,6 +285,73 @@ export function CodeRunner({
     setRootInputValue('');
   }, [rootInputValue, onAddRootFolder]);
 
+  if (executionSteps) {
+    return (
+      <aside className="absolute inset-0 z-40 overflow-hidden border-l border-gray-200 bg-white">
+        <div className="flex h-full min-w-0">
+          <section className="min-w-0 flex-[1.45] overflow-hidden border-r border-gray-200 bg-slate-50">
+            <ExecutionFlowPanel
+              steps={executionSteps}
+              currentStepIndex={currentStepIndex}
+              onStepClick={setCurrentStepIndex}
+              onClose={() => {
+                setExecutionSteps(null);
+                setCurrentStepIndex(0);
+              }}
+            />
+          </section>
+
+          <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-gray-50">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900">코드 하이라이트</p>
+                <p className="truncate text-[11px] text-gray-500">{activeFilePath}</p>
+              </div>
+              <span className="rounded-md bg-purple-50 px-2 py-1 text-[11px] font-semibold text-purple-700">
+                line {activeExecutionLine}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 rounded-t border border-b-0 border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-700">
+                <span className="text-[10px]">📄</span>
+                {activeFilePath.split('/').pop()}
+              </div>
+            </div>
+
+            <div className="relative flex-1 overflow-hidden bg-gray-50">
+              {activeExecutionLine && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 overflow-hidden px-4 py-4 font-mono text-sm"
+                  style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
+                >
+                  <div style={{ transform: `translateY(-${editorScrollTop}px)` }}>
+                    {codeLines.map((_, index) => (
+                      <div
+                        key={index}
+                        className={index + 1 === activeExecutionLine ? 'rounded bg-purple-100/80 ring-1 ring-purple-200' : ''}
+                        style={{ height: `${CODE_EDITOR_LINE_HEIGHT}px` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <textarea
+                className="relative z-10 h-full w-full resize-none bg-transparent p-4 font-mono text-sm text-gray-800 outline-none"
+                style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
+                value={activeCode}
+                onChange={(e) => setFileContents((prev) => ({ ...prev, [activeFilePath]: e.target.value }))}
+                onScroll={(e) => setEditorScrollTop(e.currentTarget.scrollTop)}
+                placeholder="# 여기에 코드를 입력하세요"
+              />
+            </div>
+          </section>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="border-l border-gray-200 bg-gray-50 overflow-hidden shrink-0 relative" style={{ width: `${runnerWidth}px` }}>
       {/* 리사이즈 핸들 */}
@@ -303,17 +370,6 @@ export function CodeRunner({
 
                 {/* 본문: 실행흐름 패널 + 파일트리 + 코드 영역 */}
         <div className="flex flex-1 overflow-hidden">
-          {/* 왼쪽: 실행흐름 패널 (실행흐름 로드 시에만 표시) */}
-          {executionSteps && (
-            <div className="shrink-0 overflow-hidden border-r border-gray-200" style={{ width: '320px' }}>
-              <ExecutionFlowPanel
-                steps={executionSteps}
-                currentStepIndex={currentStepIndex}
-                onStepClick={setCurrentStepIndex}
-              />
-            </div>
-          )}
-
           {/* 왼쪽: 파일 탐색기 */}
           <div className="flex flex-col shrink-0 overflow-hidden" style={{ width: `${explorerWidth}px` }}>
             <div className="px-3 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-100/50 shrink-0">탐색기</div>
@@ -429,11 +485,6 @@ export function CodeRunner({
                             실행흐름
                           </button>
                           <div className="flex-1" />
-                          {executionSteps && (
-                            <span className="text-[10px] text-purple-600 font-medium">
-                              {currentStepIndex + 1}/{executionSteps.length} 단계
-                            </span>
-                          )}
                           <span className="text-[10px] text-gray-400">{'// 실행 결과'}</span>
                         </div>
 
@@ -441,26 +492,12 @@ export function CodeRunner({
                         <div className="border-t border-gray-200 bg-gray-50 overflow-y-auto shrink-0" style={{ height: `${outputHeight}px` }}>
                           <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 sticky top-0">
                             <span className="text-[10px] text-gray-500 font-medium">출력</span>
-                            {executionSteps && (
-                              <span className="text-[10px] text-purple-600 font-medium">| 실행흐름 모드</span>
-                            )}
                           </div>
                                                     <div className="p-3">
                             {errorMessage ? (
                               <pre className="text-xs text-red-500 font-mono whitespace-pre-wrap">{errorMessage}</pre>
                             ) : outputText ? (
                               <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{outputText}</pre>
-                            ) : executionSteps && currentStepIndex < executionSteps.length ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-xs text-purple-700 font-medium">
-                                  <span>🔍 {executionSteps[currentStepIndex].eventType}</span>
-                                  <span className="text-gray-400">라인 {executionSteps[currentStepIndex].lineNumber}</span>
-                                </div>
-                                <pre className="text-xs text-gray-800 font-mono bg-gray-100 rounded p-2">
-                                  {executionSteps[currentStepIndex].sourceLine}
-                                </pre>
-                                <p className="text-xs text-gray-500">{executionSteps[currentStepIndex].description}</p>
-                              </div>
                             ) : (
                               <p className="text-xs text-gray-400 font-mono">{'// 실행 결과가 여기에 표시됩니다'}</p>
                             )}
