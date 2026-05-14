@@ -59,8 +59,8 @@ export const grammarTemplateService = {
     request: CodeRunRequest
   ): Promise<CodeRunResponse> => {
     const response = await axiosInstance.post<ApiResponse<CodeRunResponse>>(
-      `/api/run`,
-      { language: request.language, sourceCode: request.sourceCode }
+      `/api/v1/grammar-templates/${templateId}/chapters/${chapterId}/run`,
+      { language: request.language, sourceCode: request.sourceCode, input: request.input }
     );
     return response.data.data;
   },

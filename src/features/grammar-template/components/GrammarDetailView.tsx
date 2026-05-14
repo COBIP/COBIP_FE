@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
-import type { GrammarTemplateDetail } from '@/features/grammar-template/Constants';
+import type { GrammarTemplateDetail, GrammarTemplatePracticeFile } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
 import { TiptapRenderer } from './TiptapRenderer';
 
@@ -14,6 +14,79 @@ interface GrammarDetailViewProps {
 export interface ExplorerFile { name: string; type: 'file'; }
 export interface ExplorerFolder { name: string; type: 'folder'; isOpen: boolean; children: ExplorerNode[]; }
 export type ExplorerNode = ExplorerFile | ExplorerFolder;
+
+function buildDefaultPracticeFile(language?: string) {
+  if (language === 'JAVA') {
+    return {
+      filePath: 'src/Main.java',
+      content: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, COBIP");\n    }\n}',
+    };
+  }
+  if (language === 'JAVASCRIPT') {
+    return {
+      filePath: 'src/main.js',
+      content: 'console.log("Hello, COBIP");',
+    };
+  }
+  return {
+    filePath: 'src/main.py',
+    content: 'print("Hello, COBIP")',
+  };
+}
+
+function findOrCreateFolder(nodes: ExplorerNode[], name: string): ExplorerFolder {
+  const existing = nodes.find((node): node is ExplorerFolder => node.type === 'folder' && node.name === name);
+  if (existing) {
+    existing.isOpen = true;
+    return existing;
+  }
+  const folder: ExplorerFolder = { name, type: 'folder', isOpen: true, children: [] };
+  nodes.push(folder);
+  return folder;
+}
+
+function applyFileToTree(nodes: ExplorerNode[], filePath: string) {
+  const parts = filePath.split('/').filter(Boolean);
+  if (!parts.length) return;
+
+  let children = nodes;
+  for (const folderName of parts.slice(0, -1)) {
+    children = findOrCreateFolder(children, folderName).children;
+  }
+
+  const fileName = parts[parts.length - 1];
+  if (!children.some((node) => node.type === 'file' && node.name === fileName)) {
+    children.push({ name: fileName, type: 'file' });
+  }
+}
+
+function applyFolderToTree(nodes: ExplorerNode[], folderPath: string) {
+  const parts = folderPath.split('/').filter(Boolean);
+  let children = nodes;
+  for (const folderName of parts) {
+    children = findOrCreateFolder(children, folderName).children;
+  }
+}
+
+function buildPracticeWorkspace(practiceFiles: GrammarTemplatePracticeFile[], language?: string) {
+  const files = practiceFiles.length
+    ? [...practiceFiles].sort((a, b) => a.orderIndex - b.orderIndex || a.filePath.localeCompare(b.filePath))
+    : [{ ...buildDefaultPracticeFile(language), nodeType: 'FILE' as const, orderIndex: 0 }];
+  const tree: ExplorerNode[] = [];
+  const contents: Record<string, string> = {};
+
+  for (const file of files) {
+    if (file.nodeType === 'FOLDER') {
+      applyFolderToTree(tree, file.filePath);
+      continue;
+    }
+    applyFileToTree(tree, file.filePath);
+    contents[file.filePath] = file.content ?? '';
+  }
+
+  const firstFilePath = files.find((file) => file.nodeType === 'FILE')?.filePath ?? '';
+  return { tree, contents, firstFilePath };
+}
 
 export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps) {
     const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
@@ -52,6 +125,22 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
       isCancelled = true;
     };
   }, [templateId]);
+
+  useEffect(() => {
+    const chapter = template?.chapters?.[currentChapterIndex];
+    if (!chapter) {
+      const fallback = buildPracticeWorkspace([], template?.language);
+      setExplorerTree(fallback.tree);
+      setFileContents(fallback.contents);
+      setActiveFilePath(fallback.firstFilePath);
+      return;
+    }
+
+    const workspace = buildPracticeWorkspace(chapter.practiceFiles ?? [], template?.language);
+    setExplorerTree(workspace.tree);
+    setFileContents(workspace.contents);
+    setActiveFilePath(workspace.firstFilePath);
+  }, [template, currentChapterIndex]);
 
   const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
   const startXRef = useRef(0);
