@@ -15,6 +15,7 @@ interface GrammarDetailViewProps {
 const STUDY_HEARTBEAT_INTERVAL_MS = 15000;
 const STUDY_HEARTBEAT_MAX_SECONDS = 60;
 const STUDY_HEARTBEAT_MIN_SECONDS = 1;
+const AI_CHAT_PANEL_WIDTH = 416;
 
 // ===== 탐색기 트리 타입 (CodeRunner와 공유) =====
 export interface ExplorerFile { name: string; type: 'file'; }
@@ -113,6 +114,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
+  const sidePanelWidth = runnerWidth + (isAiChatOpen ? AI_CHAT_PANEL_WIDTH : 0);
   const aiChatContext = useMemo(() => {
     const activeCode = fileContents[activeFilePath] ?? '';
     const parts = [
@@ -320,6 +322,11 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setActiveFilePath(filePath);
   }, []);
 
+  const handleOpenAiChat = useCallback(() => {
+    setIsRunnerOpen(true);
+    setIsAiChatOpen(true);
+  }, []);
+
   // ===== Resize 핸들러 =====
   const handleRunnerResizeStart = useCallback((e: React.MouseEvent) => {
     resizingRef.current = 'runner'; startXRef.current = e.clientX; startWidthRef.current = runnerWidth;
@@ -399,7 +406,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           </button>
           <button
             type="button"
-            onClick={() => setIsAiChatOpen(true)}
+            onClick={handleOpenAiChat}
             className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative"
             title="AI 채팅"
             aria-label="AI 채팅"
@@ -452,9 +459,15 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         <div className="flex flex-1 overflow-hidden relative">
             {/* 실행기 토글 버튼 */}
             <button
-              onClick={() => setIsRunnerOpen(!isRunnerOpen)}
+              onClick={() => {
+                const isNextRunnerOpen = !isRunnerOpen;
+                setIsRunnerOpen(isNextRunnerOpen);
+                if (!isNextRunnerOpen) {
+                  setIsAiChatOpen(false);
+                }
+              }}
               className={`absolute top-14 z-20 flex items-center justify-center bg-purple-50 px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 shadow-sm cursor-pointer group ${isRunnerOpen ? 'border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' : 'right-0 border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg'}`}
-              style={isRunnerOpen ? { right: `${runnerWidth}px` } : undefined}
+              style={isRunnerOpen ? { right: `${sidePanelWidth}px` } : undefined}
             >
               <ChevronLeft className={`w-5 h-5 transition-transform duration-200 ${isRunnerOpen ? 'rotate-180' : ''}`} />
               <span className={`absolute whitespace-nowrap text-[11px] font-medium text-purple-600 bg-white px-2 py-1 rounded-md border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm ${isRunnerOpen ? 'right-full mr-2 top-1/2 -translate-y-1/2' : 'right-full mr-1.5 top-1/2 -translate-y-1/2'}`}>
@@ -479,27 +492,37 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           </main>
                                         {/* 실행 환경 패널 */}
                     {isRunnerOpen && (
-                      <CodeRunner
-                        templateId={templateId}
-                        chapterId={template?.chapters?.[currentChapterIndex]?.id}
-                        language={template?.language}
-                        runnerWidth={runnerWidth}
-              explorerWidth={explorerWidth}
-              outputHeight={outputHeight}
-              explorerTree={explorerTree}
-              activeFilePath={activeFilePath}
-              fileContents={fileContents}
-              onRunnerResizeStart={handleRunnerResizeStart}
-              onExplorerResizeStart={handleExplorerResizeStart}
-              onOutputResizeStart={handleOutputResizeStart}
-              onToggleFolder={toggleFolder}
-              onAddFile={handleAddFile}
-              onAddSubFolder={handleAddSubFolder}
-              onAddRootFolder={handleAddRootFolder}
-              onOpenFile={openFile}
-              setFileContents={setFileContents}
-            />
-          )}
+                      <div className="flex shrink-0 overflow-hidden">
+                        <CodeRunner
+                          templateId={templateId}
+                          chapterId={template?.chapters?.[currentChapterIndex]?.id}
+                          language={template?.language}
+                          runnerWidth={runnerWidth}
+                          explorerWidth={explorerWidth}
+                          outputHeight={outputHeight}
+                          explorerTree={explorerTree}
+                          activeFilePath={activeFilePath}
+                          fileContents={fileContents}
+                          onRunnerResizeStart={handleRunnerResizeStart}
+                          onExplorerResizeStart={handleExplorerResizeStart}
+                          onOutputResizeStart={handleOutputResizeStart}
+                          onToggleFolder={toggleFolder}
+                          onAddFile={handleAddFile}
+                          onAddSubFolder={handleAddSubFolder}
+                          onAddRootFolder={handleAddRootFolder}
+                          onOpenFile={openFile}
+                          setFileContents={setFileContents}
+                        />
+                        <AiChatPanel
+                          isOpen={isAiChatOpen}
+                          title="GURU"
+                          context={aiChatContext}
+                          variant="sidecar"
+                          className="w-[26rem] shrink-0"
+                          onClose={() => setIsAiChatOpen(false)}
+                        />
+                      </div>
+                    )}
         </div>
       </div>
 
@@ -542,12 +565,6 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           )}
         </div>
       </footer>
-      <AiChatPanel
-        isOpen={isAiChatOpen}
-        title="문법 템플릿 AI 채팅"
-        context={aiChatContext}
-        onClose={() => setIsAiChatOpen(false)}
-      />
     </div>
   );
 }

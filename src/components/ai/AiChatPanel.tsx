@@ -15,6 +15,8 @@ interface AiChatPanelProps {
   title: string;
   context?: string;
   isDarkMode?: boolean;
+  variant?: 'overlay' | 'sidecar';
+  className?: string;
   onClose: () => void;
 }
 
@@ -29,7 +31,15 @@ function formatChatContext(context: string | undefined, messages: ChatMessage[])
     .join('\n\n');
 }
 
-export function AiChatPanel({ isOpen, title, context, isDarkMode = false, onClose }: AiChatPanelProps) {
+export function AiChatPanel({
+  isOpen,
+  title,
+  context,
+  isDarkMode = false,
+  variant = 'overlay',
+  className = '',
+  onClose,
+}: AiChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -68,13 +78,12 @@ export function AiChatPanel({ isOpen, title, context, isDarkMode = false, onClos
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
-      <aside
-        className={`flex h-full w-full max-w-md flex-col border-l shadow-2xl ${
-          isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-slate-200 bg-white'
-        }`}
-      >
+  const panel = (
+    <aside
+      className={`flex h-full w-full flex-col border-l ${
+        variant === 'overlay' ? 'max-w-md shadow-2xl' : 'shadow-none'
+      } ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-slate-200 bg-white'} ${className}`}
+    >
         <header
           className={`flex items-center justify-between border-b px-4 py-3 ${
             isDarkMode ? 'border-[#334155] bg-[#1E293B]' : 'border-slate-200 bg-white'
@@ -168,7 +177,16 @@ export function AiChatPanel({ isOpen, title, context, isDarkMode = false, onClos
             </button>
           </div>
         </form>
-      </aside>
+    </aside>
+  );
+
+  if (variant === 'sidecar') {
+    return panel;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
+      {panel}
     </div>
   );
 }
