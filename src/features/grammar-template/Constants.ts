@@ -69,6 +69,25 @@ export interface ExecutionFlowRequest {
   language: string;
 }
 
+export interface ExecutionFlowVariableSnapshot {
+  name: string;
+  value: string;
+  expression: string;
+  dataType?: string | null;
+  changeType: 'CREATED' | 'UPDATED' | string;
+  lineNumber: number;
+  stepOrder: number;
+  elements?: string[];
+  activeIndex?: number | null;
+}
+
+export interface ExecutionFlowOutputSnapshot {
+  value: string;
+  expression: string;
+  lineNumber: number;
+  stepOrder: number;
+}
+
 /** 실행흐름 스텝 */
 export interface ExecutionFlowStep {
   stepOrder: number;
@@ -76,6 +95,10 @@ export interface ExecutionFlowStep {
   sourceLine: string;
   eventType: 'OUTPUT' | 'CONDITION' | 'LOOP' | 'FUNCTION' | 'ASSIGNMENT' | 'LINE';
   description: string;
+  activeVariable?: ExecutionFlowVariableSnapshot | null;
+  activeOutput?: ExecutionFlowOutputSnapshot | null;
+  variables?: ExecutionFlowVariableSnapshot[];
+  outputs?: ExecutionFlowOutputSnapshot[];
 }
 
 /** 실행흐름 응답 */
