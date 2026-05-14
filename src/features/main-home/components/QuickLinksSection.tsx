@@ -17,7 +17,7 @@ export function QuickLinksSection() {
             <ArrowRight className="w-5 h-5" />
           </Link>
           <Link
-            href="/functional-template"
+            href="/functional-template-hub"
             className="inline-flex items-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-indigo-700 transition cursor-pointer"
           >
             <Layers className="w-5 h-5" />
