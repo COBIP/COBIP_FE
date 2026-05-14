@@ -20,6 +20,7 @@ interface CodeEditorProps {
   hasContent?: boolean;
   onRun?: () => void;
   onSubmit?: () => void;
+  onAiChatOpen?: () => void;
   isRunning?: boolean;
   isSubmitting?: boolean;
   runOutput?: string;
@@ -38,6 +39,7 @@ export function CodeEditor({
   hasContent = true,
   onRun,
   onSubmit,
+  onAiChatOpen,
   isRunning = false,
   isSubmitting = false,
   runOutput,
@@ -147,15 +149,18 @@ export function CodeEditor({
                   {isSubmitting ? '제출 중' : '제출'}
                 </button>
               )}
-              <button
-                type="button"
-                className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium ${
-                  isDarkMode ? 'border-[#A78BFA] text-[#A78BFA] hover:bg-[#2D1B69]' : 'border-[#A855F7] text-[#7C3AED] hover:bg-purple-50'
-                }`}
-              >
-                <MessageCircle className="h-4 w-4" />
-                AI 코드리뷰
-              </button>
+              {onAiChatOpen && (
+                <button
+                  type="button"
+                  onClick={onAiChatOpen}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium ${
+                    isDarkMode ? 'border-[#A78BFA] text-[#A78BFA] hover:bg-[#2D1B69]' : 'border-[#A855F7] text-[#7C3AED] hover:bg-purple-50'
+                  }`}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  AI 채팅
+                </button>
+              )}
               <button type="button" className={`rounded-lg p-2 ${isDarkMode ? 'text-[#94A3B8] hover:bg-[#334155]' : 'text-[#64748B] hover:bg-[#F8FAFC]'}`}>
                 <Save className="h-4 w-4" />
               </button>

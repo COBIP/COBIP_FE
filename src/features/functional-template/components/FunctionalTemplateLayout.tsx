@@ -33,6 +33,7 @@ import {
   type TemplatePracticeSubmissionResponse,
 } from '@/api/services/FunctionalTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
+import { AiChatPanel } from '@/components/ai/AiChatPanel';
 
 const TEXT = {
   headerTitle: '기능 템플릿 학습',
@@ -280,6 +281,10 @@ function setJsonToStorage(key: string | null, value: unknown) {
   window.localStorage.setItem(key, JSON.stringify(value));
 }
 
+function formatTextPreview(value: string, maxLength = 3000) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}\n...` : value;
+}
+
 function getPracticeFileContent(
   file: TemplatePracticeFileApiResponse,
   storedCode: Record<string, string>,
@@ -326,6 +331,7 @@ export function FunctionalTemplateLayout({
   const [activeTab, setActiveTab] = useState('design-intent');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isMemoOpen, setIsMemoOpen] = useState(false);
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [isShowSettings, setIsShowSettings] = useState(false);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [isAiGuruHintMode, setIsAiGuruHintMode] = useState(true);
@@ -410,6 +416,20 @@ export function FunctionalTemplateLayout({
   const hasStalePracticeProgress = checkStalePracticeProgress(practiceProgress, practiceMissions.length);
   const isCompleted = !hasStalePracticeProgress && practiceProgress?.status === 'COMPLETED' && progressPercent >= 100;
   const visibleTags = (template?.tags && template.tags.length > 0 ? template.tags : template?.techStacks ?? []).slice(0, 3);
+  const aiChatContext = useMemo(() => {
+    const parts = [
+      `화면: 기능 템플릿 학습`,
+      `템플릿: ${templateTitle}`,
+      template?.category ? `카테고리: ${template.category}` : '',
+      template?.difficulty ? `난이도: ${template.difficulty}` : '',
+      activeMission ? `현재 미션: ${activeMission.title}\n${activeMission.description}` : '',
+      resolvedActiveFile ? `현재 파일: ${resolvedActiveFile}` : '',
+      editorCode ? `현재 코드:\n${formatTextPreview(editorCode)}` : '',
+      runOutput ? `최근 실행 결과:\n${formatTextPreview(runOutput, 1200)}` : '',
+    ];
+
+    return parts.filter(Boolean).join('\n\n');
+  }, [activeMission, editorCode, resolvedActiveFile, runOutput, template?.category, template?.difficulty, templateTitle]);
 
   const learningPoint = useMemo(() => {
     return template?.summary || template?.description || TEXT.defaultLearningPoint;
@@ -836,6 +856,7 @@ export function FunctionalTemplateLayout({
         nickname={nickname}
         onFavoriteToggle={() => void handleFavoriteToggle()}
         onProfileClick={() => router.push('/my-page/profile')}
+        onAiChatOpen={() => setIsAiChatOpen(true)}
         onSettingsClick={() => setIsShowSettings(true)}
         onMemoToggle={() => setIsMemoOpen(!isMemoOpen)}
         isMemoOpen={isMemoOpen}
@@ -976,6 +997,7 @@ export function FunctionalTemplateLayout({
                     hasContent={hasPracticeFiles}
                     onRun={() => void handleRunProject()}
                     onSubmit={() => void handleSubmitProject()}
+                    onAiChatOpen={() => setIsAiChatOpen(true)}
                     isRunning={isRunning}
                     isSubmitting={isSubmitting}
                     runOutput={runOutput}
@@ -1033,6 +1055,13 @@ export function FunctionalTemplateLayout({
           onClose={() => setIsShowSettings(false)}
         />
       )}
+      <AiChatPanel
+        isOpen={isAiChatOpen}
+        title="기능 템플릿 AI 채팅"
+        context={aiChatContext}
+        isDarkMode={isDarkMode}
+        onClose={() => setIsAiChatOpen(false)}
+      />
     </div>
   );
 }
