@@ -177,11 +177,12 @@ export function AiChatPanel({
             <button
               type="submit"
               disabled={!input.trim() || isSending}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED] text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#7C3AED] px-3 text-sm font-semibold text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="AI 채팅 전송"
               title="전송"
             >
               {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <span>전송</span>
             </button>
           </div>
         </form>
