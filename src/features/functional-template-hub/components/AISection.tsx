@@ -20,6 +20,7 @@ export function AISection({ onGenerate }: AISectionProps) {
   const [featureName, setFeatureName] = useState('');
   const [language, setLanguage] = useState('java');
   const [framework, setFramework] = useState('spring-boot');
+  const [techStack, setTechStack] = useState('Spring Boot, Spring Security, JWT');
   const [level, setLevel] = useState<AiFeatureTemplateDifficulty>('intermediate');
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingStep, setCurrentLoadingStep] = useState(0);
@@ -52,7 +53,12 @@ export function AISection({ onGenerate }: AISectionProps) {
         featureName: nextFeatureName,
         language: language.trim() || 'java',
         framework: framework.trim() || null,
+        techStack: techStack
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
         level,
+        difficulty: level,
         includeCode: true,
         includeMissions: true,
         includeInterview: true,
@@ -99,7 +105,7 @@ export function AISection({ onGenerate }: AISectionProps) {
         </div>
 
         <div className="space-y-3">
-          <div className="grid gap-3 lg:grid-cols-[1fr_9rem_11rem_8rem_auto]">
+          <div className="grid gap-3 lg:grid-cols-[1fr_9rem_11rem_14rem_8rem_auto]">
             <div className="relative">
               <Sparkles size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-500" />
               <input
@@ -130,6 +136,15 @@ export function AISection({ onGenerate }: AISectionProps) {
               onChange={(e) => setFramework(e.target.value)}
               className="rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-purple-200 focus:outline-none"
               placeholder="spring-boot"
+              disabled={isLoading}
+            />
+
+            <input
+              type="text"
+              value={techStack}
+              onChange={(e) => setTechStack(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-purple-200 focus:outline-none"
+              placeholder="Spring Boot, JWT"
               disabled={isLoading}
             />
 
