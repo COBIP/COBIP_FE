@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
-import { getProblemDetail, runCode, submitCode } from '@/api/services/CodingProblemService';
+// 1. 서비스 파일명 소문자로 수정
+import { getProblemDetail, runCode, submitCode } from '@/api/services/CodingTestService'; 
+// 2. 타입 파일명과 타입 이름 수정 (CodingProblemDetailResponse -> CodingProblemDetail)
 import type { 
-    CodingProblemDetailResponse, CodingLanguage, CodingCodeRunResponse, 
+    CodingProblemDetail, 
+    CodingLanguage, 
+    CodingCodeRunResponse, 
     CodingSubmissionResponse 
-} from '@/types/CodingProblemTypes';
+} from '../types/CodingProblemTypes';
 
 export const useCodingSolving = (problemId: number) => {
-    const [problem, setProblem] = useState<CodingProblemDetailResponse | null>(null);
+    // 3. 타입 변경 적용
+    const [problem, setProblem] = useState<CodingProblemDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedLanguage, setSelectedLanguage] = useState<CodingLanguage>('JAVA');
     const [sourceCode, setSourceCode] = useState('');
@@ -30,7 +35,8 @@ export const useCodingSolving = (problemId: number) => {
             }
         };
         fetchProblem();
-    }, [problemId , selectedLanguage]);
+    // 4. 버그 수정: selectedLanguage 제거! (언어 바꿀 때마다 새로고침 되는 현상 방지)
+    }, [problemId]); 
 
     const changeLanguage = (lang: CodingLanguage) => {
         setSelectedLanguage(lang);
