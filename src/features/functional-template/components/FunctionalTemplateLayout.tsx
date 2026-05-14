@@ -843,7 +843,7 @@ export function FunctionalTemplateLayout({
       />
 
       <div className={`border-b px-6 py-3 transition-colors duration-300 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'}`}>
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-6">
+        <div className="flex w-full items-center justify-between gap-6">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-3">
               <h2 className={`min-w-0 truncate text-lg font-bold ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
@@ -872,7 +872,7 @@ export function FunctionalTemplateLayout({
             </div>
           </div>
 
-          <div className="flex w-[30rem] shrink-0 items-center gap-3">
+          <div className="ml-auto flex w-[30rem] max-w-[42vw] shrink-0 items-center gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center justify-between text-[11px]">
                 <span className={isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'}>{TEXT.progress}</span>
@@ -900,7 +900,7 @@ export function FunctionalTemplateLayout({
           </div>
         </div>
         {favoriteError && (
-          <p className="mx-auto mt-2 max-w-[1440px] text-xs text-rose-500">
+          <p className="mt-2 w-full text-xs text-rose-500">
             {favoriteError}
           </p>
         )}
