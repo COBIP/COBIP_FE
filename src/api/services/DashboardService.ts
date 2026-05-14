@@ -17,6 +17,7 @@ export interface PageResponse<TItem> {
 }
 
 type PracticeProgressStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+type LearningContentType = 'TEMPLATE' | 'GRAMMAR_TEMPLATE';
 
 interface TemplatePracticeProgress {
     status: PracticeProgressStatus;
@@ -72,18 +73,24 @@ function mapPracticeToLearningProgress(practice: TemplatePracticeDetail): Learni
         studySeconds: 0,
         lastAccessedAt: practice.progress.lastAccessedAt ?? practice.progress.completedAt ?? new Date().toISOString(),
         completed: !hasStaleProgress && practice.progress.status === 'COMPLETED' && progressPercent >= 100,
+        contentType: 'TEMPLATE',
     };
+}
+
+function getLearningKey(item: LearningProgress) {
+    return `${item.contentType ?? 'TEMPLATE'}:${item.templateId}`;
 }
 
 function buildMergedLearningList(
     dashboardLearning: LearningProgress[],
     practiceLearning: LearningProgress[],
 ) {
-    const learningMap = new Map<number, LearningProgress>();
+    const learningMap = new Map<string, LearningProgress>();
 
     [...practiceLearning, ...dashboardLearning].forEach((item) => {
-        learningMap.set(item.templateId, {
-            ...learningMap.get(item.templateId),
+        const key = getLearningKey(item);
+        learningMap.set(key, {
+            ...learningMap.get(key),
             ...item,
         });
     });
@@ -138,10 +145,14 @@ async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDash
 export async function syncLearningActivityHeartbeat(
     templateId: number,
     activeSeconds: number,
+    contentType: LearningContentType = 'TEMPLATE',
+    chapterId?: number | null,
 ): Promise<LearningActivityHeartbeatResponse> {
     const safeActiveSeconds = Math.min(60, Math.max(1, Math.floor(activeSeconds)));
     const response = await axiosInstance.post('/api/v1/users/me/learning-activities/heartbeat', {
         templateId,
+        contentType,
+        chapterId,
         activeSeconds: safeActiveSeconds,
     });
 

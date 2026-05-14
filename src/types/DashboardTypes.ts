@@ -9,8 +9,10 @@ export interface ActivityHistory {
 
 export interface LearningProgress {
     templateId: number;
+    contentType?: 'TEMPLATE' | 'GRAMMAR_TEMPLATE';
     templateTitle: string;
     thumbnailUrl: string | null;
+    currentChapterId?: number | null;
     progressPercent: number;
     lastStep: string | null;
     solvedCount: number;

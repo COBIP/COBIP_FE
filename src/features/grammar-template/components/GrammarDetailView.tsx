@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
+import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
 import type { GrammarTemplateDetail, GrammarTemplatePracticeFile } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
 import { TiptapRenderer } from './TiptapRenderer';
@@ -9,6 +10,10 @@ interface GrammarDetailViewProps {
   templateId: number;
   onBack: () => void;
 }
+
+const STUDY_HEARTBEAT_INTERVAL_MS = 15000;
+const STUDY_HEARTBEAT_MAX_SECONDS = 60;
+const STUDY_HEARTBEAT_MIN_SECONDS = 1;
 
 // ===== 탐색기 트리 타입 (CodeRunner와 공유) =====
 export interface ExplorerFile { name: string; type: 'file'; }
@@ -100,6 +105,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
   const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+  const currentChapterId = template?.chapters?.[currentChapterIndex]?.id ?? null;
+  const studyHeartbeatPendingSecondsRef = useRef(0);
+  const studyHeartbeatLastTickRef = useRef<number | null>(null);
 
   /** API에서 템플릿 상세 정보 불러오기 */
   useEffect(() => {
@@ -141,6 +149,81 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setFileContents(workspace.contents);
     setActiveFilePath(workspace.firstFilePath);
   }, [template, currentChapterIndex]);
+
+  useEffect(() => {
+    if (!template) return;
+
+    void syncLearningActivityHeartbeat(templateId, 1, 'GRAMMAR_TEMPLATE', currentChapterId)
+      .catch(() => undefined);
+  }, [template, templateId, currentChapterId]);
+
+  useEffect(() => {
+    if (!template || typeof window === 'undefined') return undefined;
+
+    let isDisposed = false;
+    let isVisible = document.visibilityState === 'visible';
+
+    studyHeartbeatPendingSecondsRef.current = 0;
+    studyHeartbeatLastTickRef.current = Date.now();
+
+    const updatePendingStudySeconds = () => {
+      const now = Date.now();
+      const lastTick = studyHeartbeatLastTickRef.current ?? now;
+      studyHeartbeatLastTickRef.current = now;
+
+      if (!isVisible) return;
+
+      const elapsedSeconds = Math.floor((now - lastTick) / 1000);
+      if (elapsedSeconds <= 0) return;
+
+      studyHeartbeatPendingSecondsRef.current += elapsedSeconds;
+    };
+
+    const syncStudyHeartbeat = (force = false) => {
+      const secondsToRecord = Math.min(
+        STUDY_HEARTBEAT_MAX_SECONDS,
+        Math.floor(studyHeartbeatPendingSecondsRef.current),
+      );
+      const minimumSeconds = force ? STUDY_HEARTBEAT_MIN_SECONDS : STUDY_HEARTBEAT_INTERVAL_MS / 1000;
+
+      if (secondsToRecord < minimumSeconds) return;
+
+      studyHeartbeatPendingSecondsRef.current -= secondsToRecord;
+
+      void syncLearningActivityHeartbeat(templateId, secondsToRecord, 'GRAMMAR_TEMPLATE', currentChapterId)
+        .catch(() => {
+          if (!isDisposed) {
+            studyHeartbeatPendingSecondsRef.current += secondsToRecord;
+          }
+        });
+    };
+
+    const handleStudyHeartbeatTick = () => {
+      updatePendingStudySeconds();
+      syncStudyHeartbeat();
+    };
+
+    const handleVisibilityChange = () => {
+      updatePendingStudySeconds();
+      isVisible = document.visibilityState === 'visible';
+      studyHeartbeatLastTickRef.current = Date.now();
+
+      if (!isVisible) {
+        syncStudyHeartbeat(true);
+      }
+    };
+
+    const intervalId = window.setInterval(handleStudyHeartbeatTick, STUDY_HEARTBEAT_INTERVAL_MS);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      updatePendingStudySeconds();
+      syncStudyHeartbeat(true);
+      isDisposed = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [template, templateId, currentChapterId]);
 
   const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
   const startXRef = useRef(0);
