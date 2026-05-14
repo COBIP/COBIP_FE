@@ -14,6 +14,17 @@ import type { WeeklyActivity, LearningProgress } from '@/types/DashboardTypes';
 
 // 인기 템플릿 이상 없을시 RecommendedCoursesSection, TemplateSummary 삭제 div쪽 삭제
 
+function getLearningHref(item: LearningProgress) {
+  return item.contentType === 'GRAMMAR_TEMPLATE'
+    ? `/grammar-template/${item.templateId}`
+    : `/functional-template/${item.templateId}`;
+}
+
+function getLearningCategory(item: LearningProgress) {
+  const templateType = item.contentType === 'GRAMMAR_TEMPLATE' ? '문법 템플릿' : '기능 템플릿';
+  return `${templateType} · ${item.completed ? '학습 완료' : '학습 중'}`;
+}
+
 export default function DashboardPage() {
   const { dashboardData, isLoading, error } = useDashboard();
   const router = useRouter();
@@ -76,12 +87,12 @@ export default function DashboardPage() {
   }));
   // (3) 최근 학습 데이터 변환
   const recentLearnings = dashboardData.recentLearning.map((item: LearningProgress) => ({
-    id: item.templateId,
+    id: `${item.contentType ?? 'TEMPLATE'}-${item.templateId}`,
     title: item.templateTitle,
-    category: item.completed ? '학습 완료' : '학습 중',
+    category: getLearningCategory(item),
     lastStudiedDate: new Date(item.lastAccessedAt).toLocaleDateString(),
     completionRate: item.progressPercent,
-    href: `/functional-template/${item.templateId}`,
+    href: getLearningHref(item),
   }));
 
   return (
@@ -90,7 +101,7 @@ export default function DashboardPage() {
 
       {dashboardData.continueLearning && (
         <Link
-          href={`/functional-template/${dashboardData.continueLearning.templateId}`}
+          href={getLearningHref(dashboardData.continueLearning)}
           className="block rounded-xl border border-purple-200 bg-purple-50 p-5 transition hover:bg-purple-100"
         >
           <p className="text-sm font-semibold text-purple-700">이어서 학습하기</p>
