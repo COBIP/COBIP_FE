@@ -1,7 +1,11 @@
 // src/api/services/DashboardService.ts
 import axiosInstance from '@/api/AxiosInstance';
-import type { MyDashboardData, LearningProgress, TemplateSummary } from '@/types/DashboardTypes';
-// ❌ HeartbeatRequest 임포트 삭제됨
+import type {
+    LearningActivityHeartbeatResponse,
+    LearningProgress,
+    MyDashboardData,
+    TemplateSummary,
+} from '@/types/DashboardTypes';
 
 export interface PageResponse<TItem> {
     content: TItem[];
@@ -131,6 +135,19 @@ async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDash
 
 // ❌ HeartbeatResult 인터페이스 삭제됨
 
+export async function syncLearningActivityHeartbeat(
+    templateId: number,
+    activeSeconds: number,
+): Promise<LearningActivityHeartbeatResponse> {
+    const safeActiveSeconds = Math.min(60, Math.max(1, Math.floor(activeSeconds)));
+    const response = await axiosInstance.post('/api/v1/users/me/learning-activities/heartbeat', {
+        templateId,
+        activeSeconds: safeActiveSeconds,
+    });
+
+    return response.data.data;
+}
+
 export const dashboardService = {
     getDashboard: async (): Promise<MyDashboardData> => {
         // 인터셉터가 자동으로 헤더에 토큰을 넣어줍니다.
@@ -144,5 +161,6 @@ export const dashboardService = {
         });
         return response.data.data;
     },
-    // ❌ recordHeartbeat 메서드 삭제됨
+
+    recordLearningActivityHeartbeat: syncLearningActivityHeartbeat,
 };

@@ -32,6 +32,7 @@ import {
   type TemplatePracticeProgressApiResponse,
   type TemplatePracticeSubmissionResponse,
 } from '@/api/services/FunctionalTemplateService';
+import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
 
 const TEXT = {
   headerTitle: '기능 템플릿 학습',
@@ -58,6 +59,10 @@ const TEXT = {
   references: '참고 레퍼런스',
   defaultLearningPoint: '미션을 따라가며 핵심 구현 흐름과 검증 로직을 함께 확인해보세요.',
 };
+
+const STUDY_HEARTBEAT_INTERVAL_MS = 15000;
+const STUDY_HEARTBEAT_MAX_SECONDS = 60;
+const STUDY_HEARTBEAT_MIN_SECONDS = 1;
 
 interface FileTreeItem {
   id?: string;
@@ -345,6 +350,8 @@ export function FunctionalTemplateLayout({
   const resizingRef = useRef<'content' | 'explorer' | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const studyHeartbeatPendingSecondsRef = useRef(0);
+  const studyHeartbeatLastTickRef = useRef<number | null>(null);
   const isDarkMode = themeMode === 'dark';
 
   const practiceFiles = useMemo(
@@ -420,6 +427,74 @@ export function FunctionalTemplateLayout({
 
     return Array.from(new Set(refs)).slice(0, 3);
   }, [template?.license, template?.source]);
+
+  useEffect(() => {
+    if (!templateId || typeof window === 'undefined') return undefined;
+
+    let isDisposed = false;
+    let isVisible = document.visibilityState === 'visible';
+
+    studyHeartbeatPendingSecondsRef.current = 0;
+    studyHeartbeatLastTickRef.current = Date.now();
+
+    const updatePendingStudySeconds = () => {
+      const now = Date.now();
+      const lastTick = studyHeartbeatLastTickRef.current ?? now;
+      studyHeartbeatLastTickRef.current = now;
+
+      if (!isVisible) return;
+
+      const elapsedSeconds = Math.floor((now - lastTick) / 1000);
+      if (elapsedSeconds <= 0) return;
+
+      studyHeartbeatPendingSecondsRef.current += elapsedSeconds;
+    };
+
+    const syncStudyHeartbeat = (force = false) => {
+      const secondsToRecord = Math.min(
+        STUDY_HEARTBEAT_MAX_SECONDS,
+        Math.floor(studyHeartbeatPendingSecondsRef.current),
+      );
+      const minimumSeconds = force ? STUDY_HEARTBEAT_MIN_SECONDS : STUDY_HEARTBEAT_INTERVAL_MS / 1000;
+
+      if (secondsToRecord < minimumSeconds) return;
+
+      studyHeartbeatPendingSecondsRef.current -= secondsToRecord;
+
+      void syncLearningActivityHeartbeat(templateId, secondsToRecord)
+        .catch(() => {
+          if (!isDisposed) {
+            studyHeartbeatPendingSecondsRef.current += secondsToRecord;
+          }
+        });
+    };
+
+    const handleStudyHeartbeatTick = () => {
+      updatePendingStudySeconds();
+      syncStudyHeartbeat();
+    };
+
+    const handleVisibilityChange = () => {
+      updatePendingStudySeconds();
+      isVisible = document.visibilityState === 'visible';
+      studyHeartbeatLastTickRef.current = Date.now();
+
+      if (!isVisible) {
+        syncStudyHeartbeat(true);
+      }
+    };
+
+    const intervalId = window.setInterval(handleStudyHeartbeatTick, STUDY_HEARTBEAT_INTERVAL_MS);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      updatePendingStudySeconds();
+      syncStudyHeartbeat(true);
+      isDisposed = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [templateId]);
 
   useEffect(() => {
     setLocalPractice(practice ?? null);

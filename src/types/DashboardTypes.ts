@@ -52,6 +52,11 @@ export interface WeeklyActivity {
 }
 
 
+export interface LearningActivityHeartbeatResponse {
+    date: string;
+    studySeconds: number;
+}
+
 export interface MyDashboardData {
     registeredTemplateCount: number;
     inProgressLearningCount: number;
