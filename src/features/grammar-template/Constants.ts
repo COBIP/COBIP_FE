@@ -36,9 +36,22 @@ export interface GrammarTemplateChapter {
   title: string;
   orderIndex: number;
   contentJson: Record<string, unknown>;
-  practiceFiles: unknown[];
+  practiceFiles: GrammarTemplatePracticeFile[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** 문법 템플릿 실습 파일 */
+export interface GrammarTemplatePracticeFile {
+  id: number;
+  templateId: number;
+  chapterId: number;
+  nodeType: 'FILE' | 'FOLDER';
+  filePath: string;
+  language?: string;
+  content?: string;
+  readOnly: boolean;
+  orderIndex: number;
 }
 
 /* ================== 코드 실행/실행흐름 타입 ================== */
@@ -75,9 +88,16 @@ export interface ExecutionFlowResponse {
   steps: ExecutionFlowStep[];
 }
 
-/** 코드 실행 응답 (POST /api/run) */
+/** 코드 실행 응답 */
 export interface CodeRunResponse {
-  output: string;
+  status?: 'ACCEPTED' | 'WRONG_ANSWER' | 'COMPILE_ERROR' | 'RUNTIME_ERROR' | 'TIME_LIMIT_EXCEEDED' | 'INTERNAL_ERROR';
+  stdout?: string | null;
+  stderr?: string | null;
+  compileOutput?: string | null;
+  message?: string | null;
+  time?: string | null;
+  memory?: number | null;
+  output?: string;
 }
 
 /* ================== 마이페이지 대시보드 타입 ================== */
