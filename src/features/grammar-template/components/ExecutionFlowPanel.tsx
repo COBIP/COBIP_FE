@@ -12,7 +12,11 @@ import {
   Terminal,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { ExecutionFlowStep } from '@/features/grammar-template/Constants';
+import type {
+  ExecutionFlowOutputSnapshot,
+  ExecutionFlowStep,
+  ExecutionFlowVariableSnapshot,
+} from '@/features/grammar-template/Constants';
 
 interface ExecutionFlowPanelProps {
   steps: ExecutionFlowStep[];
@@ -28,6 +32,8 @@ type VariableState = {
   lineNumber: number;
   stepOrder: number;
   status: 'created' | 'updated';
+  elements?: string[];
+  activeIndex?: number | null;
 };
 
 type OutputState = {
@@ -158,7 +164,48 @@ function parseOutput(line: string) {
   return javaMatch?.[1] ?? jsMatch?.[1] ?? pythonMatch?.[1] ?? null;
 }
 
+function mapVariableState(variable: ExecutionFlowVariableSnapshot): VariableState {
+  return {
+    name: variable.name,
+    value: variable.value,
+    valueSource: variable.expression,
+    dataType: variable.dataType ?? undefined,
+    lineNumber: variable.lineNumber,
+    stepOrder: variable.stepOrder,
+    status: variable.changeType === 'UPDATED' ? 'updated' : 'created',
+    elements: variable.elements,
+    activeIndex: variable.activeIndex,
+  };
+}
+
+function mapOutputState(output: ExecutionFlowOutputSnapshot): OutputState {
+  return {
+    value: output.value,
+    source: output.expression,
+    lineNumber: output.lineNumber,
+    stepOrder: output.stepOrder,
+  };
+}
+
+function checkServerVisualState(step?: ExecutionFlowStep) {
+  return Boolean(step && (step.activeVariable || step.activeOutput || step.variables || step.outputs));
+}
+
+function buildServerVisualState(step: ExecutionFlowStep): VisualState {
+  return {
+    variables: (step.variables ?? []).map(mapVariableState),
+    outputs: (step.outputs ?? []).map(mapOutputState),
+    activeVariable: step.activeVariable ? mapVariableState(step.activeVariable) : undefined,
+    activeOutput: step.activeOutput ? mapOutputState(step.activeOutput) : undefined,
+  };
+}
+
 function buildVisualState(steps: ExecutionFlowStep[], currentStepIndex: number): VisualState {
+  const currentStep = steps[currentStepIndex];
+  if (checkServerVisualState(currentStep)) {
+    return buildServerVisualState(currentStep);
+  }
+
   const variableMap = new Map<string, VariableState>();
   const outputs: OutputState[] = [];
   let activeVariable: VariableState | undefined;
@@ -233,7 +280,30 @@ function VariableCard({ variable, active }: { variable: VariableState; active: b
           {variable.status === 'created' ? '생성' : '변경'}
         </span>
       </div>
-      <div className="mt-1 rounded bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700">{variable.value}</div>
+      {variable.elements?.length ? (
+        <div className="mt-2 rounded bg-slate-50 p-2">
+          <div className="flex flex-wrap gap-1">
+            {variable.elements.slice(0, 24).map((element, index) => (
+              <div
+                key={`${variable.name}-${index}`}
+                className={`flex min-h-9 min-w-9 flex-col items-center justify-center rounded border px-1.5 transition ${
+                  variable.activeIndex === index
+                    ? 'border-cyan-400 bg-cyan-100 text-cyan-900 ring-2 ring-cyan-200'
+                    : 'border-slate-200 bg-white text-slate-700'
+                }`}
+              >
+                <span className="font-mono text-[10px] text-slate-400">{index}</span>
+                <span className="max-w-12 truncate font-mono text-xs font-semibold">{element}</span>
+              </div>
+            ))}
+          </div>
+          {variable.elements.length > 24 && (
+            <div className="mt-1 text-[10px] text-slate-400">+{variable.elements.length - 24}</div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-1 rounded bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700">{variable.value}</div>
+      )}
       <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400">
         <span className="truncate">{variable.dataType ?? 'value'}</span>
         <span>line {variable.lineNumber}</span>
