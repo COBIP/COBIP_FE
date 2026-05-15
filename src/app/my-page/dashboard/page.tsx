@@ -75,7 +75,7 @@ export default function DashboardPage() {
     },
     {
       title: '평균 정답률',
-      value: Math.round(dashboardData.averageCorrectRate),
+      value: dashboardData.averageCorrectRate,
       unit: '%',
       color: 'purple' as const,
     },

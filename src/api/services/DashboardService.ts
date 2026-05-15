@@ -100,6 +100,25 @@ function buildMergedLearningList(
     );
 }
 
+function getCorrectRatePercent(learning: LearningProgress[]) {
+    const solvedCount = learning.reduce((total, item) => total + item.solvedCount, 0);
+
+    if (solvedCount <= 0) {
+        return null;
+    }
+
+    const correctCount = learning.reduce((total, item) => total + item.correctCount, 0);
+    return Math.round((correctCount / solvedCount) * 100);
+}
+
+function normalizeCorrectRatePercent(value: number) {
+    if (!Number.isFinite(value)) {
+        return 0;
+    }
+
+    return value > 0 && value <= 1 ? Math.round(value * 100) : Math.round(value);
+}
+
 async function getPracticeLearningFallback(): Promise<LearningProgress[]> {
     const templatesResponse = await axiosInstance.get('/api/v1/templates', {
         params: { page: 0, size: 100 },
@@ -121,22 +140,31 @@ async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDash
         const practiceLearning = await getPracticeLearningFallback();
 
         if (practiceLearning.length === 0) {
-            return dashboard;
+            return {
+                ...dashboard,
+                averageCorrectRate: normalizeCorrectRatePercent(dashboard.averageCorrectRate),
+            };
         }
 
-        const recentLearning = buildMergedLearningList(dashboard.recentLearning ?? [], practiceLearning).slice(0, 5);
+        const mergedLearning = buildMergedLearningList(dashboard.recentLearning ?? [], practiceLearning);
+        const recentLearning = mergedLearning.slice(0, 5);
         const inProgressLearningCount = recentLearning.filter((learning) => !learning.completed).length;
         const completedLearningCount = recentLearning.filter((learning) => learning.completed).length;
+        const correctRatePercent = getCorrectRatePercent(mergedLearning);
 
         return {
             ...dashboard,
             inProgressLearningCount: Math.max(dashboard.inProgressLearningCount, inProgressLearningCount),
             completedLearningCount: Math.max(dashboard.completedLearningCount, completedLearningCount),
+            averageCorrectRate: correctRatePercent ?? normalizeCorrectRatePercent(dashboard.averageCorrectRate),
             continueLearning: dashboard.continueLearning ?? recentLearning.find((learning) => !learning.completed) ?? null,
             recentLearning,
         };
     } catch {
-        return dashboard;
+        return {
+            ...dashboard,
+            averageCorrectRate: normalizeCorrectRatePercent(dashboard.averageCorrectRate),
+        };
     }
 }
 
