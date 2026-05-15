@@ -33,7 +33,7 @@ import {
   type TemplatePracticeSubmissionResponse,
 } from '@/api/services/FunctionalTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
-import { AiChatPanel } from '@/components/ai/AiChatPanel';
+import { AiChatPanel, type ChatMessage } from '@/components/ai/AiChatPanel';
 
 const TEXT = {
   headerTitle: '기능 템플릿 학습',
@@ -332,6 +332,7 @@ export function FunctionalTemplateLayout({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isMemoOpen, setIsMemoOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
+  const [aiChatMessages, setAiChatMessages] = useState<ChatMessage[]>([]);
   const [isShowSettings, setIsShowSettings] = useState(false);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [isAiGuruHintMode, setIsAiGuruHintMode] = useState(true);
@@ -1024,6 +1025,8 @@ export function FunctionalTemplateLayout({
                 isDarkMode={isDarkMode}
                 variant="sidecar"
                 className="w-[26rem] shrink-0"
+                messages={aiChatMessages}
+                onMessagesChange={setAiChatMessages}
                 onClose={() => setIsAiChatOpen(false)}
               />
             </section>

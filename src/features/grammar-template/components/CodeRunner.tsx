@@ -287,8 +287,12 @@ export function CodeRunner({
 
   if (executionSteps) {
     return (
-      <aside className="absolute inset-0 z-40 overflow-hidden border-l border-gray-200 bg-white">
-        <div className="flex h-full min-w-0">
+      <aside className="border-l border-gray-200 bg-white overflow-hidden shrink-0 relative" style={{ width: `${runnerWidth}px` }}>
+        <div className="absolute -left-1 top-0 bottom-0 w-3 z-50 cursor-col-resize flex items-center justify-center group" onMouseDown={onRunnerResizeStart}>
+          <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-purple-400 transition-colors" />
+        </div>
+
+        <div className="flex h-full min-w-0" style={{ width: `${runnerWidth}px` }}>
           <section className="min-w-0 flex-[1.45] overflow-hidden border-r border-gray-200 bg-slate-50">
             <ExecutionFlowPanel
               steps={executionSteps}

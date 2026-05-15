@@ -137,16 +137,17 @@ export function AiChatPanel({
           {chatMessages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
-              className={`flex min-w-0 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex w-full min-w-0 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`min-w-0 max-w-[85%] overflow-hidden rounded-2xl px-3 py-2 text-sm leading-6 ${
+                className={`min-w-0 w-fit max-w-full overflow-hidden rounded-2xl px-3 py-2 text-sm leading-6 ${
                   message.role === 'user'
                     ? 'bg-[#7C3AED] text-white'
                     : isDarkMode
                       ? 'bg-[#1E293B] text-[#E2E8F0]'
                       : 'bg-slate-100 text-slate-800'
                 }`}
+                style={{ maxWidth: 'min(85%, calc(100% - 0.5rem))' }}
               >
                 <div
                   className="min-w-0 max-w-full whitespace-pre-wrap break-words font-sans"
