@@ -5,7 +5,7 @@ import type {
     LearningProgress,
     MyDashboardData,
     TemplateSummary,
-} from '@/types/DashboardTypes';
+} from '@/features/my-page/types/DashboardTypes';
 
 export interface PageResponse<TItem> {
     content: TItem[];
