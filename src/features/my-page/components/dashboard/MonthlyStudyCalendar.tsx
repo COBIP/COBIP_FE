@@ -6,7 +6,7 @@ import {
   WEEKDAY_LABELS,
   MONTH_OPTIONS,
   CALENDAR_LEVEL_COLORS,
-  CalendarDay,
+  type CalendarDay,
   buildDateKey,
   buildCalendarDays,
   formatStudyTime,

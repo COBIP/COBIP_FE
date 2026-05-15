@@ -16,7 +16,7 @@ import { PopularTemplates } from '@/features/my-page/components/dashboard/Popula
 // 분리한 컴포넌트 및 유틸리티 import
 import { MonthlyStudyCalendar } from '@/features/my-page/components/dashboard/MonthlyStudyCalendar';
 import { RecentActivitiesSection } from '@/features/my-page/components/dashboard/RecentActivitiesSection';
-import { ActivityView, buildWeeklyActivities, getLearningCategory, getLearningHref } from '@/features/my-page/utils/DashboardUtils';
+import { type ActivityView, buildWeeklyActivities, getLearningCategory, getLearningHref } from '@/features/my-page/utils/DashboardUtils';
 
 export default function DashboardPage() {
   const { dashboardData, isLoading, error } = useDashboard();
