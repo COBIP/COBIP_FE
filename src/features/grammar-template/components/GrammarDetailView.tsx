@@ -105,6 +105,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [aiChatMessages, setAiChatMessages] = useState<ChatMessage[]>([]);
+  const [aiChatPanelWidth, setAiChatPanelWidth] = useState(416);
   const [runnerWidth, setRunnerWidth] = useState(760);
   const [explorerWidth, setExplorerWidth] = useState(200);
   const [outputHeight, setOutputHeight] = useState(140);
@@ -247,7 +248,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     };
   }, [template, templateId, currentChapterId]);
 
-  const resizingRef = useRef<'runner' | 'explorer' | 'output' | null>(null);
+  const resizingRef = useRef<'runner' | 'explorer' | 'output' | 'aiChat' | null>(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const startWidthRef = useRef(760);
@@ -350,6 +351,11 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     document.body.style.cursor = 'row-resize'; document.body.style.userSelect = 'none';
   }, [outputHeight]);
 
+  const handleAiChatResizeStart = useCallback((e: React.MouseEvent) => {
+    resizingRef.current = 'aiChat'; startXRef.current = e.clientX; startWidthRef.current = aiChatPanelWidth;
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+  }, [aiChatPanelWidth]);
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizingRef.current) return;
@@ -359,6 +365,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         setExplorerWidth(Math.min(Math.max(startWidthRef.current + (e.clientX - startXRef.current), 100), 300));
       } else if (resizingRef.current === 'output') {
         setOutputHeight(Math.min(Math.max(startHeightRef.current + (startYRef.current - e.clientY), 60), 400));
+      } else if (resizingRef.current === 'aiChat') {
+        setAiChatPanelWidth(Math.min(Math.max(startWidthRef.current + (startXRef.current - e.clientX), 320), 720));
       }
     };
     const handleMouseUp = () => {
@@ -524,16 +532,24 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           onOpenFile={openFile}
                           setFileContents={setFileContents}
                         />
-                        <AiChatPanel
+                        {isAiChatOpen && (
+                          <div className="relative h-full shrink-0" style={{ width: `${aiChatPanelWidth}px` }}>
+                            <div
+                              onMouseDown={handleAiChatResizeStart}
+                              className="absolute inset-y-0 left-0 z-30 w-1 cursor-col-resize bg-slate-200 transition-colors hover:bg-[#7C3AED]"
+                            />
+                            <AiChatPanel
                           isOpen={isAiChatOpen}
                           title="AI 채팅"
                           context={aiChatContext}
                           variant="sidecar"
-                          className="w-[26rem] shrink-0"
+                          className="h-full"
                           messages={aiChatMessages}
                           onMessagesChange={setAiChatMessages}
                           onClose={() => setIsAiChatOpen(false)}
-                        />
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
         </div>

@@ -62,8 +62,9 @@ export function AiChatPanel({
 
     if (!nextInput || isSending) return;
 
-    const nextMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: nextInput }];
-    setChatMessages(nextMessages);
+    const userMessage: ChatMessage = { role: 'user', content: nextInput };
+    const nextMessages: ChatMessage[] = [...chatMessages, userMessage];
+    setChatMessages((current) => [...current, userMessage]);
     setInput('');
     setErrorMessage('');
     setIsSending(true);
@@ -93,8 +94,8 @@ export function AiChatPanel({
 
   const panel = (
     <aside
-      className={`flex h-full min-w-0 w-full flex-col overflow-hidden border-l ${
-        variant === 'overlay' ? 'max-w-md shadow-2xl' : 'shadow-none'
+      className={`flex h-full min-w-0 flex-col overflow-hidden border-l ${
+        variant === 'overlay' ? 'w-full max-w-md shadow-2xl' : 'w-full shadow-none'
       } ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-slate-200 bg-white'} ${className}`}
     >
         <header
@@ -124,7 +125,7 @@ export function AiChatPanel({
           </button>
         </header>
 
-        <div ref={scrollRef} className="min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-4 py-4">
+        <div ref={scrollRef} className="min-w-0 w-full flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-4 py-4">
           {chatMessages.length === 0 && (
             <div
               className={`rounded-xl border px-4 py-3 text-sm ${
@@ -137,20 +138,20 @@ export function AiChatPanel({
           {chatMessages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
-              className={`flex w-full min-w-0 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex w-full min-w-0 overflow-hidden ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`min-w-0 w-fit max-w-full overflow-hidden rounded-2xl px-3 py-2 text-sm leading-6 ${
+                className={`min-w-0 max-w-full rounded-2xl px-3 py-2 text-sm leading-6 ${
                   message.role === 'user'
                     ? 'bg-[#7C3AED] text-white'
                     : isDarkMode
                       ? 'bg-[#1E293B] text-[#E2E8F0]'
                       : 'bg-slate-100 text-slate-800'
                 }`}
-                style={{ maxWidth: 'min(85%, calc(100% - 0.5rem))' }}
+                style={{ maxWidth: 'calc(100% - 0.5rem)' }}
               >
                 <div
-                  className="min-w-0 max-w-full whitespace-pre-wrap break-words font-sans"
+                  className="min-w-0 max-w-full whitespace-pre-wrap font-sans"
                   style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                 >
                   {message.content}
