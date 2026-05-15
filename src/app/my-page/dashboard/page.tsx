@@ -6,9 +6,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { StatisticsCard } from '@/features/my-page/components/dashboard/StatisticsCard';
 import { LearningProgressChart } from '@/features/my-page/components/dashboard/LearningProgressChart';
 import { RecentLearningSection } from '@/features/my-page/components/dashboard/RecentLearningSection';
-// import { RecommendedCoursesSection } from '@/features/my-page/components/dashboard/RecommendedCoursesSection';
 import { Loader2 } from 'lucide-react'; // 로딩 아이콘
-// import type { TemplateSummary } from '@/types/TemplateSummaryTypes';
 import { PopularTemplates } from '@/features/my-page/components/dashboard/PopularTemplates'
 import type { WeeklyActivity, LearningProgress } from '@/types/DashboardTypes';
 
@@ -139,17 +137,6 @@ export default function DashboardPage() {
         </div>
       </div>
       <PopularTemplates onSelectTemplate={handleSelectTemplate}/>
-      {/* 하단: 인기 템플릿 (기존 RecommendedCoursesSection 재활용) */}
-      {/* <RecommendedCoursesSection 
-        courses={dashboardData.popularTemplates.map((t: TemplateSummary) => ({
-            id: t.id,
-            title: t.title,
-            description: t.description,
-            releaseDate: new Date(t.createdAt).toLocaleDateString(),
-            category: t.category,
-            difficulty: t.difficulty.toLowerCase() as 'beginner' | 'intermediate' | 'advanced'
-        }))} 
-    /> */}
     </div>
   );
 }
