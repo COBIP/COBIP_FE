@@ -111,7 +111,7 @@ function getCorrectRatePercent(learning: LearningProgress[]) {
     return Math.round((correctCount / solvedCount) * 100);
 }
 
-function normalizeCorrectRatePercent(value: number) {
+function calculateCorrectRatePercent(value: number) {
     if (!Number.isFinite(value)) {
         return 0;
     }
@@ -142,7 +142,7 @@ async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDash
         if (practiceLearning.length === 0) {
             return {
                 ...dashboard,
-                averageCorrectRate: normalizeCorrectRatePercent(dashboard.averageCorrectRate),
+                averageCorrectRate: calculateCorrectRatePercent(dashboard.averageCorrectRate),
             };
         }
 
@@ -156,14 +156,14 @@ async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDash
             ...dashboard,
             inProgressLearningCount: Math.max(dashboard.inProgressLearningCount, inProgressLearningCount),
             completedLearningCount: Math.max(dashboard.completedLearningCount, completedLearningCount),
-            averageCorrectRate: correctRatePercent ?? normalizeCorrectRatePercent(dashboard.averageCorrectRate),
+            averageCorrectRate: correctRatePercent ?? calculateCorrectRatePercent(dashboard.averageCorrectRate),
             continueLearning: dashboard.continueLearning ?? recentLearning.find((learning) => !learning.completed) ?? null,
             recentLearning,
         };
     } catch {
         return {
             ...dashboard,
-            averageCorrectRate: normalizeCorrectRatePercent(dashboard.averageCorrectRate),
+            averageCorrectRate: calculateCorrectRatePercent(dashboard.averageCorrectRate),
         };
     }
 }
