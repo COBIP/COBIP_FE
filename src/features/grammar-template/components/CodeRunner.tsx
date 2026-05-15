@@ -7,6 +7,11 @@ import { ExecutionFlowPanel } from './ExecutionFlowPanel';
 
 const CODE_EDITOR_LINE_HEIGHT = 24;
 
+type CodeHighlightRange = {
+  start: number;
+  end: number;
+};
+
 function formatCodeLine(line: string) {
   return line.trim().replace(/;$/, '').trim().replace(/\s+/g, ' ');
 }
@@ -61,6 +66,26 @@ function findMatchingSourceLine(codeLines: string[], sourceLine: string, lineNum
   )[0].lineNumber;
 }
 
+function findCodeRangeInLine(line: string, sourceLine: string) {
+  const trimmedSource = sourceLine.trim();
+  const trimmedLineStart = line.search(/\S/);
+
+  if (trimmedLineStart < 0) return null;
+
+  const candidates = Array.from(new Set([
+    trimmedSource,
+    trimmedSource.replace(/;$/, '').trim(),
+    trimmedSource.endsWith(';') ? trimmedSource.slice(0, -1).trim() : `${trimmedSource};`,
+  ])).filter(Boolean);
+
+  for (const candidate of candidates) {
+    const start = line.indexOf(candidate);
+    if (start >= 0) return { start, end: start + candidate.length };
+  }
+
+  return { start: trimmedLineStart, end: line.trimEnd().length };
+}
+
 function getExecutableLineNumber(step: ExecutionFlowStep, codeLines: string[]) {
   const lineNumber = Math.min(Math.max(step.lineNumber, 1), Math.max(codeLines.length, 1));
   const matchedLine = findMatchingSourceLine(codeLines, step.sourceLine, lineNumber);
@@ -69,6 +94,29 @@ function getExecutableLineNumber(step: ExecutionFlowStep, codeLines: string[]) {
   if (!checkNonExecutableLine(codeLines[lineNumber - 1] ?? '')) return lineNumber;
 
   return findClosestExecutableLine(codeLines, lineNumber);
+}
+
+function calculateLineStartOffset(codeLines: string[], lineIndex: number) {
+  return codeLines.slice(0, lineIndex).reduce((offset, line) => offset + line.length + 1, 0);
+}
+
+function findCodeHighlightRange(step: ExecutionFlowStep | undefined, sourceCode: string): CodeHighlightRange | null {
+  if (!step) return null;
+
+  const codeLines = sourceCode.split('\n');
+  const lineNumber = getExecutableLineNumber(step, codeLines);
+  const lineIndex = lineNumber - 1;
+  const line = codeLines[lineIndex] ?? '';
+  const lineRange = findCodeRangeInLine(line, step.sourceLine);
+
+  if (!lineRange) return null;
+
+  const lineStartOffset = calculateLineStartOffset(codeLines, lineIndex);
+
+  return {
+    start: lineStartOffset + lineRange.start,
+    end: lineStartOffset + lineRange.end,
+  };
 }
 
 function buildExecutionFlowStepsWithExecutableLines(steps: ExecutionFlowStep[], sourceCode: string) {
@@ -101,6 +149,42 @@ function buildExecutionFlowStepsWithExecutableLines(steps: ExecutionFlowStep[], 
       outputs: step.outputs?.map(normalizeSnapshotLine),
     };
   });
+}
+
+function CodeHighlightOverlay({
+  sourceCode,
+  highlightRange,
+  scrollTop,
+  scrollLeft,
+}: {
+  sourceCode: string;
+  highlightRange: CodeHighlightRange | null;
+  scrollTop: number;
+  scrollLeft: number;
+}) {
+  if (!highlightRange) return null;
+
+  return (
+    <pre
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 m-0 overflow-hidden p-4 font-mono text-sm text-transparent"
+      style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
+    >
+      <code
+        className="block"
+        style={{
+          transform: `translate(${-scrollLeft}px, -${scrollTop}px)`,
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        <span>{sourceCode.slice(0, highlightRange.start)}</span>
+        <span className="rounded bg-purple-200/90 text-transparent ring-1 ring-purple-300">
+          {sourceCode.slice(highlightRange.start, highlightRange.end)}
+        </span>
+        <span>{sourceCode.slice(highlightRange.end)}</span>
+      </code>
+    </pre>
+  );
 }
 
 function formatRunResponseText(result: { output?: string; stdout?: string | null; compileOutput?: string | null; stderr?: string | null; message?: string | null; status?: string }) {
@@ -316,9 +400,16 @@ export function CodeRunner({
     const [outputText, setOutputText] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [editorScrollTop, setEditorScrollTop] = useState(0);
-    const activeExecutionLine = executionSteps?.[currentStepIndex]?.lineNumber;
+    const [editorScrollLeft, setEditorScrollLeft] = useState(0);
     const activeCode = fileContents[activeFilePath] || '';
-    const codeLines = activeCode.split('\n');
+    const activeExecutionStep = executionSteps?.[currentStepIndex];
+    const activeExecutionLine = activeExecutionStep?.lineNumber;
+    const activeCodeHighlightRange = findCodeHighlightRange(activeExecutionStep, activeCode);
+
+    const handleEditorScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
+      setEditorScrollTop(e.currentTarget.scrollTop);
+      setEditorScrollLeft(e.currentTarget.scrollLeft);
+    }, []);
 
     /** 코드 실행 */
     const handleRun = useCallback(async () => {
@@ -420,29 +511,18 @@ export function CodeRunner({
             </div>
 
             <div className="relative flex-1 overflow-hidden bg-gray-50">
-              {activeExecutionLine && (
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 overflow-hidden px-4 py-4 font-mono text-sm"
-                  style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
-                >
-                  <div style={{ transform: `translateY(-${editorScrollTop}px)` }}>
-                    {codeLines.map((_, index) => (
-                      <div
-                        key={index}
-                        className={index + 1 === activeExecutionLine ? 'rounded bg-purple-100/80 ring-1 ring-purple-200' : ''}
-                        style={{ height: `${CODE_EDITOR_LINE_HEIGHT}px` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <CodeHighlightOverlay
+                sourceCode={activeCode}
+                highlightRange={activeCodeHighlightRange}
+                scrollTop={editorScrollTop}
+                scrollLeft={editorScrollLeft}
+              />
               <textarea
                 className="relative z-10 h-full w-full resize-none bg-transparent p-4 font-mono text-sm text-gray-800 outline-none"
                 style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
                 value={activeCode}
                 onChange={(e) => setFileContents((prev) => ({ ...prev, [activeFilePath]: e.target.value }))}
-                onScroll={(e) => setEditorScrollTop(e.currentTarget.scrollTop)}
+                onScroll={handleEditorScroll}
                 placeholder="# 여기에 코드를 입력하세요"
               />
             </div>
@@ -525,29 +605,18 @@ export function CodeRunner({
 
             {/* 코드 에디터 */}
             <div className="relative flex-1 bg-gray-50 overflow-hidden">
-              {activeExecutionLine && (
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 overflow-hidden px-4 py-4 font-mono text-sm"
-                  style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
-                >
-                  <div style={{ transform: `translateY(-${editorScrollTop}px)` }}>
-                    {codeLines.map((_, index) => (
-                      <div
-                        key={index}
-                        className={index + 1 === activeExecutionLine ? 'rounded bg-purple-100/80 ring-1 ring-purple-200' : ''}
-                        style={{ height: `${CODE_EDITOR_LINE_HEIGHT}px` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <CodeHighlightOverlay
+                sourceCode={activeCode}
+                highlightRange={activeCodeHighlightRange}
+                scrollTop={editorScrollTop}
+                scrollLeft={editorScrollLeft}
+              />
               <textarea
                 className="relative z-10 w-full h-full bg-transparent text-gray-800 p-4 text-sm font-mono resize-none outline-none"
                 style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
                 value={activeCode}
                 onChange={(e) => setFileContents((prev) => ({ ...prev, [activeFilePath]: e.target.value }))}
-                onScroll={(e) => setEditorScrollTop(e.currentTarget.scrollTop)}
+                onScroll={handleEditorScroll}
                 placeholder="# 여기에 코드를 입력하세요"
               />
             </div>
