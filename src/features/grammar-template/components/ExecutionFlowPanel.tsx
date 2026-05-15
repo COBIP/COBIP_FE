@@ -300,26 +300,26 @@ function formatOutputSourceLabel(output?: OutputState) {
 function ScalarVariableCard({ variable, active }: { variable: VariableState; active: boolean }) {
   return (
     <div
-      className={`min-h-36 rounded-lg border bg-white p-4 transition ${
+      className={`min-w-0 rounded-lg border bg-white p-3 transition ${
         active ? 'border-cyan-300 shadow-md ring-4 ring-cyan-100' : 'border-slate-200'
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate font-mono text-sm font-bold text-slate-900">{variable.name}</span>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="min-w-0 truncate font-mono text-sm font-bold text-slate-900">{variable.name}</span>
         <span
-          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
             variable.status === 'created' ? 'bg-cyan-50 text-cyan-700' : 'bg-amber-50 text-amber-700'
           }`}
         >
           {variable.status === 'created' ? '생성' : '변경'}
         </span>
       </div>
-      <div className="mt-5 rounded-md bg-slate-50 px-3 py-3 font-mono text-3xl font-bold text-slate-900">
+      <div className="mt-3 flex min-h-14 items-center rounded-md bg-slate-50 px-3 py-2 font-mono text-2xl font-bold text-slate-900">
         {variable.value}
       </div>
-      <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+      <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-400">
         <span className="truncate">{variable.dataType ?? 'value'}</span>
-        <span>line {variable.lineNumber}</span>
+        <span className="shrink-0">line {variable.lineNumber}</span>
       </div>
     </div>
   );
@@ -490,14 +490,15 @@ export function ExecutionFlowPanel({ steps, currentStepIndex, onStepClick, onClo
             <span className="text-[10px] text-slate-400">{visualState.variables.length}</span>
           </div>
           {visualState.variables.length ? (
-            <div className="space-y-2">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,12rem))] gap-2">
               {visualState.variables.map((variable) =>
                 variable.elements?.length ? (
-                  <CollectionVariablePanel
-                    key={variable.name}
-                    variable={variable}
-                    active={visualState.activeVariable?.name === variable.name}
-                  />
+                  <div key={variable.name} className="col-span-full">
+                    <CollectionVariablePanel
+                      variable={variable}
+                      active={visualState.activeVariable?.name === variable.name}
+                    />
+                  </div>
                 ) : (
                   <ScalarVariableCard
                     key={variable.name}
