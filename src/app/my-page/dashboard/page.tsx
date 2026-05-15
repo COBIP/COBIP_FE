@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 
-import { useDashboard } from '@/features/my-page/hooks/useDashboard';
+import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/hooks/useUser';
 import type { LearningProgress } from '@/features/my-page/types/DashboardTypes';
 
