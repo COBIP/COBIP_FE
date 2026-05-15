@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
-import { AiChatPanel } from '@/components/ai/AiChatPanel';
+import { AiChatPanel, type ChatMessage } from '@/components/ai/AiChatPanel';
 import type { GrammarTemplateDetail, GrammarTemplatePracticeFile } from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
 import { TiptapRenderer } from './TiptapRenderer';
@@ -15,7 +15,6 @@ interface GrammarDetailViewProps {
 const STUDY_HEARTBEAT_INTERVAL_MS = 15000;
 const STUDY_HEARTBEAT_MAX_SECONDS = 60;
 const STUDY_HEARTBEAT_MIN_SECONDS = 1;
-const AI_CHAT_PANEL_WIDTH = 416;
 
 // ===== 탐색기 트리 타입 (CodeRunner와 공유) =====
 export interface ExplorerFile { name: string; type: 'file'; }
@@ -105,6 +104,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
+  const [aiChatMessages, setAiChatMessages] = useState<ChatMessage[]>([]);
   const [runnerWidth, setRunnerWidth] = useState(760);
   const [explorerWidth, setExplorerWidth] = useState(200);
   const [outputHeight, setOutputHeight] = useState(140);
@@ -114,7 +114,6 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
-  const sidePanelWidth = runnerWidth + (isAiChatOpen ? AI_CHAT_PANEL_WIDTH : 0);
   const aiChatContext = useMemo(() => {
     const activeCode = fileContents[activeFilePath] ?? '';
     const parts = [
@@ -327,6 +326,14 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setIsAiChatOpen(true);
   }, []);
 
+  const handleToggleRunner = useCallback(() => {
+    const isNextRunnerOpen = !isRunnerOpen;
+    setIsRunnerOpen(isNextRunnerOpen);
+    if (!isNextRunnerOpen) {
+      setIsAiChatOpen(false);
+    }
+  }, [isRunnerOpen]);
+
   // ===== Resize 핸들러 =====
   const handleRunnerResizeStart = useCallback((e: React.MouseEvent) => {
     resizingRef.current = 'runner'; startXRef.current = e.clientX; startWidthRef.current = runnerWidth;
@@ -458,22 +465,17 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         {/* 메인 콘텐츠 */}
         <div className="flex flex-1 overflow-hidden relative">
             {/* 실행기 토글 버튼 */}
-            <button
-              onClick={() => {
-                const isNextRunnerOpen = !isRunnerOpen;
-                setIsRunnerOpen(isNextRunnerOpen);
-                if (!isNextRunnerOpen) {
-                  setIsAiChatOpen(false);
-                }
-              }}
-              className={`absolute top-14 z-20 flex w-10 items-center justify-center bg-purple-50 px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 shadow-sm cursor-pointer group ${isRunnerOpen ? 'border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' : 'right-0 border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg'}`}
-              style={isRunnerOpen ? { right: `min(${sidePanelWidth}px, calc(100% - 2.5rem))` } : undefined}
-            >
-              <ChevronLeft className={`w-5 h-5 transition-transform duration-200 ${isRunnerOpen ? 'rotate-180' : ''}`} />
-              <span className={`absolute whitespace-nowrap text-[11px] font-medium text-purple-600 bg-white px-2 py-1 rounded-md border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm ${isRunnerOpen ? 'right-full mr-2 top-1/2 -translate-y-1/2' : 'right-full mr-1.5 top-1/2 -translate-y-1/2'}`}>
-                {isRunnerOpen ? '실행기 닫기' : '실행기 열기'}
-              </span>
-            </button>
+            {!isRunnerOpen && (
+              <button
+                onClick={handleToggleRunner}
+                className="absolute right-0 top-14 z-20 flex w-10 items-center justify-center rounded-l-lg border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 bg-purple-50 px-2 py-3 text-purple-500 shadow-sm transition hover:border-purple-300 hover:bg-purple-100 hover:text-purple-700 cursor-pointer group"
+              >
+                <ChevronLeft className="w-5 h-5 transition-transform duration-200" />
+                <span className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-purple-200 bg-white px-2 py-1 text-[11px] font-medium text-purple-600 opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:opacity-100">
+                  실행기 열기
+                </span>
+              </button>
+            )}
 
                     <main className="overflow-y-auto flex-1">
             <div className="max-w-4xl mx-auto px-8 py-10">
@@ -492,7 +494,16 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           </main>
                                         {/* 실행 환경 패널 */}
                     {isRunnerOpen && (
-                      <div className="flex shrink-0 overflow-hidden">
+                      <div className="relative flex shrink-0 overflow-visible">
+                        <button
+                          onClick={handleToggleRunner}
+                          className="absolute left-0 top-14 z-40 flex w-10 -translate-x-full items-center justify-center rounded-l-lg border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 bg-purple-50 px-2 py-3 text-purple-500 shadow-sm transition hover:border-purple-300 hover:bg-purple-100 hover:text-purple-700 cursor-pointer group"
+                        >
+                          <ChevronLeft className="w-5 h-5 rotate-180 transition-transform duration-200" />
+                          <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-purple-200 bg-white px-2 py-1 text-[11px] font-medium text-purple-600 opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:opacity-100">
+                            실행기 닫기
+                          </span>
+                        </button>
                         <CodeRunner
                           templateId={templateId}
                           chapterId={template?.chapters?.[currentChapterIndex]?.id}
@@ -519,6 +530,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           context={aiChatContext}
                           variant="sidecar"
                           className="w-[26rem] shrink-0"
+                          messages={aiChatMessages}
+                          onMessagesChange={setAiChatMessages}
                           onClose={() => setIsAiChatOpen(false)}
                         />
                       </div>
