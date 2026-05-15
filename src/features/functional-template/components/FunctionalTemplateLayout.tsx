@@ -333,6 +333,7 @@ export function FunctionalTemplateLayout({
   const [isMemoOpen, setIsMemoOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   const [aiChatMessages, setAiChatMessages] = useState<ChatMessage[]>([]);
+  const [aiChatPanelWidth, setAiChatPanelWidth] = useState(416);
   const [isShowSettings, setIsShowSettings] = useState(false);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [isAiGuruHintMode, setIsAiGuruHintMode] = useState(true);
@@ -354,7 +355,7 @@ export function FunctionalTemplateLayout({
   const [isFavoriteSaving, setIsFavoriteSaving] = useState(false);
   const [favoriteError, setFavoriteError] = useState('');
 
-  const resizingRef = useRef<'content' | 'explorer' | null>(null);
+  const resizingRef = useRef<'content' | 'explorer' | 'aiChat' | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
   const studyHeartbeatPendingSecondsRef = useRef(0);
@@ -770,14 +771,24 @@ export function FunctionalTemplateLayout({
     document.body.style.userSelect = 'none';
   }, [explorerWidth]);
 
+  const handleAiChatResizeStart = useCallback((event: React.MouseEvent) => {
+    resizingRef.current = 'aiChat';
+    startXRef.current = event.clientX;
+    startWidthRef.current = aiChatPanelWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [aiChatPanelWidth]);
+
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (!resizingRef.current) return;
 
       if (resizingRef.current === 'content') {
         setContentWidth(Math.min(Math.max(startWidthRef.current + event.clientX - startXRef.current, 420), 920));
-      } else {
+      } else if (resizingRef.current === 'explorer') {
         setExplorerWidth(Math.min(Math.max(startWidthRef.current + event.clientX - startXRef.current, 180), 420));
+      } else if (resizingRef.current === 'aiChat') {
+        setAiChatPanelWidth(Math.min(Math.max(startWidthRef.current + startXRef.current - event.clientX, 320), 720));
       }
     };
 
@@ -1018,17 +1029,27 @@ export function FunctionalTemplateLayout({
                   </div>
                 </div>
               </div>
-              <AiChatPanel
+              {isAiChatOpen && (
+                <div className="relative h-full shrink-0" style={{ width: `${aiChatPanelWidth}px` }}>
+                  <div
+                    onMouseDown={handleAiChatResizeStart}
+                    className={`absolute inset-y-0 left-0 z-30 w-1 cursor-col-resize transition-colors hover:bg-[#7C3AED] ${
+                      isDarkMode ? 'bg-[#334155]' : 'bg-[#CBD5E1]'
+                    }`}
+                  />
+                  <AiChatPanel
                 isOpen={isAiChatOpen}
                 title="AI 채팅"
                 context={aiChatContext}
                 isDarkMode={isDarkMode}
                 variant="sidecar"
-                className="w-[26rem] shrink-0"
+                className="h-full"
                 messages={aiChatMessages}
                 onMessagesChange={setAiChatMessages}
                 onClose={() => setIsAiChatOpen(false)}
-              />
+                  />
+                </div>
+              )}
             </section>
           </div>
         ) : (
