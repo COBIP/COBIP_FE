@@ -11,7 +11,7 @@ import {
   buildCalendarDays,
   formatStudyTime,
   calculateCalendarLevel,
-} from '@/features/my-page/utils/dashboardUtils';
+} from '@/features/my-page/utils/DashboardUtils';
 
 export function MonthlyStudyCalendar({
   activities,
