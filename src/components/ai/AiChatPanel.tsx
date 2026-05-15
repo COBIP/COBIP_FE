@@ -87,7 +87,7 @@ export function AiChatPanel({
 
   const panel = (
     <aside
-      className={`flex h-full w-full flex-col border-l ${
+      className={`flex h-full min-w-0 w-full flex-col overflow-hidden border-l ${
         variant === 'overlay' ? 'max-w-md shadow-2xl' : 'shadow-none'
       } ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-slate-200 bg-white'} ${className}`}
     >
@@ -118,7 +118,7 @@ export function AiChatPanel({
           </button>
         </header>
 
-        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        <div ref={scrollRef} className="min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-4 py-4">
           {messages.length === 0 && (
             <div
               className={`rounded-xl border px-4 py-3 text-sm ${
@@ -131,10 +131,10 @@ export function AiChatPanel({
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex min-w-0 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-6 ${
+                className={`min-w-0 max-w-[85%] overflow-hidden rounded-2xl px-3 py-2 text-sm leading-6 ${
                   message.role === 'user'
                     ? 'bg-[#7C3AED] text-white'
                     : isDarkMode
@@ -142,7 +142,9 @@ export function AiChatPanel({
                       : 'bg-slate-100 text-slate-800'
                 }`}
               >
-                <pre className="whitespace-pre-wrap break-words font-sans">{message.content}</pre>
+                <pre className="m-0 min-w-0 max-w-full whitespace-pre-wrap break-words font-sans [overflow-wrap:anywhere]">
+                  {message.content}
+                </pre>
               </div>
             </div>
           ))}
@@ -168,7 +170,7 @@ export function AiChatPanel({
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleInputKeyDown}
-              className={`max-h-32 min-h-10 flex-1 resize-none bg-transparent text-sm outline-none ${
+              className={`max-h-32 min-h-10 min-w-0 flex-1 resize-none bg-transparent text-sm outline-none ${
                 isDarkMode ? 'text-white placeholder:text-[#64748B]' : 'text-slate-900 placeholder:text-slate-400'
               }`}
               placeholder="질문을 입력하세요"

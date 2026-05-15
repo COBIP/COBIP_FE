@@ -466,8 +466,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                   setIsAiChatOpen(false);
                 }
               }}
-              className={`absolute top-14 z-20 flex items-center justify-center bg-purple-50 px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 shadow-sm cursor-pointer group ${isRunnerOpen ? 'border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' : 'right-0 border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg'}`}
-              style={isRunnerOpen ? { right: `${sidePanelWidth}px` } : undefined}
+              className={`absolute top-14 z-20 flex w-10 items-center justify-center bg-purple-50 px-2 py-3 text-purple-500 hover:text-purple-700 hover:bg-purple-100 shadow-sm cursor-pointer group ${isRunnerOpen ? 'border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg' : 'right-0 border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 hover:border-purple-300 rounded-l-lg'}`}
+              style={isRunnerOpen ? { right: `min(${sidePanelWidth}px, calc(100% - 2.5rem))` } : undefined}
             >
               <ChevronLeft className={`w-5 h-5 transition-transform duration-200 ${isRunnerOpen ? 'rotate-180' : ''}`} />
               <span className={`absolute whitespace-nowrap text-[11px] font-medium text-purple-600 bg-white px-2 py-1 rounded-md border border-purple-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm ${isRunnerOpen ? 'right-full mr-2 top-1/2 -translate-y-1/2' : 'right-full mr-1.5 top-1/2 -translate-y-1/2'}`}>
