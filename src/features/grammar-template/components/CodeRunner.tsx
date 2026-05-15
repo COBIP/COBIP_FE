@@ -7,6 +7,102 @@ import { ExecutionFlowPanel } from './ExecutionFlowPanel';
 
 const CODE_EDITOR_LINE_HEIGHT = 24;
 
+function formatCodeLine(line: string) {
+  return line.trim().replace(/;$/, '').trim().replace(/\s+/g, ' ');
+}
+
+function checkNonExecutableLine(line: string) {
+  const trimmed = line.trim();
+
+  return (
+    !trimmed ||
+    trimmed === '{' ||
+    trimmed === '}' ||
+    trimmed.startsWith('//') ||
+    trimmed.startsWith('#') ||
+    trimmed.startsWith('/*') ||
+    trimmed.startsWith('*') ||
+    trimmed.startsWith('*/')
+  );
+}
+
+function findClosestExecutableLine(codeLines: string[], lineNumber: number) {
+  if (!codeLines.length) return lineNumber;
+
+  const targetIndex = Math.min(Math.max(lineNumber - 1, 0), codeLines.length - 1);
+
+  for (let offset = 0; offset < codeLines.length; offset += 1) {
+    const nextIndex = targetIndex + offset;
+    if (nextIndex < codeLines.length && !checkNonExecutableLine(codeLines[nextIndex])) {
+      return nextIndex + 1;
+    }
+
+    const previousIndex = targetIndex - offset;
+    if (offset > 0 && previousIndex >= 0 && !checkNonExecutableLine(codeLines[previousIndex])) {
+      return previousIndex + 1;
+    }
+  }
+
+  return lineNumber;
+}
+
+function findMatchingSourceLine(codeLines: string[], sourceLine: string, lineNumber: number) {
+  const normalizedSource = formatCodeLine(sourceLine);
+  if (!normalizedSource) return null;
+
+  const matches = codeLines
+    .map((line, index) => ({ line, lineNumber: index + 1 }))
+    .filter(({ line }) => !checkNonExecutableLine(line) && formatCodeLine(line) === normalizedSource);
+
+  if (!matches.length) return null;
+
+  return matches.sort(
+    (left, right) => Math.abs(left.lineNumber - lineNumber) - Math.abs(right.lineNumber - lineNumber),
+  )[0].lineNumber;
+}
+
+function getExecutableLineNumber(step: ExecutionFlowStep, codeLines: string[]) {
+  const lineNumber = Math.min(Math.max(step.lineNumber, 1), Math.max(codeLines.length, 1));
+  const matchedLine = findMatchingSourceLine(codeLines, step.sourceLine, lineNumber);
+
+  if (matchedLine) return matchedLine;
+  if (!checkNonExecutableLine(codeLines[lineNumber - 1] ?? '')) return lineNumber;
+
+  return findClosestExecutableLine(codeLines, lineNumber);
+}
+
+function buildExecutionFlowStepsWithExecutableLines(steps: ExecutionFlowStep[], sourceCode: string) {
+  const codeLines = sourceCode.split('\n');
+
+  return steps.map((step) => {
+    const originalLineNumber = step.lineNumber;
+    const lineNumber = getExecutableLineNumber(step, codeLines);
+    const resolvedSourceLine = codeLines[lineNumber - 1] ?? step.sourceLine;
+    const sourceLine = checkNonExecutableLine(step.sourceLine) ? resolvedSourceLine : step.sourceLine;
+    const normalizeSnapshotLine = <T extends { lineNumber: number; stepOrder: number } | null | undefined>(
+      snapshot: T,
+    ): T => {
+      if (!snapshot) return snapshot;
+
+      if (snapshot.stepOrder === step.stepOrder || snapshot.lineNumber === originalLineNumber) {
+        return { ...snapshot, lineNumber } as T;
+      }
+
+      return snapshot;
+    };
+
+    return {
+      ...step,
+      lineNumber,
+      sourceLine,
+      activeVariable: normalizeSnapshotLine(step.activeVariable),
+      activeOutput: normalizeSnapshotLine(step.activeOutput),
+      variables: step.variables?.map(normalizeSnapshotLine),
+      outputs: step.outputs?.map(normalizeSnapshotLine),
+    };
+  });
+}
+
 function formatRunResponseText(result: { output?: string; stdout?: string | null; compileOutput?: string | null; stderr?: string | null; message?: string | null; status?: string }) {
   const text = [result.output, result.stdout, result.compileOutput, result.stderr, result.message]
     .filter((value): value is string => Boolean(value?.trim()))
@@ -269,7 +365,7 @@ export function CodeRunner({
           sourceCode: fileContents[activeFilePath],
           language: language ?? 'PYTHON',
         });
-        setExecutionSteps(result.steps);
+        setExecutionSteps(buildExecutionFlowStepsWithExecutableLines(result.steps, fileContents[activeFilePath]));
       } catch (err) {
         setErrorMessage(`// 실행흐름 조회 실패: ${formatErrorText(err)}`);
       } finally {
