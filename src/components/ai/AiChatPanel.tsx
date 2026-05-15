@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { FormEvent, KeyboardEvent } from 'react';
+import type { Dispatch, FormEvent, KeyboardEvent, SetStateAction } from 'react';
 import { Bot, Loader2, Send, X } from 'lucide-react';
 import { fetchAiChat } from '@/api/services/AiService';
 
-type ChatMessage = {
+export type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
 };
@@ -17,6 +17,8 @@ interface AiChatPanelProps {
   isDarkMode?: boolean;
   variant?: 'overlay' | 'sidecar';
   className?: string;
+  messages?: ChatMessage[];
+  onMessagesChange?: Dispatch<SetStateAction<ChatMessage[]>>;
   onClose: () => void;
 }
 
@@ -38,17 +40,21 @@ export function AiChatPanel({
   isDarkMode = false,
   variant = 'overlay',
   className = '',
+  messages,
+  onMessagesChange,
   onClose,
 }: AiChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [internalMessages, setInternalMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chatMessages = messages ?? internalMessages;
+  const setChatMessages = onMessagesChange ?? setInternalMessages;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages, isSending]);
+  }, [chatMessages, isSending]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,8 +62,8 @@ export function AiChatPanel({
 
     if (!nextInput || isSending) return;
 
-    const nextMessages: ChatMessage[] = [...messages, { role: 'user', content: nextInput }];
-    setMessages(nextMessages);
+    const nextMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: nextInput }];
+    setChatMessages(nextMessages);
     setInput('');
     setErrorMessage('');
     setIsSending(true);
@@ -68,7 +74,7 @@ export function AiChatPanel({
         context: formatChatContext(context, nextMessages),
         useRag: true,
       });
-      setMessages((current) => [...current, { role: 'assistant', content: response.answer }]);
+      setChatMessages((current) => [...current, { role: 'assistant', content: response.answer }]);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'AI 채팅 요청에 실패했습니다.');
     } finally {
@@ -87,7 +93,7 @@ export function AiChatPanel({
 
   const panel = (
     <aside
-      className={`flex h-full w-full flex-col border-l ${
+      className={`flex h-full min-w-0 w-full flex-col overflow-hidden border-l ${
         variant === 'overlay' ? 'max-w-md shadow-2xl' : 'shadow-none'
       } ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-slate-200 bg-white'} ${className}`}
     >
@@ -118,8 +124,8 @@ export function AiChatPanel({
           </button>
         </header>
 
-        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-          {messages.length === 0 && (
+        <div ref={scrollRef} className="min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-4 py-4">
+          {chatMessages.length === 0 && (
             <div
               className={`rounded-xl border px-4 py-3 text-sm ${
                 isDarkMode ? 'border-[#334155] bg-[#1E293B] text-[#CBD5E1]' : 'border-slate-200 bg-slate-50 text-slate-600'
@@ -128,13 +134,13 @@ export function AiChatPanel({
               현재 학습 내용을 기준으로 질문할 수 있습니다.
             </div>
           )}
-          {messages.map((message, index) => (
+          {chatMessages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex min-w-0 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-6 ${
+                className={`min-w-0 max-w-[85%] overflow-hidden rounded-2xl px-3 py-2 text-sm leading-6 ${
                   message.role === 'user'
                     ? 'bg-[#7C3AED] text-white'
                     : isDarkMode
@@ -142,7 +148,12 @@ export function AiChatPanel({
                       : 'bg-slate-100 text-slate-800'
                 }`}
               >
-                <pre className="whitespace-pre-wrap break-words font-sans">{message.content}</pre>
+                <div
+                  className="min-w-0 max-w-full whitespace-pre-wrap break-words font-sans"
+                  style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                >
+                  {message.content}
+                </div>
               </div>
             </div>
           ))}
@@ -168,7 +179,7 @@ export function AiChatPanel({
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleInputKeyDown}
-              className={`max-h-32 min-h-10 flex-1 resize-none bg-transparent text-sm outline-none ${
+              className={`max-h-32 min-h-10 min-w-0 flex-1 resize-none bg-transparent text-sm outline-none ${
                 isDarkMode ? 'text-white placeholder:text-[#64748B]' : 'text-slate-900 placeholder:text-slate-400'
               }`}
               placeholder="질문을 입력하세요"
