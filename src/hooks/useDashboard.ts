@@ -1,7 +1,7 @@
 // src/hooks/useDashboard.ts
 import { useEffect, useState } from 'react';
 import { dashboardService } from '@/api/services/DashboardService';
-import type { MyDashboardData } from '@/types/DashboardTypes';
+import type { MyDashboardData } from '@/features/my-page/types/DashboardTypes';
 
 export const useDashboard = () => {
     const [dashboardData, setDashboardData] = useState<MyDashboardData | null>(null);

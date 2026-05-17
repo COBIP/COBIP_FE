@@ -1,96 +1,66 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
+
 import { useDashboard } from '@/hooks/useDashboard';
+import { useAuth } from '@/hooks/useUser';
+import type { LearningProgress } from '@/features/my-page/types/DashboardTypes';
+
 import { StatisticsCard } from '@/features/my-page/components/dashboard/StatisticsCard';
 import { LearningProgressChart } from '@/features/my-page/components/dashboard/LearningProgressChart';
 import { RecentLearningSection } from '@/features/my-page/components/dashboard/RecentLearningSection';
-// import { RecommendedCoursesSection } from '@/features/my-page/components/dashboard/RecommendedCoursesSection';
-import { Loader2 } from 'lucide-react'; // 로딩 아이콘
-// import type { TemplateSummary } from '@/types/TemplateSummaryTypes';
-import { PopularTemplates } from '@/features/my-page/components/dashboard/PopularTemplates'
-import type { WeeklyActivity, LearningProgress } from '@/types/DashboardTypes';
-
-// 인기 템플릿 이상 없을시 RecommendedCoursesSection, TemplateSummary 삭제 div쪽 삭제
-
-function getLearningHref(item: LearningProgress) {
-  return item.contentType === 'GRAMMAR_TEMPLATE'
-    ? `/grammar-template/${item.templateId}`
-    : `/functional-template/${item.templateId}`;
-}
-
-function getLearningCategory(item: LearningProgress) {
-  const templateType = item.contentType === 'GRAMMAR_TEMPLATE' ? '문법 템플릿' : '기능 템플릿';
-  return `${templateType} · ${item.completed ? '학습 완료' : '학습 중'}`;
-}
+import { PopularTemplates } from '@/features/my-page/components/dashboard/PopularTemplates';
+// 분리한 컴포넌트 및 유틸리티 import
+import { MonthlyStudyCalendar } from '@/features/my-page/components/dashboard/MonthlyStudyCalendar';
+import { RecentActivitiesSection } from '@/features/my-page/components/dashboard/RecentActivitiesSection';
+import { type ActivityView, buildWeeklyActivities, getLearningCategory, getLearningHref } from '@/features/my-page/utils/DashboardUtils';
 
 export default function DashboardPage() {
   const { dashboardData, isLoading, error } = useDashboard();
+  const { user } = useAuth();
+  const [activityView, setActivityView] = useState<ActivityView>('weekly-chart');
   const router = useRouter();
 
-  // 1. 로딩 상태 처리
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-purple-600 animate-spin" />
-        <p className="text-gray-500 font-medium">대시보드를 불러오고 있습니다...</p>
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-purple-600" />
+        <p className="font-medium text-gray-500">대시보드를 불러오고 있습니다...</p>
       </div>
     );
   }
 
-  // 2. 에러 상태 처리
   if (error || !dashboardData) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-red-500">{error || "데이터를 불러올 수 없습니다."}</p>
+      <div className="flex h-[60vh] items-center justify-center">
+        <p className="text-red-500">{error || '데이터를 불러오지 못했습니다.'}</p>
       </div>
     );
   }
 
-  // 인기 템플릿
-  const handleSelectTemplate = (templateId: string) => {
-    router.push(`/grammar-template/${templateId}`);
+  const handleSelectTemplate = (templateId: number) => {
+    router.push(`/functional-template/${templateId}`);
   };
 
-  // (1) 통계 카드 데이터 변환
   const statsCards = [
-    {
-      title: '나의 템플릿',
-      value: dashboardData.registeredTemplateCount,
-      unit: '개',
-      color: 'blue' as const,
-    },
-    {
-      title: '학습 중',
-      value: dashboardData.inProgressLearningCount,
-      unit: '개',
-      color: 'orange' as const,
-    },
-    {
-      title: '학습 완료',
-      value: dashboardData.completedLearningCount,
-      unit: '개',
-      color: 'green' as const,
-    },
-    {
-      title: '평균 정답률',
-      value: Math.round(dashboardData.averageCorrectRate),
-      unit: '%',
-      color: 'purple' as const,
-    },
+    { title: '나의 템플릿', value: dashboardData.registeredTemplateCount, unit: '개', color: 'blue' as const },
+    { title: '학습 중', value: dashboardData.inProgressLearningCount, unit: '개', color: 'orange' as const },
+    { title: '학습 완료', value: dashboardData.completedLearningCount, unit: '개', color: 'green' as const },
+    { title: '평균 정답률', value: Math.round(dashboardData.averageCorrectRate), unit: '%', color: 'purple' as const },
   ];
 
-  const chartActivities = dashboardData.weeklyActivities.map((activity: WeeklyActivity) => ({ 
-    day: new Date(activity.date).toLocaleDateString('ko-KR', { weekday: 'short' }), 
-    studySeconds: activity.studySeconds 
-  }));
-  // (3) 최근 학습 데이터 변환
-  const recentLearnings = dashboardData.recentLearning.map((item: LearningProgress) => ({
+  const weeklyActivities = buildWeeklyActivities(dashboardData.weeklyActivities ?? []);
+  const joinedAt = user?.createdAt ? new Date(user.createdAt) : null;
+  const joinedYear = joinedAt && !Number.isNaN(joinedAt.getTime()) ? joinedAt.getFullYear() : new Date().getFullYear();
+  
+  const recentLearnings = (dashboardData.recentLearning ?? []).map((item: LearningProgress) => ({
     id: `${item.contentType ?? 'TEMPLATE'}-${item.templateId}`,
     title: item.templateTitle,
     category: getLearningCategory(item),
-    lastStudiedDate: new Date(item.lastAccessedAt).toLocaleDateString(),
+    lastStudiedDate: new Date(item.lastAccessedAt).toLocaleDateString('ko-KR'),
     completionRate: item.progressPercent,
     href: getLearningHref(item),
   }));
@@ -120,36 +90,58 @@ export default function DashboardPage() {
         </Link>
       )}
 
-      {/* 상단 통계 카드 섹션 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsCards.map((card, index) => (
           <StatisticsCard key={index} card={card} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 왼쪽: 학습 차트 */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <LearningProgressChart activities={chartActivities} />
+          <div className="mb-3 flex justify-end">
+            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setActivityView('weekly-chart')}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
+                  activityView === 'weekly-chart' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                주간 그래프
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivityView('monthly-calendar')}
+                className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
+                  activityView === 'monthly-calendar' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                학습 캘린더
+              </button>
+            </div>
+          </div>
+
+          {activityView === 'weekly-chart' ? (
+            <LearningProgressChart activities={weeklyActivities} />
+          ) : (
+            <MonthlyStudyCalendar
+              activities={dashboardData.weeklyActivities ?? []}
+              joinedYear={joinedYear}
+            />
+          )}
         </div>
-        
-        {/* 오른쪽: 최근 학습 목록 */}
+
         <div className="lg:col-span-1">
           <RecentLearningSection learnings={recentLearnings} />
         </div>
       </div>
-      <PopularTemplates onSelectTemplate={handleSelectTemplate}/>
-      {/* 하단: 인기 템플릿 (기존 RecommendedCoursesSection 재활용) */}
-      {/* <RecommendedCoursesSection 
-        courses={dashboardData.popularTemplates.map((t: TemplateSummary) => ({
-            id: t.id,
-            title: t.title,
-            description: t.description,
-            releaseDate: new Date(t.createdAt).toLocaleDateString(),
-            category: t.category,
-            difficulty: t.difficulty.toLowerCase() as 'beginner' | 'intermediate' | 'advanced'
-        }))} 
-    /> */}
+
+      <RecentActivitiesSection activities={dashboardData.recentActivities ?? []} />
+
+      <PopularTemplates
+        templates={dashboardData.popularTemplates ?? []}
+        onSelectTemplate={handleSelectTemplate}
+      />
     </div>
   );
 }

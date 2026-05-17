@@ -1,40 +1,72 @@
-import { GRAMMAR_TEMPLATES } from '@/features/grammar-template/Constants';
-import { GrammarTemplateCard } from './GrammarTemplateCard'; // 경로에 맞게 수정해주세요
+import type { TemplateSummary } from '@/features/my-page/types/DashboardTypes';
 
 interface PopularTemplatesProps {
-  onSelectTemplate: (templateId: string) => void;
+  templates: TemplateSummary[];
+  onSelectTemplate: (templateId: number) => void;
 }
 
-export function PopularTemplates({ onSelectTemplate }: PopularTemplatesProps) {
-  // 1. '인기' 배지를 가진 템플릿만 필터링 (GrammarTemplateList.tsx 로직 추출)
-  const popularTemplates = GRAMMAR_TEMPLATES.filter((t) => t.badge === '인기');
+const difficultyLabels: Record<string, string> = {
+  BEGINNER: '입문',
+  INTERMEDIATE: '중급',
+  ADVANCED: '고급',
+};
 
+function formatDifficulty(difficulty: string) {
+  return difficultyLabels[difficulty] ?? difficulty;
+}
+
+export function PopularTemplates({ templates, onSelectTemplate }: PopularTemplatesProps) {
   return (
-    <div className="w-full">
-      {/* 마이페이지용 섹션 타이틀 (필요에 따라 수정) */}
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-lg font-bold text-gray-900 tracking-tight">
-          🔥 인기 문법 템플릿
-        </h2>
+    <section className="w-full">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold tracking-tight text-gray-900">인기 템플릿</h2>
+        <span className="text-xs font-medium text-gray-500">백엔드 대시보드 기준</span>
       </div>
 
-      {/* 2. 기존과 완벽히 동일한 반응형 4열 그리드 레이아웃 적용 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {popularTemplates.map((template) => (
-          <GrammarTemplateCard
-            key={template.id}
-            template={template}
-            onClick={onSelectTemplate}
-          />
-        ))}
-      </div>
+      {templates.length === 0 ? (
+        <div className="rounded-xl border border-gray-100 bg-gray-50 py-12 text-center">
+          <p className="text-sm text-gray-400">현재 인기 템플릿이 없습니다.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {templates.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => onSelectTemplate(template.id)}
+              className="group rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md hover:shadow-purple-100"
+            >
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-purple-600">{template.category}</p>
+                  <h3 className="mt-1 line-clamp-2 text-sm font-bold text-gray-900">{template.title}</h3>
+                </div>
+                <span className="shrink-0 rounded-full border border-purple-100 bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-600">
+                  {formatDifficulty(template.difficulty)}
+                </span>
+              </div>
 
-      {/* 인기 템플릿이 없을 경우의 예외 처리 */}
-      {popularTemplates.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-100">
-          <p className="text-gray-400 text-sm">현재 인기 템플릿이 없습니다.</p>
+              <p className="line-clamp-2 text-xs leading-5 text-gray-500">{template.description}</p>
+
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {template.techStacks.slice(0, 3).map((stack) => (
+                  <span
+                    key={stack}
+                    className="rounded-md border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500"
+                  >
+                    {stack}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between border-t border-gray-50 pt-3 text-[11px] text-gray-400">
+                <span>조회 {template.viewCount}</span>
+                <span>좋아요 {template.favoriteCount}</span>
+              </div>
+            </button>
+          ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
