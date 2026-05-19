@@ -21,36 +21,38 @@ const statusLabel: Record<string, string> = {
     INTERNAL_ERROR: '채점 오류',
 };
 
-const ResultBlock = ({ result }: { result: CodingCodeRunResponse | CodingSubmissionResponse }) => (
-    <div className="space-y-3 text-sm">
-        <div className="flex flex-wrap items-center gap-3">
-            <span className={`text-base font-bold ${result.status === 'ACCEPTED' ? 'text-emerald-600' : 'text-red-600'}`}>
-                {statusLabel[result.status] ?? result.status}
-            </span>
-            {result.time && <span className="text-gray-500">실행 시간: {result.time}</span>}
-            {result.memory !== null && <span className="text-gray-500">메모리: {result.memory}KB</span>}
+function ResultBlock({ result }: { result: CodingCodeRunResponse | CodingSubmissionResponse }) {
+    return (
+        <div className="space-y-3 text-sm">
+            <div className="flex flex-wrap items-center gap-3">
+                <span className={`text-base font-bold ${result.status === 'ACCEPTED' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {statusLabel[result.status] ?? result.status}
+                </span>
+                {result.time && <span className="text-gray-500">실행 시간: {result.time}</span>}
+                {result.memory !== null && <span className="text-gray-500">메모리: {result.memory}KB</span>}
+            </div>
+            {result.message && <p className="text-gray-700">{result.message}</p>}
+            {result.stdout && (
+                <div>
+                    <span className="text-xs font-bold text-gray-500 uppercase">Stdout</span>
+                    <pre className="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap">{result.stdout}</pre>
+                </div>
+            )}
+            {result.stderr && (
+                <div>
+                    <span className="text-xs font-bold text-red-500 uppercase">Stderr</span>
+                    <pre className="mt-1 bg-red-50 border border-red-100 rounded-lg p-3 whitespace-pre-wrap text-red-700">{result.stderr}</pre>
+                </div>
+            )}
+            {result.compileOutput && (
+                <div>
+                    <span className="text-xs font-bold text-orange-500 uppercase">Compile Output</span>
+                    <pre className="mt-1 bg-orange-50 border border-orange-100 rounded-lg p-3 whitespace-pre-wrap text-orange-700">{result.compileOutput}</pre>
+                </div>
+            )}
         </div>
-        {result.message && <p className="text-gray-700">{result.message}</p>}
-        {result.stdout && (
-            <div>
-                <span className="text-xs font-bold text-gray-500 uppercase">Stdout</span>
-                <pre className="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap">{result.stdout}</pre>
-            </div>
-        )}
-        {result.stderr && (
-            <div>
-                <span className="text-xs font-bold text-red-500 uppercase">Stderr</span>
-                <pre className="mt-1 bg-red-50 border border-red-100 rounded-lg p-3 whitespace-pre-wrap text-red-700">{result.stderr}</pre>
-            </div>
-        )}
-        {result.compileOutput && (
-            <div>
-                <span className="text-xs font-bold text-orange-500 uppercase">Compile Output</span>
-                <pre className="mt-1 bg-orange-50 border border-orange-100 rounded-lg p-3 whitespace-pre-wrap text-orange-700">{result.compileOutput}</pre>
-            </div>
-        )}
-    </div>
-);
+    );
+}
 
 export default function ConsolePanel({
     isExecuting,
