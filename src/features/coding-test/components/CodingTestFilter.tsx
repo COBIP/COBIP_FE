@@ -1,46 +1,60 @@
-// src/features/coding-test/components/CodingTestFilter.tsx
 'use client';
 
 import { useState } from 'react';
-import type { GetWorkbooksParams } from '@/types/CodingWorkbookTypes';
+import type { CodingDifficulty } from '@/types/CodingWorkbookTypes';
 
-// DB 약속에 맞춘 최종 카테고리 & 난이도 세팅
-const FILTER_CATEGORIES = [
-    { 
-        id: 'category', 
-        label: '출제 기관', 
-        options: [
-            { label: '전체', value: undefined }, 
-            { label: '네이버', value: '네이버' }, 
-            { label: '삼성', value: '삼성' }, 
-            { label: '다음', value: '다음' }
-        ] 
-    },
-    { 
-        id: 'difficulty', 
-        label: '난이도', 
-        options: [
-            { label: '전체', value: undefined }, 
-            { label: '초급', value: 'EASY' }, 
-            { label: '중급', value: 'MEDIUM' }, 
-            { label: '고급', value: 'HARD' }
-        ] 
-    },
+const WORKBOOK_NAME_OPTIONS = ['네이버 코테집', '카카오 코테집', '삼성 코테집', '라인 코테집'];
+const WORKBOOK_CATEGORY_OPTIONS = ['네이버', '카카오', '삼성', '라인', '프로그래머스'];
+
+const DIFFICULTY_OPTIONS: Array<{ label: string; value: CodingDifficulty | undefined }> = [
+    { label: '전체', value: undefined },
+    { label: '초급', value: 'EASY' },
+    { label: '중급', value: 'MEDIUM' },
+    { label: '고급', value: 'HARD' },
 ];
 
-interface CodingTestFilterProps {
-    selectedParams: GetWorkbooksParams;
-    onFilterChange: (categoryId: string, optionValue: string | undefined) => void;
-    onSearch: (keyword: string) => void;
+export interface CodingTestFilterState {
+    titleKeyword?: string;
+    workbookName?: string;
+    workbookCategory?: string;
+    workbookDifficulty?: CodingDifficulty;
+    problemCategory?: string;
+    problemDifficulty?: CodingDifficulty;
 }
 
-export default function CodingTestFilter({ selectedParams, onFilterChange, onSearch }: CodingTestFilterProps) {
-    const [searchInput, setSearchInput] = useState(selectedParams.keyword || '');
+interface CodingTestFilterProps {
+    value: CodingTestFilterState;
+    problemCategoryOptions: string[];
+    onApply: (filters: CodingTestFilterState) => void;
+    onReset: () => void;
+}
 
-    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            onSearch(searchInput);
-        }
+export default function CodingTestFilter({
+    value,
+    problemCategoryOptions,
+    onApply,
+    onReset,
+}: CodingTestFilterProps) {
+    const [draft, setDraft] = useState<CodingTestFilterState>(value);
+    const [titleInput, setTitleInput] = useState(value.titleKeyword ?? '');
+
+    const applyFilters = (nextDraft: CodingTestFilterState) => {
+        onApply({
+            ...nextDraft,
+            titleKeyword: nextDraft.titleKeyword?.trim() || undefined,
+        });
+    };
+
+    const updateAndApply = (next: Partial<CodingTestFilterState>) => {
+        setDraft((prev) => {
+            const nextDraft = { ...prev, ...next };
+            applyFilters(nextDraft);
+            return nextDraft;
+        });
+    };
+
+    const applyTitleSearch = () => {
+        updateAndApply({ titleKeyword: titleInput.trim() || undefined });
     };
 
     return (
@@ -48,48 +62,161 @@ export default function CodingTestFilter({ selectedParams, onFilterChange, onSea
             <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h1 className="text-4xl font-bold text-gray-900 mb-2">문제집 목록</h1>
-                    <p className="text-lg text-gray-600">다양한 출제 기관의 문제집을 통해 실력을 향상시키세요.</p>
+                    <p className="text-lg text-gray-600">문제집 조건과 문제 조건을 함께 골라 코테집을 찾아보세요.</p>
                 </div>
-                <div className="w-full md:w-80 relative group">
-                    <input 
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                        onKeyDown={handleSearchKeyDown}
-                        className="w-full h-11 pl-11 pr-4 bg-white border border-gray-300 rounded-xl text-sm" 
-                        placeholder="문제집 제목 검색 (Enter)" 
+                <div className="w-full md:w-[420px] flex gap-2">
+                    <input
+                        value={titleInput}
+                        onChange={(event) => setTitleInput(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') applyTitleSearch();
+                        }}
+                        className="h-11 min-w-0 flex-grow rounded-xl border border-gray-300 px-4 text-sm"
+                        placeholder="제목 검색"
                         type="text"
                     />
-                    <svg className="w-5 h-5 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                    <button
+                        onClick={applyTitleSearch}
+                        className="h-11 px-5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition-colors"
+                    >
+                        검색
+                    </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 mb-8 flex flex-col gap-4 shadow-sm">
-                {FILTER_CATEGORIES.map((category) => (
-                    <div key={category.id} className="flex flex-col md:flex-row md:items-center gap-4 border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                        <div className="w-32 flex-shrink-0 border-l-4 pl-3 border-blue-500">
-                            <span className="text-sm font-bold text-gray-800">{category.label}</span>
+            <div className="bg-white rounded-2xl p-6 border border-gray-200 mb-8 shadow-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <section className="flex flex-col gap-4">
+                        <div className="border-b border-gray-100 pb-3">
+                            <h3 className="text-base font-bold text-gray-900">문제집 필터</h3>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            {category.options.map((option) => {
-                                // 타입 안전성을 위해 타입 단언 사용
-                                const isSelected = (selectedParams as Record<string, unknown>)[category.id] === option.value;
-                                return (
-                                    <button 
-                                        key={option.label} 
-                                        onClick={() => onFilterChange(category.id, option.value)}
+
+                        <div className="flex flex-col gap-3">
+                            <span className="text-sm font-bold text-gray-800 border-l-4 pl-3 border-blue-500">문제집 이름</span>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => updateAndApply({ workbookName: undefined })}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                        !draft.workbookName ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                                >
+                                    전체
+                                </button>
+                                {WORKBOOK_NAME_OPTIONS.map((name) => (
+                                    <button
+                                        key={name}
+                                        onClick={() => updateAndApply({ workbookName: name })}
                                         className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
-                                            isSelected ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                            draft.workbookName === name ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                        }`}
+                                    >
+                                        {name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <span className="text-sm font-bold text-gray-800 border-l-4 pl-3 border-blue-500">문제집 카테고리</span>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => updateAndApply({ workbookCategory: undefined })}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                        !draft.workbookCategory ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                                >
+                                    전체
+                                </button>
+                                {WORKBOOK_CATEGORY_OPTIONS.map((category) => (
+                                    <button
+                                        key={category}
+                                        onClick={() => updateAndApply({ workbookCategory: category })}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                            draft.workbookCategory === category ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                        }`}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <span className="text-sm font-bold text-gray-800 border-l-4 pl-3 border-blue-500">문제집 난이도</span>
+                            <div className="flex flex-wrap gap-2">
+                                {DIFFICULTY_OPTIONS.map((option) => (
+                                    <button
+                                        key={option.label}
+                                        onClick={() => updateAndApply({ workbookDifficulty: option.value })}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                            draft.workbookDifficulty === option.value ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                                         }`}
                                     >
                                         {option.label}
                                     </button>
-                                );
-                            })}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    </section>
+
+                    <section className="flex flex-col gap-4 lg:border-l lg:border-gray-100 lg:pl-8">
+                        <div className="border-b border-gray-100 pb-3">
+                            <h3 className="text-base font-bold text-gray-900">문제 필터</h3>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <span className="text-sm font-bold text-gray-800 border-l-4 pl-3 border-blue-500">문제 카테고리</span>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => updateAndApply({ problemCategory: undefined })}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                        !draft.problemCategory ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                                >
+                                    전체
+                                </button>
+                                {problemCategoryOptions.map((category) => (
+                                    <button
+                                        key={category}
+                                        onClick={() => updateAndApply({ problemCategory: category })}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                            draft.problemCategory === category ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                        }`}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <span className="text-sm font-bold text-gray-800 border-l-4 pl-3 border-blue-500">문제 난이도</span>
+                            <div className="flex flex-wrap gap-2">
+                                {DIFFICULTY_OPTIONS.map((option) => (
+                                    <button
+                                        key={option.label}
+                                        onClick={() => updateAndApply({ problemDifficulty: option.value })}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                                            draft.problemDifficulty === option.value ? 'bg-violet-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex justify-end w-full">
+                            <button
+                                onClick={onReset}
+                                className="mt-5 inline-flex w-fit items-center rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700 transition-colors shadow-sm"
+                            >
+                                필터 초기화
+                            </button>
+                        </div>
+                    </section>
+                </div>
+
+                
             </div>
         </>
     );

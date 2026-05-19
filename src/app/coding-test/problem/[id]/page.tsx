@@ -10,20 +10,30 @@ import { Header } from '@/features/main-home/components/Header';
 export default function CodingProblemDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const problemId = Number(resolvedParams.id);
-    
-    // apiProblem으로 이름을 바꾸던 부분을 원래 이름인 problem으로 단순화
-    const { 
+
+    const {
         problem,
-        isLoading, 
-        selectedLanguage, changeLanguage, 
-        sourceCode, setSourceCode,
-        isExecuting, handleRun, handleSubmit,
-        runResult, submissionResult, resetCode
+        isLoading,
+        error,
+        selectedLanguage,
+        changeLanguage,
+        sourceCode,
+        setSourceCode,
+        isExecuting,
+        handleRun,
+        handleSubmit,
+        runResult,
+        submissionResult,
+        resetCode,
+        executionError,
     } = useCodingSolving(problemId);
 
-    // 로딩 중이거나 아직 API 데이터를 받아오지 못한 경우 안전하게 예외 처리
-    if (isLoading || !problem) {
+    if (isLoading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    }
+
+    if (error || !problem) {
+        return <div className="flex h-screen items-center justify-center text-red-500 font-bold">{error ?? '문제를 찾을 수 없습니다.'}</div>;
     }
 
     return (
@@ -35,7 +45,7 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
                 </div>
                 <div className="w-[60%] flex flex-col h-full bg-[#1E1E1E]">
                     <div className="flex-grow overflow-hidden">
-                        <CodeEditor 
+                        <CodeEditor
                             selectedLanguage={selectedLanguage}
                             changeLanguage={changeLanguage}
                             sourceCode={sourceCode}
@@ -44,12 +54,13 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
                         />
                     </div>
                     <div className="h-[35%] min-h-[250px]">
-                        <ConsolePanel 
+                        <ConsolePanel
                             isExecuting={isExecuting}
                             handleRun={handleRun}
                             handleSubmit={handleSubmit}
                             runResult={runResult}
                             submissionResult={submissionResult}
+                            executionError={executionError}
                         />
                     </div>
                 </div>

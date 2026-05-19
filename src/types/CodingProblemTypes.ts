@@ -1,16 +1,30 @@
-// 1. Enum 값 동기화
-export type CodingLanguage = 'JAVA' | 'PYTHON' | 'JAVASCRIPT'; 
-export type CodingSubmissionStatus = 
-    | 'PENDING' | 'RUNNING' | 'ACCEPTED' | 'WRONG_ANSWER' 
-    | 'COMPILE_ERROR' | 'RUNTIME_ERROR' | 'TIME_LIMIT_EXCEEDED' | 'INTERNAL_ERROR';
+import type { CodingDifficulty } from '@/types/CodingWorkbookTypes';
 
-export type CodingDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
+export type CodingLanguage = 'JAVA' | 'PYTHON' | 'JAVASCRIPT';
 
-// 2. 내부 DTO 객체
+export type CodingSubmissionStatus =
+    | 'PENDING'
+    | 'RUNNING'
+    | 'ACCEPTED'
+    | 'WRONG_ANSWER'
+    | 'COMPILE_ERROR'
+    | 'RUNTIME_ERROR'
+    | 'TIME_LIMIT_EXCEEDED'
+    | 'INTERNAL_ERROR';
+
+export type CodingProblemContentBlock = {
+    type?: string;
+    text?: string;
+    content?: CodingProblemContentBlock[];
+    attrs?: Record<string, unknown>;
+};
+
+export type CodingProblemJson = string | CodingProblemContentBlock | CodingProblemContentBlock[] | null;
+
 export interface CodingProblemSampleTestCaseResponse {
     id: number;
     input: string;
-    expectedOutput: string; // output에서 수정됨
+    expectedOutput: string;
     orderIndex: number;
 }
 
@@ -19,15 +33,14 @@ export interface CodingProblemStarterCodeResponse {
     code: string;
 }
 
-// 3. 문제 상세 정보 (CodingProblemDetailResponse.java 대응)
 export interface CodingProblemDetailResponse {
     id: number;
     workbookId: number;
     title: string;
     category: string;
     difficulty: CodingDifficulty;
-    contentJson: string; // any 대신 구체적인 타입(주로 string) 지정
-    explanationJson: string | null;
+    contentJson: CodingProblemJson;
+    explanationJson: CodingProblemJson;
     orderIndex: number;
     timeLimitMillis: number;
     memoryLimitMb: number;
@@ -37,7 +50,6 @@ export interface CodingProblemDetailResponse {
     updatedAt: string;
 }
 
-// 4. 실행 및 제출 관련
 export interface CodingCodeRunRequest {
     language: CodingLanguage;
     sourceCode: string;
@@ -46,11 +58,11 @@ export interface CodingCodeRunRequest {
 
 export interface CodingCodeRunResponse {
     status: CodingSubmissionStatus;
-    stdout: string;
-    stderr: string;
-    compileOutput: string;
-    message: string;
-    time: string;
+    stdout: string | null;
+    stderr: string | null;
+    compileOutput: string | null;
+    message: string | null;
+    time: string | null;
     memory: number | null;
 }
 
@@ -66,11 +78,11 @@ export interface CodingSubmissionResponse {
     status: CodingSubmissionStatus;
     passedCount: number;
     totalCount: number;
-    stdout: string;
-    stderr: string;
-    compileOutput: string;
-    message: string;
-    time: string;
+    stdout: string | null;
+    stderr: string | null;
+    compileOutput: string | null;
+    message: string | null;
+    time: string | null;
     memory: number | null;
     createdAt: string;
 }
