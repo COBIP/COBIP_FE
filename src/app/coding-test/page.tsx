@@ -58,7 +58,7 @@ export default function CodingTestPage() {
         return () => {
             isMounted = false;
         };
-    }, [data?.content]);
+    }, [data?.content, workbooks]);
 
     const problemCategoryOptions = useMemo(() => {
         const categories = Object.values(workbookDetails)
@@ -76,10 +76,10 @@ export default function CodingTestPage() {
         const workbookName = filters.workbookName?.trim().toLowerCase();
         const titleFilteredWorkbooks = workbooks.filter((workbook) => {
             const title = workbook.title.toLowerCase();
-            const matchesTitleKeyword = !titleKeyword || title.includes(titleKeyword);
-            const matchesWorkbookName = !workbookName || title.includes(workbookName);
+            const hasTitleKeyword = !titleKeyword || title.includes(titleKeyword);
+            const hasWorkbookName = !workbookName || title.includes(workbookName);
 
-            return matchesTitleKeyword && matchesWorkbookName;
+            return hasTitleKeyword && hasWorkbookName;
         });
 
         if (!hasProblemFilter) return titleFilteredWorkbooks;
@@ -89,9 +89,9 @@ export default function CodingTestPage() {
             if (!detail) return false;
 
             return detail.problems.some((problem) => {
-                const matchesCategory = !filters.problemCategory || problem.category === filters.problemCategory;
-                const matchesDifficulty = !filters.problemDifficulty || problem.difficulty === filters.problemDifficulty;
-                return matchesCategory && matchesDifficulty;
+                const hasCategory = !filters.problemCategory || problem.category === filters.problemCategory;
+                const hasDifficulty = !filters.problemDifficulty || problem.difficulty === filters.problemDifficulty;
+                return hasCategory && hasDifficulty;
             });
         });
     }, [filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, filters.workbookName, hasProblemFilter, workbookDetails, workbooks]);
@@ -124,6 +124,7 @@ export default function CodingTestPage() {
             <div className="bg-white min-h-screen pb-20">
                 <main className="flex-grow max-w-[1440px] mx-auto w-full px-8 py-10">
                     <CodingTestFilter
+                        key={JSON.stringify(filters)} 
                         value={filters}
                         problemCategoryOptions={problemCategoryOptions}
                         onApply={applyFilters}
