@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { CodingDifficulty } from '@/types/CodingWorkbookTypes';
 
 const WORKBOOK_NAME_OPTIONS = ['네이버 코테집', '카카오 코테집', '삼성 코테집', '라인 코테집'];
@@ -37,11 +37,6 @@ export default function CodingTestFilter({
 }: CodingTestFilterProps) {
     const [draft, setDraft] = useState<CodingTestFilterState>(value);
     const [titleInput, setTitleInput] = useState(value.titleKeyword ?? '');
-
-    useEffect(() => {
-        setDraft(value);
-        setTitleInput(value.titleKeyword ?? '');
-    }, [value]);
 
     const applyFilters = (nextDraft: CodingTestFilterState) => {
         onApply({
