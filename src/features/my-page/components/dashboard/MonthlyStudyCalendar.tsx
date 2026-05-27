@@ -6,6 +6,7 @@ import {
   WEEKDAY_LABELS,
   MONTH_OPTIONS,
   CALENDAR_LEVEL_COLORS,
+  CALENDAR_MAX_STUDY_SECONDS,
   type CalendarDay,
   buildDateKey,
   buildCalendarDays,
@@ -36,7 +37,6 @@ export function MonthlyStudyCalendar({
   );
 
   const visibleDays = calendarDays.filter((day): day is CalendarDay => Boolean(day));
-  const maxSeconds = Math.max(...visibleDays.map((day) => day.studySeconds), 1);
   const monthlyTotalSeconds = visibleDays.reduce((sum, day) => sum + day.studySeconds, 0);
   const activeDays = visibleDays.filter((day) => day.studySeconds > 0).length;
 
@@ -89,7 +89,7 @@ export function MonthlyStudyCalendar({
         {calendarDays.map((day, index) => {
           if (!day) return <div key={`blank-${index}`} className="aspect-square rounded-md" />;
 
-          const level = calculateCalendarLevel(day.studySeconds, maxSeconds);
+          const level = calculateCalendarLevel(day.studySeconds, CALENDAR_MAX_STUDY_SECONDS);
           const isToday = day.key === todayKey;
 
           return (
