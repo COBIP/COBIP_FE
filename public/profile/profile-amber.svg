@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Amber profile image">
+  <rect width="256" height="256" rx="128" fill="#fef3c7"/>
+  <circle cx="128" cy="92" r="44" fill="#d97706"/>
+  <path d="M52 216c10-48 42-76 76-76s66 28 76 76" fill="#fbbf24"/>
+  <circle cx="128" cy="88" r="18" fill="#fff7ed"/>
+</svg>
