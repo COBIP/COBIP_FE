@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Purple profile image">
+  <rect width="256" height="256" rx="128" fill="#ede9fe"/>
+  <circle cx="128" cy="92" r="44" fill="#7c3aed"/>
+  <path d="M52 216c10-48 42-76 76-76s66 28 76 76" fill="#a78bfa"/>
+  <circle cx="98" cy="88" r="8" fill="#fff"/>
+  <circle cx="158" cy="88" r="8" fill="#fff"/>
+</svg>
