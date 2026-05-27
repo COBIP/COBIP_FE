@@ -9,3 +9,8 @@ export interface UserProfile {
     createdAt: string;
     updatedAt?: string;
 }
+
+export interface UserProfileUpdatePayload {
+    nickname?: string;
+    profileImageUrl?: string | null;
+}
