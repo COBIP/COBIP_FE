@@ -19,6 +19,7 @@ export const CALENDAR_LEVEL_COLORS = [
   'bg-purple-500 text-white',
   'bg-purple-700 text-white',
 ];
+export const CALENDAR_MAX_STUDY_SECONDS = 5 * 60 * 60;
 
 export function getLearningHref(item: LearningProgress) {
   return item.contentType === 'GRAMMAR_TEMPLATE'
@@ -49,12 +50,26 @@ export function buildDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+export function getCurrentWeekRange(today = new Date()) {
+  const weekStart = new Date(today);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  return { weekStart, weekEnd };
+}
+
 export function buildWeeklyActivities(activities: WeeklyActivity[]) {
   const weeklySeconds = new Map<string, number>();
+  const { weekStart, weekEnd } = getCurrentWeekRange();
 
   activities.forEach((activity) => {
     const date = new Date(activity.date);
     if (Number.isNaN(date.getTime())) return;
+    if (date < weekStart || date >= weekEnd) return;
+
     const day = WEEKDAY_LABELS[date.getDay()];
     weeklySeconds.set(day, (weeklySeconds.get(day) ?? 0) + (Number(activity.studySeconds) || 0));
   });
