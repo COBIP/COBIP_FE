@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { useAuth } from '@/hooks/useUser'; // ✅ 방금 만든 훅 임포트
 import { usePathname } from "next/navigation";
+import { getSafeProfileImageUrl } from '@/features/my-page/components/profile-edit/ProfileImageOptions';
 import { 
     LayoutDashboard, 
     BookOpen, 
@@ -12,8 +13,7 @@ import {
     FileText, 
     CreditCard, 
     UserCog, 
-    Settings,
-    User
+    Settings
 } from "lucide-react";
 
 
@@ -22,7 +22,7 @@ export default function MyPageSidebar() {
 
     // 유저 데이터가 없을 때(또는 로딩 중일 때) 보여줄 기본값 안전 처리
     const nickName = user?.nickname || "로딩 중...";
-    const profileImage = user?.profileImageUrl || null;
+    const profileImage = getSafeProfileImageUrl(user?.profileImageUrl);
 
     return (
         <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 border-r border-t border-[#e5e2e1] bg-white flex flex-col p-6 z-40 hidden md:flex ">
@@ -30,18 +30,14 @@ export default function MyPageSidebar() {
             {/* 프로필 출력 */}
             <div className="flex flex-col items-center pb-6 border-b border-[#e5e2e1]">
                 <div className="w-16 h-16 bg-[#f0edec] rounded-full flex items-center justify-center mb-3 shadow-md border-4 border-[#e5e2e1] overflow-hidden">
-                    {/* ✅ 실제 프로필 이미지 적용 */}
-                    {profileImage ? (
-                        <Image 
-                            src={profileImage} 
-                            alt="프로필 이미지" 
-                            width={60} 
-                            height={60} 
-                            className="rounded-full object-cover w-full h-full"
-                        />                    
-                    ) : (
-                        <User size={20} className="text-gray-600" />
-                    )}
+                    <Image
+                        src={profileImage}
+                        alt="프로필 이미지"
+                        width={64}
+                        height={64}
+                        loading="eager"
+                        className="h-full w-full rounded-full object-cover"
+                    />
                 </div>
                 {/* ✅ 실제 닉네임 적용 */}
                 <h2 className="text-lg font-bold text-[#1c1b1b]">{nickName}</h2>
