@@ -6,7 +6,7 @@ import { StudyFilterTabs } from '@/features/my-page/components/study/StudyFilter
 import { StudyList } from '@/features/my-page/components/study/StudyList';
 import { StudyPagination } from '@/features/my-page/components/study/StudyPagination';
 import { StudySummaryCards } from '@/features/my-page/components/study/StudySummaryCards';
-import { useMyLearning } from '@/features/my-page/hooks/useMyLearning';
+import { useMyLearning } from '@/features/my-page/hooks/UseMyLearning';
 
 export function StudyPage() {
   const {
