@@ -47,7 +47,7 @@ export default function MyPageSidebar() {
             <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
                 <SidebarLink href="/my-page/profile" icon={<UserCog size={20} />} title="프로필" />
                 <SidebarLink href="/my-page/dashboard" icon={<LayoutDashboard size={20} />} title="대시보드" />
-                <SidebarLink href="/my-page/my-learning" icon={<BookOpen size={20} />} title="내학습" />
+                <SidebarLink href="/my-page/study" icon={<BookOpen size={20} />} title="내 학습" />
                 <SidebarLink href="/my-page/subscription" icon={<CreditCard size={20} />} title="구독관리" />
                 <SidebarLink href="/my-page/review-note" icon={<FileEdit size={20} />} title="오답노트" />
                 <SidebarLink href="/my-page/archive" icon={<Archive size={20} />} title="보관함" />
