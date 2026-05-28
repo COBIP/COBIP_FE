@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { KeyRound, X } from 'lucide-react';
 import type { PasswordChangePayload } from '@/api/services/AccountManagementService';
 

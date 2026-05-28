@@ -28,7 +28,7 @@ function getCurrentPasswordErrorMessage(error: unknown, fallback: string) {
     : message;
 }
 
-export function useAccountManagement() {
+export const useAccountManagement = () => {
   const clearSession = useUserStore((state) => state.clearSession);
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
@@ -75,4 +75,4 @@ export function useAccountManagement() {
     withdrawalMessage,
     withdraw,
   };
-}
+};

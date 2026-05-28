@@ -2,7 +2,7 @@
 
 import { PasswordChangeForm } from '@/features/my-page/components/account-management/PasswordChangeForm';
 import { WithdrawalSection } from '@/features/my-page/components/account-management/WithdrawalSection';
-import { useAccountManagement } from '@/features/my-page/hooks/useAccountManagement';
+import { useAccountManagement } from '@/features/my-page/hooks/UseAccountManagement';
 
 export function AccountManagementPage() {
   const {

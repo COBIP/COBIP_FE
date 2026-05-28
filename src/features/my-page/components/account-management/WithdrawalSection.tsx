@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import type { WithdrawalPayload } from '@/api/services/AccountManagementService';
 
