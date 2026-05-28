@@ -8,13 +8,13 @@ export type StudyFilter = 'all' | 'inProgress' | 'completed';
 
 const PAGE_SIZE = 10;
 
-function filterLearningItems(items: LearningProgress[], filter: StudyFilter) {
+function selectLearningItems(items: LearningProgress[], filter: StudyFilter) {
   if (filter === 'completed') return items.filter((item) => item.completed);
   if (filter === 'inProgress') return items.filter((item) => !item.completed);
   return items;
 }
 
-export function useMyLearning() {
+export const useMyLearning = () => {
   const [response, setResponse] = useState<PageResponse<LearningProgress> | null>(null);
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState<StudyFilter>('all');
@@ -47,8 +47,8 @@ export function useMyLearning() {
     };
   }, [page]);
 
-  const learningItems = response?.content ?? [];
-  const filteredItems = useMemo(() => filterLearningItems(learningItems, filter), [filter, learningItems]);
+  const learningItems = useMemo(() => response?.content ?? [], [response?.content]);
+  const filteredItems = useMemo(() => selectLearningItems(learningItems, filter), [filter, learningItems]);
 
   const summary = useMemo(() => {
     const completedCount = learningItems.filter((item) => item.completed).length;
@@ -76,4 +76,4 @@ export function useMyLearning() {
     setFilter,
     setPage,
   };
-}
+};
