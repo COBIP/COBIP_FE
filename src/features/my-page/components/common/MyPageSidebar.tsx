@@ -52,7 +52,7 @@ export default function MyPageSidebar() {
                 <SidebarLink href="/my-page/review-note" icon={<FileEdit size={20} />} title="오답노트" />
                 <SidebarLink href="/my-page/archive" icon={<Archive size={20} />} title="보관함" />
                 <SidebarLink href="/my-page/posts" icon={<FileText size={20} />} title="작성한 게시글" />
-                <SidebarLink href="/my-page/settings" icon={<Settings size={20} />} title="계정관리" />
+                <SidebarLink href="/my-page/account-management" icon={<Settings size={20} />} title="계정관리" />
             </nav>
             
         </aside>
