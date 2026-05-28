@@ -1,4 +1,4 @@
-import type { StudyFilter } from '@/features/my-page/hooks/useMyLearning';
+import type { StudyFilter } from '@/features/my-page/hooks/UseMyLearning';
 
 interface StudyFilterTabsProps {
   activeFilter: StudyFilter;
