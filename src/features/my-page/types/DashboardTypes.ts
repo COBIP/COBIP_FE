@@ -9,7 +9,8 @@ export interface ActivityHistory {
 
 export interface LearningProgress {
     templateId: number;
-    contentType?: 'TEMPLATE' | 'GRAMMAR_TEMPLATE';
+    aiTemplateId?: string;
+    contentType?: 'TEMPLATE' | 'GRAMMAR_TEMPLATE' | 'AI_TEMPLATE';
     templateTitle: string;
     thumbnailUrl: string | null;
     currentChapterId?: number | null;

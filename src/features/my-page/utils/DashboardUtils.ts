@@ -22,13 +22,21 @@ export const CALENDAR_LEVEL_COLORS = [
 export const CALENDAR_MAX_STUDY_SECONDS = 5 * 60 * 60;
 
 export function getLearningHref(item: LearningProgress) {
+  if (item.contentType === 'AI_TEMPLATE') {
+    return `/functional-template-ai?savedTemplateId=${encodeURIComponent(item.aiTemplateId ?? '')}`;
+  }
+
   return item.contentType === 'GRAMMAR_TEMPLATE'
     ? `/grammar-template/${item.templateId}`
     : `/functional-template/${item.templateId}`;
 }
 
 export function getLearningCategory(item: LearningProgress) {
-  const templateType = item.contentType === 'GRAMMAR_TEMPLATE' ? '문법 템플릿' : '기능 템플릿';
+  const templateType = item.contentType === 'AI_TEMPLATE'
+    ? 'AI 생성 기능 템플릿'
+    : item.contentType === 'GRAMMAR_TEMPLATE'
+      ? '문법 템플릿'
+      : '기능 템플릿';
   return `${templateType} · ${item.completed ? '학습 완료' : '학습 중'}`;
 }
 

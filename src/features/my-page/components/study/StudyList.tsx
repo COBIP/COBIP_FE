@@ -19,6 +19,12 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
+function getContentTypeLabel(item: LearningProgress) {
+  if (item.contentType === 'AI_TEMPLATE') return 'AI 생성 템플릿';
+  if (item.contentType === 'GRAMMAR_TEMPLATE') return '문법 템플릿';
+  return '기능 템플릿';
+}
+
 export function StudyList({ items }: StudyListProps) {
   return (
     <div className="space-y-3">
@@ -27,7 +33,7 @@ export function StudyList({ items }: StudyListProps) {
 
         return (
           <Link
-            key={`${item.contentType ?? 'TEMPLATE'}-${item.templateId}`}
+            key={`${item.contentType ?? 'TEMPLATE'}-${item.aiTemplateId ?? item.templateId}`}
             href={getLearningHref(item)}
             className="group block rounded-lg border border-gray-200 bg-white p-5 transition hover:border-purple-200 hover:shadow-sm"
           >
@@ -35,7 +41,7 @@ export function StudyList({ items }: StudyListProps) {
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="rounded-md bg-purple-50 px-2 py-1 text-xs font-bold text-purple-700">
-                    {item.contentType === 'GRAMMAR_TEMPLATE' ? '문법 템플릿' : '기능 템플릿'}
+                    {getContentTypeLabel(item)}
                   </span>
                   <span
                     className={`rounded-md px-2 py-1 text-xs font-bold ${
