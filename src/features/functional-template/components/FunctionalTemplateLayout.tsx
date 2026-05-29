@@ -16,6 +16,7 @@ import { RequirementsSection } from './RequirementsSection';
 import { StructureSection } from './StructureSection';
 import { InterviewSection } from './InterviewSection';
 import { MarkdownTextView } from './MarkdownTextView';
+import { SourceCodeSection } from './SourceCodeSection';
 import {
   createTemplateFavorite,
   createTemplatePracticeStart,
@@ -328,7 +329,7 @@ export function FunctionalTemplateLayout({
   const nickname = useUserStore((state) => state.nickname);
   const profileImage = useUserStore((state) => state.profileImage);
 
-  const [activeTab, setActiveTab] = useState('design-intent');
+  const [activeTab, setActiveTab] = useState('overview');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isMemoOpen, setIsMemoOpen] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
@@ -712,16 +713,40 @@ export function FunctionalTemplateLayout({
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'design-intent':
-        return <DesignIntentSection isDarkMode={isDarkMode} content={template?.designIntent} />;
-      case 'structure':
-        return <StructureSection isDarkMode={isDarkMode} content={template?.projectStructure} />;
+      case 'overview':
+        return (
+          <DesignIntentSection
+            isDarkMode={isDarkMode}
+            title="개요"
+            content={[
+              template?.summary ? `# ${template.summary}` : '',
+              template?.description ?? '',
+              template?.designIntent ?? '',
+            ].filter(Boolean).join('\n\n')}
+          />
+        );
       case 'requirements':
         return <RequirementsSection isDarkMode={isDarkMode} content={template?.requirementsSpec} />;
+      case 'flow':
+        return <StructureSection isDarkMode={isDarkMode} title="흐름/구조" content={template?.projectStructure} />;
+      case 'api-spec':
+        return (
+          <DesignIntentSection
+            isDarkMode={isDarkMode}
+            title="API 명세"
+            content={template?.apiSpec}
+          />
+        );
+      case 'source-code':
+        return <SourceCodeSection isDarkMode={isDarkMode} files={practiceFiles} onOpenEditor={openEditor} />;
       case 'mission':
         return (
           <MissionSection
             title="미션"
+            description="미션은 실제 기능 구현과 종합 응용을 위한 실전형 학습입니다."
+            learningType="mission"
+            emptyText="아직 연결된 미션이 없습니다."
+            actionLabel="미션 수행"
             isDarkMode={isDarkMode}
             activeMissionId={activeMissionId}
             completedMissionIds={completedMissionIds}
@@ -738,6 +763,8 @@ export function FunctionalTemplateLayout({
             title="문제"
             emptyText="아직 연결된 문제가 없습니다."
             actionLabel="문제 풀기"
+            description="문제는 객관식, 빈칸, 단답형처럼 개념 이해도를 빠르게 점검하는 학습입니다."
+            learningType="problem"
             isDarkMode={isDarkMode}
             activeMissionId={activeMissionId}
             completedMissionIds={completedMissionIds}
@@ -748,8 +775,16 @@ export function FunctionalTemplateLayout({
             }))}
           />
         );
-      case 'interview':
+      case 'core-question':
         return <InterviewSection isDarkMode={isDarkMode} questions={template?.interviewQuestions} />;
+      case 'next-recommendation':
+        return (
+          <DesignIntentSection
+            isDarkMode={isDarkMode}
+            title="다음 추천"
+            content="아직 연결된 다음 추천 학습이 없습니다.\n\n관리자 또는 추천 API에서 연계 템플릿 정보가 내려오면 이 영역에 표시됩니다."
+          />
+        );
       default:
         return <DesignIntentSection isDarkMode={isDarkMode} content={template?.designIntent} />;
     }

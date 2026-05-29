@@ -35,7 +35,7 @@ export function InterviewSection({ isDarkMode = false, questions }: InterviewSec
       <h2 className={`text-[20px] font-semibold tracking-[-0.02em] transition-colors duration-300 ${
         isDarkMode ? 'text-white' : 'text-[#1E293B]'
       }`}>
-        면접질문
+        핵심 질문
       </h2>
 
       <div className="space-y-3">
@@ -77,7 +77,7 @@ export function InterviewSection({ isDarkMode = false, questions }: InterviewSec
                       <p className={`text-[12px] font-semibold ${
                         isDarkMode ? 'text-[#C4B5FD]' : 'text-[#6D28D9]'
                       }`}>
-                        답변 힌트
+                        모범 답안 예시
                       </p>
                       <MarkdownTextView
                         content={item.answerHint}
@@ -88,7 +88,7 @@ export function InterviewSection({ isDarkMode = false, questions }: InterviewSec
                     </div>
                   ) : (
                     <p className={isDarkMode ? 'text-[#94A3B8]' : 'text-[#64748B]'}>
-                      답변 힌트가 없습니다.
+                      모범 답안 예시가 없습니다.
                     </p>
                   )}
                 </div>

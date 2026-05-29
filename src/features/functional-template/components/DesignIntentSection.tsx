@@ -5,9 +5,10 @@ import { MarkdownTextView } from './MarkdownTextView';
 interface DesignIntentSectionProps {
   isDarkMode?: boolean;
   content?: string;
+  title?: string;
 }
 
-export function DesignIntentSection({ isDarkMode = false, content }: DesignIntentSectionProps) {
+export function DesignIntentSection({ isDarkMode = false, content, title = '설계의도' }: DesignIntentSectionProps) {
   const hasContent = Boolean(content?.trim());
 
   return (
@@ -15,7 +16,7 @@ export function DesignIntentSection({ isDarkMode = false, content }: DesignInten
       <h2 className={`text-[20px] font-semibold tracking-[-0.02em] transition-colors duration-300 ${
         isDarkMode ? 'text-white' : 'text-[#1E293B]'
       }`}>
-        설계의도
+        {title}
       </h2>
 
       <div className={`rounded-lg border p-4 transition-colors duration-300 ${

@@ -5,9 +5,10 @@ import { MarkdownTextView } from './MarkdownTextView';
 interface StructureSectionProps {
   isDarkMode?: boolean;
   content?: string;
+  title?: string;
 }
 
-export function StructureSection({ isDarkMode = false, content }: StructureSectionProps) {
+export function StructureSection({ isDarkMode = false, content, title = '구조설명' }: StructureSectionProps) {
   const hasContent = Boolean(content?.trim());
 
   return (
@@ -17,7 +18,7 @@ export function StructureSection({ isDarkMode = false, content }: StructureSecti
           isDarkMode ? 'text-white' : 'text-[#1E293B]'
         }`}
       >
-        구조설명
+        {title}
       </h2>
 
       <div
