@@ -1601,6 +1601,10 @@ export function AdminTemplatesPage() {
                     추가
                   </button>
                 </div>
+                <div className="mb-3 rounded-md border border-indigo-100 bg-indigo-50 p-3 text-xs leading-5 text-slate-600">
+                  <p className="font-semibold text-slate-950">미션은 실제 구현 능력 향상을 위한 실전형 학습입니다.</p>
+                  <p className="mt-1">권장 타입: CONCEPT, IMPLEMENTATION, REVIEW · 형태: 기능 구현 / 종합 응용 / 완료 조건 기반 제출</p>
+                </div>
                 <div className="space-y-3">
                   {form.missions.map((mission, index) => checkProblemMissionType(getTemplateMissionType(mission)) ? null : (
                     <div key={index} className="rounded-md bg-slate-50 p-3">
@@ -1614,7 +1618,7 @@ export function AdminTemplatesPage() {
                         <input
                           value={mission.title}
                           onChange={(event) => updateTemplateMission(index, 'title', event.target.value)}
-                          placeholder="title"
+                          placeholder="미션 제목"
                           className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                         />
                         <select
@@ -1637,7 +1641,7 @@ export function AdminTemplatesPage() {
                       <input
                         value={mission.description ?? ''}
                         onChange={(event) => updateTemplateMission(index, 'description', event.target.value)}
-                        placeholder="description (선택사항)"
+                        placeholder="미션 설명"
                         className="mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
                       />
                       <input
@@ -1649,7 +1653,7 @@ export function AdminTemplatesPage() {
                       <textarea
                         value={(mission.steps ?? []).join('\n')}
                         onChange={(event) => updateTemplateMissionSteps(index, event.target.value)}
-                        placeholder="steps (한 줄씩)"
+                        placeholder="완료 조건 또는 구현 단계 (한 줄씩)"
                         rows={4}
                         className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
@@ -1658,7 +1662,7 @@ export function AdminTemplatesPage() {
                           <div>
                             <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
                             <p className="mt-1 text-xs text-slate-500">
-                              Spring 프로젝트 문제는 Gradle 테스트 명령으로 채점하는 것을 권장합니다.
+                              실제 구현 미션은 Gradle 테스트 명령처럼 프로젝트 단위 채점을 권장합니다.
                             </p>
                           </div>
                           <button
@@ -1772,6 +1776,10 @@ export function AdminTemplatesPage() {
                     추가
                   </button>
                 </div>
+                <div className="mb-3 rounded-md border border-violet-100 bg-violet-50 p-3 text-xs leading-5 text-slate-600">
+                  <p className="font-semibold text-slate-950">문제는 개념 이해도 점검을 위한 빠른 반복 학습입니다.</p>
+                  <p className="mt-1">권장 타입: TEST, DEBUGGING · 형태: 객관식 / 빈칸 / 단답형 / 짧은 검증 과제</p>
+                </div>
                 <div className="space-y-3">
                   {form.missions.map((mission, index) => !checkProblemMissionType(getTemplateMissionType(mission)) ? null : (
                     <div key={index} className="rounded-md bg-slate-50 p-3">
@@ -1829,7 +1837,7 @@ export function AdminTemplatesPage() {
                           <div>
                             <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
                             <p className="mt-1 text-xs text-slate-500">
-                              현재처럼 Spring 파일을 고치는 문제는 Gradle 테스트 명령으로 채점하세요.
+                              빈칸, 단답형처럼 짧은 문제는 단일 출력 케이스를, 파일 수정 문제는 Gradle 테스트 명령을 사용하세요.
                             </p>
                           </div>
                           <button
@@ -1987,7 +1995,7 @@ export function AdminTemplatesPage() {
 
               <section className="rounded-md border border-slate-200 p-3">
                 <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-950">면접질문</h4>
+                  <h4 className="text-sm font-bold text-slate-950">핵심 질문</h4>
                   <button
                     type="button"
                     onClick={() =>
@@ -2007,13 +2015,13 @@ export function AdminTemplatesPage() {
                       <input
                         value={question.question}
                         onChange={(event) => updateInterviewQuestion(index, 'question', event.target.value)}
-                        placeholder="question"
+                        placeholder="핵심 질문"
                         className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                       />
                       <input
                         value={question.answerHint}
                         onChange={(event) => updateInterviewQuestion(index, 'answerHint', event.target.value)}
-                        placeholder="answerHint"
+                        placeholder="모범 답안 예시"
                         className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                       />
                       <button

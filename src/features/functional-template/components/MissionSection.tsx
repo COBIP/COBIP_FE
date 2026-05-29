@@ -6,8 +6,10 @@ import { MarkdownTextView } from './MarkdownTextView';
 interface MissionSectionProps {
   isDarkMode?: boolean;
   title?: string;
+  description?: string;
   emptyText?: string;
   actionLabel?: string;
+  learningType?: 'mission' | 'problem';
   activeMissionId?: number | null;
   completedMissionIds?: Set<number>;
   onOpenEditor?: (fileName: string, missionId: number) => void;
@@ -17,8 +19,10 @@ interface MissionSectionProps {
 export function MissionSection({
   isDarkMode = false,
   title = '미션',
+  description,
   emptyText = '아직 연결된 미션이 없습니다.',
   actionLabel = '풀어보기',
+  learningType = 'mission',
   activeMissionId,
   completedMissionIds,
   onOpenEditor,
@@ -35,12 +39,22 @@ export function MissionSection({
       }))
     : [];
   const selectedStep = steps.find((step) => step.id === activeMissionId) ?? steps[0];
+  const guideTitle = learningType === 'problem' ? '문제 풀이 방식' : '미션 수행 방식';
+  const guideText = learningType === 'problem'
+    ? '문제를 선택하면 연결된 파일이 코드 실행기에 열립니다. 객관식, 빈칸, 단답형처럼 빠르게 풀며 이해도를 점검해보세요.'
+    : '미션을 선택하면 연결된 실습 파일이 코드 실행기에 열립니다. 안내와 완료 조건을 확인한 뒤 실제 기능을 구현하고 제출해보세요.';
+  const detailTitle = learningType === 'problem' ? '풀이 가이드' : '미션 가이드';
 
   return (
     <div className="space-y-4">
       <h2 className={`text-[22px] font-semibold transition-colors duration-300 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
         {title}
       </h2>
+      {description && (
+        <p className={`text-sm leading-6 ${isDarkMode ? 'text-[#CBD5E1]' : 'text-[#64748B]'}`}>
+          {description}
+        </p>
+      )}
 
       {steps.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
@@ -93,9 +107,9 @@ export function MissionSection({
                 isDarkMode ? 'border-[#334155] bg-[#1E293B]' : 'border-[#E2E8F0] bg-[#F8FAFC]'
               }`}
             >
-              <h3 className="mb-2 text-[15px] font-semibold text-[#7C3AED]">진행 방법</h3>
+              <h3 className="mb-2 text-[15px] font-semibold text-[#7C3AED]">{guideTitle}</h3>
               <p className={`text-[14px] leading-relaxed ${isDarkMode ? 'text-[#E2E8F0]' : 'text-[#1E293B]'}`}>
-                항목을 선택하면 연결된 실습 파일이 코드 실행기에 열립니다. 안내와 조건을 확인한 뒤 코드를 수정하고 제출해보세요.
+                {guideText}
               </p>
             </div>
 
@@ -104,7 +118,7 @@ export function MissionSection({
                 isDarkMode ? 'border-[#334155] bg-[#1E293B]' : 'border-[#E2E8F0] bg-[#F8FAFC]'
               }`}
             >
-              <h3 className="mb-2 text-[15px] font-semibold text-[#7C3AED]">가이드</h3>
+              <h3 className="mb-2 text-[15px] font-semibold text-[#7C3AED]">{detailTitle}</h3>
               <div className={`text-[13px] leading-relaxed ${isDarkMode ? 'text-[#CBD5E1]' : 'text-[#475569]'}`}>
                 {selectedStep?.explanation ? (
                   <MarkdownTextView content={selectedStep.explanation} isDarkMode={isDarkMode} />

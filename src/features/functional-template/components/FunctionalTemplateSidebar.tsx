@@ -3,12 +3,15 @@
 import type { TemplateSidebarProps } from '@/app/types/TemplateTypes';
 
 const menus = [
-  { id: 'design-intent', label: '설계의도' },
-  { id: 'structure', label: '구조설명' },
+  { id: 'overview', label: '개요' },
   { id: 'requirements', label: '요구사항' },
-  { id: 'mission', label: '미션' },
+  { id: 'flow', label: '흐름/구조' },
+  { id: 'api-spec', label: 'API 명세' },
+  { id: 'source-code', label: '전체 코드' },
   { id: 'problem', label: '문제' },
-  { id: 'interview', label: '면접질문' },
+  { id: 'mission', label: '미션' },
+  { id: 'core-question', label: '핵심 질문' },
+  { id: 'next-recommendation', label: '다음 추천' },
 ];
 
 export function FunctionalTemplateSidebar({ activeMenu, onMenuChange }: TemplateSidebarProps) {

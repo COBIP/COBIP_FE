@@ -681,6 +681,10 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
                 새 미션
               </button>
             </div>
+            <div className="mb-3 rounded-md border border-indigo-100 bg-indigo-50 p-3 text-xs leading-5 text-slate-600">
+              <p className="font-semibold text-slate-950">미션은 실제 구현 능력 향상을 위한 실전형 학습입니다.</p>
+              <p className="mt-1">기능 구현, 종합 응용, 완료 조건 기반 제출 흐름에 사용하세요.</p>
+            </div>
             {!missionItems.length ? (
               <AdminEmpty message="등록된 미션이 없습니다." />
             ) : (
@@ -762,7 +766,7 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
                   <div>
                     <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Spring 프로젝트 미션은 Gradle 테스트 명령으로 채점하세요.
+                      실제 구현 미션은 Gradle 테스트 명령처럼 프로젝트 단위 채점을 권장합니다.
                     </p>
                   </div>
                   <button
@@ -829,6 +833,10 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
               >
                 새 문제
               </button>
+            </div>
+            <div className="mb-3 rounded-md border border-violet-100 bg-violet-50 p-3 text-xs leading-5 text-slate-600">
+              <p className="font-semibold text-slate-950">문제는 개념 이해도 점검을 위한 빠른 반복 학습입니다.</p>
+              <p className="mt-1">객관식, 빈칸, 단답형, 짧은 검증 과제처럼 미션보다 작은 단위로 구성하세요.</p>
             </div>
             {!problemItems.length ? (
               <AdminEmpty message="등록된 문제가 없습니다." />
@@ -911,7 +919,7 @@ export function AdminTemplatePracticePage({ templateId }: { templateId: number }
                   <div>
                     <p className="font-semibold text-slate-950">프로젝트 채점 설정</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Spring 파일을 수정하는 문제는 Gradle 테스트 명령으로 채점하세요.
+                      빈칸, 단답형처럼 짧은 문제는 단일 출력 케이스를, 파일 수정 문제는 Gradle 테스트 명령을 사용하세요.
                     </p>
                   </div>
                   <button
