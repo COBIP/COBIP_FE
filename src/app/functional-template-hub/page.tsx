@@ -21,23 +21,9 @@ import {
   type AiFeatureTemplateGenerateRequest,
   type AiFeatureTemplateGenerateResult,
 } from '@/api/services/AiService';
+import { setAiTemplateDraft } from '@/api/services/AiTemplateStorage';
 
 type TemplateFilter = '전체' | '인기' | '추천';
-
-export const AI_TEMPLATE_SESSION_KEY = 'cobip.aiFeatureTemplateDraft';
-
-function setAiTemplateDraft(request: AiFeatureTemplateGenerateRequest, result: AiFeatureTemplateGenerateResult) {
-  if (typeof window === 'undefined') return;
-
-  sessionStorage.setItem(
-    AI_TEMPLATE_SESSION_KEY,
-    JSON.stringify({
-      request,
-      result,
-      savedAt: new Date().toISOString(),
-    }),
-  );
-}
 
 export default function FunctionalTemplatesPage() {
   const router = useRouter();
@@ -70,7 +56,11 @@ export default function FunctionalTemplatesPage() {
 
   const handleAIDesign = async (request: AiFeatureTemplateGenerateRequest) => {
     const result = await fetchAiFeatureTemplate(request);
-    setAiTemplateDraft(request, result);
+    setAiTemplateDraft({
+      request,
+      result,
+      savedAt: new Date().toISOString(),
+    });
     setGeneratedTemplate(result);
     setGeneratedTemplateRequest(request);
     router.push('/functional-template-ai');
@@ -93,7 +83,11 @@ export default function FunctionalTemplatesPage() {
       referenceContext: generatedTemplateRequest?.referenceContext ?? null,
     };
 
-    setAiTemplateDraft(request, generatedTemplate);
+    setAiTemplateDraft({
+      request,
+      result: generatedTemplate,
+      savedAt: new Date().toISOString(),
+    });
     router.push('/functional-template-ai');
   };
 
@@ -124,7 +118,7 @@ export default function FunctionalTemplatesPage() {
                 type="text"
                 placeholder="템플릿 검색"
                 value={cardSearchQuery}
-                onChange={(e) => setCardSearchQuery(e.target.value)}
+                onChange={(event) => setCardSearchQuery(event.target.value)}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pr-3 pl-9 text-sm transition placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 focus:outline-none"
               />
             </div>
