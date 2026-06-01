@@ -27,11 +27,11 @@ export function TemplateGrid({
   if (isLoading) {
     return (
       <section>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className="h-72 bg-gray-200 rounded-lg animate-pulse"
+              className="h-72 animate-pulse rounded-lg border border-[#E2E8F0] bg-[#F1F5F9]"
             />
           ))}
         </div>
@@ -42,8 +42,9 @@ export function TemplateGrid({
   if (filtered.length === 0) {
     return (
       <section>
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">검색 결과가 없습니다.</p>
+        <div className="rounded-lg border border-dashed border-[#CBD5E1] bg-white px-6 py-12 text-center">
+          <p className="text-base font-semibold text-[#1E293B]">검색 결과가 없습니다.</p>
+          <p className="mt-2 text-sm text-[#64748B]">다른 키워드나 카테고리로 다시 찾아보세요.</p>
         </div>
       </section>
     );
@@ -51,7 +52,7 @@ export function TemplateGrid({
 
   return (
     <section>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {filtered.map((template) => (
           <TemplateCard
             key={template.id}
