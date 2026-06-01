@@ -21,11 +21,11 @@ const tabs = [
 export function TabNav({ activeTab, onTabChange, isDarkMode = false }: TabNavProps) {
   return (
     <div
-      className={`flex items-center border-b px-6 transition-colors duration-300 ${
+      className={`border-b px-6 transition-colors duration-300 ${
         isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#F1F5F9] bg-white'
       }`}
     >
-      <div className="flex gap-7 overflow-x-auto">
+      <div className="mx-auto flex w-full max-w-[1440px] gap-7 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}

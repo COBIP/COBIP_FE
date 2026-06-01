@@ -917,11 +917,11 @@ export function FunctionalTemplateLayout({
         isDarkMode={isDarkMode}
       />
 
-      <div className={`border-b px-6 py-3 transition-colors duration-300 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'}`}>
-        <div className="flex w-full items-center justify-between gap-6">
+      <div className={`border-b px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'}`}>
+        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-3">
-              <h2 className={`min-w-0 truncate text-lg font-bold ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+              <h2 className={`min-w-0 truncate text-[28px] font-bold leading-9 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
                 {templateTitle}
               </h2>
               {template?.category && (

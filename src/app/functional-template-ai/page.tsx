@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   BookOpen,
   Code2,
   FileText,
@@ -532,15 +531,11 @@ export default function AiFunctionalTemplatePage() {
     <div className="flex min-h-screen flex-col bg-white">
       <Header />
 
-      <div className="border-b border-[#E2E8F0] bg-white px-6 py-3">
-        <div className="flex w-full items-center justify-between gap-6">
+      <div className="border-b border-[#E2E8F0] bg-white px-6 py-4">
+        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6">
           <div className="min-w-0 flex-1">
-            <Link href="/functional-template-hub" className="mb-2 inline-flex items-center gap-2 text-xs font-semibold text-[#7C3AED]">
-              <ArrowLeft className="h-4 w-4" />
-              기능 템플릿
-            </Link>
             <div className="flex min-w-0 items-center gap-3">
-              <h1 className="min-w-0 truncate text-lg font-bold text-[#1E293B]">
+              <h1 className="min-w-0 truncate text-[28px] font-bold text-[#1E293B]">
                 {template.overview.featureName || 'AI 생성 기능 템플릿'}
               </h1>
               <span className="shrink-0 rounded-md bg-[#F1F5F9] px-2 py-1 text-[11px] font-medium text-[#475569]">
@@ -555,7 +550,6 @@ export default function AiFunctionalTemplatePage() {
                   {tag}
                 </span>
               ))}
-              <span className="rounded-md bg-[#ECFDF5] px-2 py-0.5 text-[#047857]">초안</span>
               {savedTemplateId && (
                 <span className="rounded-md bg-[#EDE9FE] px-2 py-0.5 text-[#6D28D9]">내 학습 저장됨</span>
               )}
@@ -565,7 +559,7 @@ export default function AiFunctionalTemplatePage() {
             <button
               type="button"
               onClick={handleSaveTemplate}
-              className="rounded-lg bg-[#7C3AED] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
+              className="h-10 rounded-lg bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
             >
               내 학습에 저장
             </button>
@@ -577,7 +571,7 @@ export default function AiFunctionalTemplatePage() {
       </div>
 
       <div className="flex items-center border-b border-[#F1F5F9] bg-white px-6">
-        <div className="flex gap-7 overflow-x-auto">
+        <div className="mx-auto flex w-full max-w-[1440px] gap-7 overflow-x-auto">
           {sections.map((section) => (
             <button
               key={section.key}
