@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from 'next/image';
-import { Menu, Globe, HelpCircle, Key, UserCheck, LogOut, User } from "lucide-react";
+import { Menu, Globe, HelpCircle, Key, UserCheck, LogOut, User, CreditCard } from "lucide-react";
 import { useUserStore } from "@/store/UseUserStore";
 
 export function Header() {
@@ -153,6 +153,14 @@ export function Header() {
 
                 <div className="px-3 pt-1.5 space-y-1">
                   <Link
+                    href="/pricing"
+                    onClick={closeMenu}
+                    className="flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
+                  >
+                    <CreditCard className="w-4 h-4 text-gray-400" />
+                    요금제
+                  </Link>
+                  <Link
                     href="#"
                     onClick={closeMenu}
                     className="flex items-center gap-3 px-3 py-2 text-sm font-normal text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
@@ -184,6 +192,7 @@ export function Header() {
                 { href: "/functional-template-hub", label: "기능 템플릿" },
                 { href: "/playground", label: "실습환경" },
                 { href: "/coding-test", label: "코테집" },
+                { href: "/pricing", label: "요금제" },
               ].map((item) => (
                 <Link
                   key={item.href}
