@@ -98,6 +98,73 @@ function formatTextPreview(value: string, maxLength = 3000) {
   return value.length > maxLength ? `${value.slice(0, maxLength)}\n...` : value;
 }
 
+function parseChapterNumber(title: string) {
+  const trimmedTitle = title.trim();
+  const subchapterMatch = trimmedTitle.match(/^(\d+)\.(\d+)(?=\s|$)/);
+
+  if (subchapterMatch) {
+    return {
+      major: Number(subchapterMatch[1]),
+      minor: Number(subchapterMatch[2]),
+      isSubchapter: true,
+    };
+  }
+
+  const chapterMatch = trimmedTitle.match(/^(\d+)\.(?=\s|$)/);
+
+  if (chapterMatch) {
+    return {
+      major: Number(chapterMatch[1]),
+      minor: null,
+      isSubchapter: false,
+    };
+  }
+
+  return null;
+}
+
+type ChapterListItem = {
+  chapter: GrammarTemplateDetail['chapters'][number];
+  index: number;
+};
+
+type ChapterGroup = {
+  main: ChapterListItem;
+  subchapters: ChapterListItem[];
+};
+
+function buildChapterGroups(chapters: GrammarTemplateDetail['chapters'] = []): ChapterGroup[] {
+  const groups: ChapterGroup[] = [];
+  let currentGroup: ChapterGroup | null = null;
+
+  for (const [index, chapter] of chapters.entries()) {
+    const item = { chapter, index };
+    const chapterNumber = parseChapterNumber(chapter.title);
+
+    if (!chapterNumber || !chapterNumber.isSubchapter) {
+      currentGroup = {
+        main: item,
+        subchapters: [],
+      };
+      groups.push(currentGroup);
+      continue;
+    }
+
+    if (currentGroup && parseChapterNumber(currentGroup.main.chapter.title)?.major === chapterNumber.major) {
+      currentGroup.subchapters.push(item);
+      continue;
+    }
+
+    currentGroup = {
+      main: item,
+      subchapters: [],
+    };
+    groups.push(currentGroup);
+  }
+
+  return groups;
+}
+
 export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps) {
     const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,6 +182,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
+  const chapterGroups = useMemo(() => buildChapterGroups(template?.chapters), [template?.chapters]);
   const aiChatContext = useMemo(() => {
     const activeCode = fileContents[activeFilePath] ?? '';
     const parts = [
@@ -450,18 +518,37 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
               {/* 챕터 목록 */}
               {template?.chapters && template.chapters.length > 0 && (
                 <ul className="space-y-0.5 mb-4">
-                  {template.chapters.map((chapter, i) => (
-                    <li key={chapter.id}>
+                  {chapterGroups.map((group) => (
+                    <li key={group.main.chapter.id} className="space-y-0.5">
                       <button
-                        onClick={() => setCurrentChapterIndex(i)}
+                        onClick={() => setCurrentChapterIndex(group.main.index)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition cursor-pointer ${
-                          i === currentChapterIndex
+                          group.main.index === currentChapterIndex
                             ? 'bg-purple-100 text-purple-700 font-semibold'
-                            : 'text-gray-500 hover:bg-gray-100'
+                            : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        <span className="truncate">{chapter.title}</span>
+                        <span className="truncate">{group.main.chapter.title}</span>
                       </button>
+
+                      {group.subchapters.length > 0 && (
+                        <ul className="space-y-0.5 pl-3">
+                          {group.subchapters.map((item) => (
+                            <li key={item.chapter.id}>
+                              <button
+                                onClick={() => setCurrentChapterIndex(item.index)}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition cursor-pointer ${
+                                  item.index === currentChapterIndex
+                                    ? 'bg-purple-100 text-purple-700 font-semibold'
+                                    : 'text-gray-500 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className="truncate">{item.chapter.title}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   ))}
                 </ul>
