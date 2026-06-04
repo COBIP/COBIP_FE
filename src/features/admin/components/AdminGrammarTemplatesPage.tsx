@@ -162,6 +162,39 @@ function buildPreviewSections(chapter: GrammarTemplateChapter | null): AdminGram
   ];
 }
 
+function parseChapterNumber(title: string) {
+  const trimmedTitle = title.trim();
+  const subchapterMatch = trimmedTitle.match(/^(\d+)\.(\d+)(?=\s|$)/);
+
+  if (subchapterMatch) {
+    return {
+      major: Number(subchapterMatch[1]),
+      minor: Number(subchapterMatch[2]),
+      isSubchapter: true,
+    };
+  }
+
+  const chapterMatch = trimmedTitle.match(/^(\d+)\.(?=\s|$)/);
+
+  if (chapterMatch) {
+    return {
+      major: Number(chapterMatch[1]),
+      minor: null,
+      isSubchapter: false,
+    };
+  }
+
+  return null;
+}
+
+function getChapterMajorNumber(chapter: GrammarTemplateChapter) {
+  return parseChapterNumber(chapter.title)?.major ?? null;
+}
+
+function checkIsSubchapter(chapter: GrammarTemplateChapter) {
+  return parseChapterNumber(chapter.title)?.isSubchapter ?? false;
+}
+
 export function AdminGrammarTemplatesPage() {
   const [keyword, setKeyword] = useState('');
   const [language, setLanguage] = useState<GrammarTemplateLanguage | ''>('');
@@ -500,9 +533,14 @@ export function AdminGrammarTemplatesPage() {
     }
   };
 
-  const handleAddChapter = async () => {
+  const handleAddStructuredChapter = async (chapterType: 'main' | 'sub') => {
     if (!selectedId) {
       setError('챕터를 추가하려면 먼저 템플릿을 저장해야 합니다.');
+      return;
+    }
+
+    if (chapterType === 'sub' && !activeChapter) {
+      setError('소챕터를 추가하려면 먼저 기준이 될 대챕터를 선택해야 합니다.');
       return;
     }
 
@@ -511,25 +549,83 @@ export function AdminGrammarTemplatesPage() {
     setMessage('');
 
     try {
+      const nextMainChapterNumber =
+        chapters.reduce((maxValue, chapter) => Math.max(maxValue, getChapterMajorNumber(chapter) ?? 0), 0) + 1;
+      const parentMajorNumber =
+        chapterType === 'sub' && activeChapter ? getChapterMajorNumber(activeChapter) : nextMainChapterNumber;
+
+      if (chapterType === 'sub' && !parentMajorNumber) {
+        throw new Error('소챕터 번호를 계산할 수 없습니다. 번호가 있는 대챕터를 먼저 선택해 주세요.');
+      }
+
+      const nextSubchapterNumber =
+        chapterType === 'sub'
+          ? chapters.reduce((maxValue, chapter) => {
+              const chapterNumber = parseChapterNumber(chapter.title);
+
+              if (!chapterNumber || chapterNumber.major !== parentMajorNumber || !chapterNumber.isSubchapter) {
+                return maxValue;
+              }
+
+              return Math.max(maxValue, chapterNumber.minor ?? 0);
+            }, 0) + 1
+          : null;
       const orderIndex = getNextOrderIndex(chapters);
+      const nextTitle =
+        chapterType === 'sub'
+          ? `${parentMajorNumber}.${nextSubchapterNumber} 새 소챕터`
+          : `${nextMainChapterNumber}. 새 대챕터`;
       const chapter = await adminService.createGrammarTemplateChapter(selectedId, {
-        title: `${orderIndex}. 새 챕터`,
+        title: nextTitle,
         orderIndex,
         contentJson: chapters.length
           ? buildClonedContent()
           : buildClonedContent(buildNormalizedContent(form.contentJson)),
       });
-      const nextChapters = buildSortedChapters([...chapters, chapter]);
+      const sortedCurrentChapters = buildSortedChapters(chapters);
+      const insertionIndex =
+        chapterType === 'sub' && parentMajorNumber
+          ? sortedCurrentChapters.reduce((lastIndex, currentChapter, index) => {
+              return getChapterMajorNumber(currentChapter) === parentMajorNumber ? index : lastIndex;
+            }, -1) + 1
+          : sortedCurrentChapters.length;
+      const nextChapterList = [...sortedCurrentChapters];
+      nextChapterList.splice(insertionIndex, 0, chapter);
+      const reorderedChapters = nextChapterList.map((currentChapter, index) => ({
+        ...currentChapter,
+        orderIndex: index + 1,
+      }));
+
+      await Promise.all(
+        reorderedChapters
+          .filter((currentChapter) => {
+            const previousChapter = chapters.find((item) => item.id === currentChapter.id);
+            return previousChapter?.orderIndex !== currentChapter.orderIndex;
+          })
+          .map((currentChapter) =>
+            adminService.updateGrammarTemplateChapter(selectedId, currentChapter.id, {
+              title: currentChapter.title,
+              orderIndex: currentChapter.orderIndex,
+              contentJson: buildNormalizedContent(currentChapter.contentJson),
+            }),
+          ),
+      );
+
+      const nextChapters = buildSortedChapters(reorderedChapters);
       setChapters(nextChapters);
       setActiveChapterId(chapter.id);
       setIsChapterDirty(false);
-      setMessage('챕터를 추가했습니다.');
+      setMessage(chapterType === 'sub' ? '소챕터를 추가했습니다.' : '대챕터를 추가했습니다.');
       await loadPracticeFiles(selectedId, chapter.id, chapter.practiceFiles ?? []);
     } catch (chapterError) {
       setError(chapterError instanceof Error ? chapterError.message : '챕터 추가에 실패했습니다.');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAddChapter = async (chapterType: 'main' | 'sub') => {
+    await handleAddStructuredChapter(chapterType);
   };
 
   const handleSelectChapter = async (chapterId: number) => {
@@ -1082,7 +1178,7 @@ export function AdminGrammarTemplatesPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => void handleAddChapter()}
+                    onClick={() => void handleAddChapter('main')}
                     disabled={!selectedId || isSaving}
                     className="inline-flex items-center gap-1 rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
                   >
@@ -1091,7 +1187,7 @@ export function AdminGrammarTemplatesPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void handleAddChapter()}
+                    onClick={() => void handleAddChapter('sub')}
                     disabled={!selectedId || isSaving}
                     className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40"
                   >
@@ -1117,7 +1213,7 @@ export function AdminGrammarTemplatesPage() {
                       <button
                         type="button"
                         onClick={() => void handleSelectChapter(chapter.id)}
-                        className="w-full px-3 py-3 text-left"
+                        className={`w-full px-3 py-3 text-left ${checkIsSubchapter(chapter) ? 'pl-8' : ''}`}
                       >
                         <span className="block truncate text-sm font-semibold text-slate-900">
                           {chapter.title || `${index + 1}. 제목 없음`}
