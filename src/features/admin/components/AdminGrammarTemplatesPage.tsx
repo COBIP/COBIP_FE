@@ -1079,15 +1079,26 @@ export function AdminGrammarTemplatesPage() {
             <AdminCard className="min-w-0">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h2 className="text-sm font-bold text-slate-950">챕터</h2>
-                <button
-                  type="button"
-                  onClick={() => void handleAddChapter()}
-                  disabled={!selectedId || isSaving}
-                  className="inline-flex items-center gap-1 rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" />
-                  추가
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleAddChapter()}
+                    disabled={!selectedId || isSaving}
+                    className="inline-flex items-center gap-1 rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
+                  >
+                    <FolderPlus className="h-4 w-4" />
+                    대챕터
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleAddChapter()}
+                    disabled={!selectedId || isSaving}
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-40"
+                  >
+                    <Plus className="h-4 w-4" />
+                    소챕터
+                  </button>
+                </div>
               </div>
 
               {!selectedId ? (
