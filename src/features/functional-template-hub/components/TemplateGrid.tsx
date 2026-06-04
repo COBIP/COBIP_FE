@@ -27,7 +27,7 @@ export function TemplateGrid({
   if (isLoading) {
     return (
       <section>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid auto-rows-fr grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
@@ -52,7 +52,7 @@ export function TemplateGrid({
 
   return (
     <section>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid auto-rows-fr grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {filtered.map((template) => (
           <TemplateCard
             key={template.id}
