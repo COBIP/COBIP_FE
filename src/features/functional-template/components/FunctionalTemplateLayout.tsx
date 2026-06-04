@@ -17,6 +17,7 @@ import { StructureSection } from './StructureSection';
 import { InterviewSection } from './InterviewSection';
 import { MarkdownTextView } from './MarkdownTextView';
 import { SourceCodeSection } from './SourceCodeSection';
+import { ApiSpecSection } from './ApiSpecSection';
 import {
   createTemplateFavorite,
   createTemplatePracticeStart,
@@ -712,6 +713,10 @@ export function FunctionalTemplateLayout({
   };
 
   const renderContent = () => {
+    if (activeTab === 'api-spec') {
+      return <ApiSpecSection isDarkMode={isDarkMode} content={template?.apiSpec} />;
+    }
+
     switch (activeTab) {
       case 'overview':
         return (
@@ -729,14 +734,6 @@ export function FunctionalTemplateLayout({
         return <RequirementsSection isDarkMode={isDarkMode} content={template?.requirementsSpec} />;
       case 'flow':
         return <StructureSection isDarkMode={isDarkMode} title="흐름/구조" content={template?.projectStructure} />;
-      case 'api-spec':
-        return (
-          <DesignIntentSection
-            isDarkMode={isDarkMode}
-            title="API 명세"
-            content={template?.apiSpec}
-          />
-        );
       case 'source-code':
         return <SourceCodeSection isDarkMode={isDarkMode} files={practiceFiles} onOpenEditor={openEditor} />;
       case 'mission':
