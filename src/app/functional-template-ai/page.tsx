@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   BookOpen,
+  ChevronLeft,
   Code2,
   FileText,
   Layers3,
@@ -13,10 +15,21 @@ import {
   Route,
   Sparkles,
 } from 'lucide-react';
-import { Header } from '@/features/main-home/components/Header';
+import { Header as FunctionalTemplateHeader } from '@/features/functional-template/components/Header';
 import { MarkdownTextView } from '@/features/functional-template/components/MarkdownTextView';
+import { MemoPanel } from '@/features/functional-template/components/MemoPanel';
+import { SettingsModal } from '@/features/functional-template/components/SettingsModal';
+import {
+  AI_TEMPLATE_CHAT_OPEN_EVENT,
+  AI_TEMPLATE_CODE_OPEN_EVENT,
+  AiTemplateCodeWorkspace,
+  ApiSpecDetails,
+} from '@/features/functional-template-ai/components/Index';
+import { useUserStore } from '@/store/UseUserStore';
 import {
   fetchAiFeatureTemplateSection,
+  fetchAiMissionFeedback,
+  fetchAiQuizGrade,
   type AiFeatureTemplateApiSpec,
   type AiFeatureTemplateBasicQuestion,
   type AiFeatureTemplateCodeFile,
@@ -27,12 +40,15 @@ import {
   type AiFeatureTemplateRegenerateSectionResult,
   type AiFeatureTemplateRequirement,
   type AiFeatureTemplateSection,
+  type AiMissionFeedbackResponse,
+  type AiQuizGradeResponse,
 } from '@/api/services/AiService';
 import {
   loadAiTemplateDraft,
   loadSavedAiTemplateToSession,
   setAiTemplateToLibrary,
   setAiTemplateDraft,
+  updateSavedAiTemplateProgress,
   type AiTemplateDraft,
 } from '@/api/services/AiTemplateStorage';
 
@@ -206,6 +222,7 @@ function renderApiSpec(apiSpec: AiFeatureTemplateApiSpec[]) {
             <h3 className="text-lg font-bold text-[#1E293B]">{api.apiName}</h3>
             <p className="mt-2 text-sm font-semibold text-[#7C3AED]">{api.method} {api.endpoint}</p>
             <p className="mt-3 text-[15px] leading-7 text-[#334155]">{api.description}</p>
+            <ApiSpecDetails api={api} />
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
               <pre className="max-h-80 overflow-auto rounded-lg bg-[#0F172A] p-4 text-xs leading-5 text-[#E2E8F0]">
                 <code>{formatJson(api.requestBody)}</code>
@@ -262,7 +279,16 @@ function CodeFilesView({ codeFiles }: { codeFiles: AiFeatureTemplateCodeFile[] }
   );
 }
 
-function renderBasicQuestions(questions: AiFeatureTemplateBasicQuestion[]) {
+function renderBasicQuestions(
+  questions: AiFeatureTemplateBasicQuestion[],
+  onOpenRelatedCode: (question: AiFeatureTemplateBasicQuestion, index: number) => void,
+  answers: Record<string, string>,
+  results: Record<string, AiQuizGradeResponse>,
+  completedIds: string[],
+  gradingId: string | null,
+  onAnswerChange: (questionId: string, value: string) => void,
+  onGrade: (question: AiFeatureTemplateBasicQuestion) => void,
+) {
   if (questions.length === 0) return renderEmpty('생성된 문제가 없습니다.');
 
   return (
@@ -272,14 +298,19 @@ function renderBasicQuestions(questions: AiFeatureTemplateBasicQuestion[]) {
         <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3">
           <div className="space-y-2">
             {questions.map((question, index) => (
-              <div key={question.questionId || index} className="rounded-md border border-[#E2E8F0] bg-white px-3 py-3">
+              <button
+                key={question.questionId || index}
+                type="button"
+                onClick={() => onOpenRelatedCode(question, index)}
+                className="w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-3 text-left transition hover:border-[#C4B5FD] hover:bg-[#FAF5FF]"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[13px] font-semibold text-[#1E293B]">{index + 1}. {question.question}</span>
                   <span className="shrink-0 rounded-full bg-[#7C3AED]/10 px-2 py-0.5 text-[11px] font-medium text-[#7C3AED]">
-                    {question.difficulty}
+                    {completedIds.includes(question.questionId) ? '완료' : question.difficulty}
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -292,8 +323,37 @@ function renderBasicQuestions(questions: AiFeatureTemplateBasicQuestion[]) {
               {question.choices && question.choices.length > 0 && (
               <MarkdownTextView content={buildMarkdownList(question.choices)} className="mt-3 text-sm text-[#334155]" />
               )}
-              <p className="mt-4 text-sm font-semibold text-[#1E293B]">정답: {question.answer}</p>
-              <p className="mt-2 text-sm leading-6 text-[#64748B]">{question.explanation}</p>
+              <textarea
+                value={answers[question.questionId] ?? ''}
+                onChange={(event) => onAnswerChange(question.questionId, event.target.value)}
+                placeholder="답안을 입력하세요."
+                className="mt-4 min-h-24 w-full resize-y rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:border-[#7C3AED] focus:outline-none"
+              />
+              {results[question.questionId] && (
+                <div className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
+                  results[question.questionId].isCorrect
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-rose-200 bg-rose-50 text-rose-800'
+                }`}>
+                  <p className="font-bold">{results[question.questionId].isCorrect ? '정답입니다.' : '다시 확인해보세요.'}</p>
+                  <p className="mt-1">{results[question.questionId].feedback}</p>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => onGrade(question)}
+                disabled={!answers[question.questionId]?.trim() || gradingId === question.questionId}
+                className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#7C3AED] px-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {gradingId === question.questionId ? '채점 중' : '정답 확인'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenRelatedCode(question, index)}
+                className="mt-4 inline-flex h-9 items-center rounded-lg border border-[#C4B5FD] px-3 text-sm font-semibold text-[#7C3AED] transition hover:bg-[#F5F3FF]"
+              >
+                관련 코드 열기
+              </button>
             </ContentPanel>
           ))}
         </div>
@@ -302,7 +362,14 @@ function renderBasicQuestions(questions: AiFeatureTemplateBasicQuestion[]) {
   );
 }
 
-function renderMissions(missions: AiFeatureTemplateMission[]) {
+function renderMissions(
+  missions: AiFeatureTemplateMission[],
+  onOpenRelatedCode: (mission: AiFeatureTemplateMission, index: number) => void,
+  results: Record<string, AiMissionFeedbackResponse>,
+  completedIds: string[],
+  gradingId: string | null,
+  onSubmit: (mission: AiFeatureTemplateMission) => void,
+) {
   if (missions.length === 0) return renderEmpty('생성된 미션이 없습니다.');
 
   return (
@@ -312,15 +379,20 @@ function renderMissions(missions: AiFeatureTemplateMission[]) {
         <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3">
           <div className="space-y-2">
             {missions.map((mission, index) => (
-              <div key={mission.missionId || index} className="rounded-md border border-[#E2E8F0] bg-white px-3 py-3">
+              <button
+                key={mission.missionId || index}
+                type="button"
+                onClick={() => onOpenRelatedCode(mission, index)}
+                className="w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-3 text-left transition hover:border-[#C4B5FD] hover:bg-[#FAF5FF]"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[13px] font-semibold text-[#1E293B]">{index + 1}. {mission.title}</span>
                   <span className="shrink-0 rounded-full bg-[#7C3AED]/10 px-2 py-0.5 text-[11px] font-medium text-[#7C3AED]">
-                    {mission.missionType}
+                    {completedIds.includes(mission.missionId) ? '완료' : mission.missionType}
                   </span>
                 </div>
                 <p className="mt-1 text-[12px] leading-relaxed text-[#64748B]">{mission.description}</p>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -341,6 +413,31 @@ function renderMissions(missions: AiFeatureTemplateMission[]) {
                   <MarkdownTextView content={buildMarkdownList(mission.successCriteria)} className="text-sm text-[#475569]" />
                 </div>
               </div>
+              {results[mission.missionId] && (
+                <div className={`mt-4 rounded-lg border px-3 py-2 text-sm ${
+                  results[mission.missionId].passed
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}>
+                  <p className="font-bold">{results[mission.missionId].passed ? '미션을 통과했습니다.' : '보완이 필요합니다.'}</p>
+                  <p className="mt-1">{results[mission.missionId].summary}</p>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => onSubmit(mission)}
+                disabled={gradingId === mission.missionId}
+                className="mt-4 mr-2 inline-flex h-9 items-center rounded-lg bg-[#7C3AED] px-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {gradingId === mission.missionId ? '검토 중' : '현재 코드로 미션 제출'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenRelatedCode(mission, index)}
+                className="mt-4 inline-flex h-9 items-center rounded-lg border border-[#C4B5FD] px-3 text-sm font-semibold text-[#7C3AED] transition hover:bg-[#F5F3FF]"
+              >
+                관련 코드 열기
+              </button>
             </ContentPanel>
           ))}
         </div>
@@ -393,14 +490,39 @@ function renderNextRecommendations(recommendations: AiFeatureTemplateNextRecomme
   );
 }
 
-function renderSection(section: AiFeatureTemplateSection, template: AiFeatureTemplateData) {
+type QuestionRenderProps = [
+  Record<string, string>,
+  Record<string, AiQuizGradeResponse>,
+  string[],
+  string | null,
+  (questionId: string, value: string) => void,
+  (question: AiFeatureTemplateBasicQuestion) => void,
+];
+
+type MissionRenderProps = [
+  Record<string, AiMissionFeedbackResponse>,
+  string[],
+  string | null,
+  (mission: AiFeatureTemplateMission) => void,
+];
+
+function renderSection(
+  section: AiFeatureTemplateSection,
+  template: AiFeatureTemplateData,
+  onOpenQuestionCode: (question: AiFeatureTemplateBasicQuestion, index: number) => void,
+  onOpenMissionCode: (mission: AiFeatureTemplateMission, index: number) => void,
+  questionProps: QuestionRenderProps,
+  missionProps: MissionRenderProps,
+) {
   if (section === 'overview') return renderOverview(template);
   if (section === 'requirements') return renderRequirements(template.requirements);
   if (section === 'flow') return renderFlow(template);
   if (section === 'apiSpec') return renderApiSpec(template.apiSpec);
   if (section === 'codeFiles') return <CodeFilesView codeFiles={template.codeFiles} />;
-  if (section === 'basicQuestions') return renderBasicQuestions(template.basicQuestions);
-  if (section === 'missions') return renderMissions(template.missions);
+  if (section === 'basicQuestions') {
+    return renderBasicQuestions(template.basicQuestions, onOpenQuestionCode, ...questionProps);
+  }
+  if (section === 'missions') return renderMissions(template.missions, onOpenMissionCode, ...missionProps);
   if (section === 'interviewQuestions') return renderInterviewQuestions(template.interviewQuestions);
   return renderNextRecommendations(template.nextRecommendations);
 }
@@ -415,7 +537,43 @@ function updateTemplateSection(
   } as AiFeatureTemplateData;
 }
 
+function getAiCodeFileKey(file: AiFeatureTemplateCodeFile) {
+  return file.filePath ?? file.fileName;
+}
+
+function findRelatedAiCodeFile(
+  files: AiFeatureTemplateCodeFile[],
+  contextParts: Array<string | string[] | null | undefined>,
+  fallbackIndex: number,
+) {
+  if (files.length === 0) return null;
+
+  const context = contextParts
+    .flatMap((part) => Array.isArray(part) ? part : [part])
+    .filter((part): part is string => Boolean(part))
+    .join(' ')
+    .toLowerCase();
+
+  const mentionedFile = files.find((file) => {
+    const path = getAiCodeFileKey(file).toLowerCase();
+    const basename = path.split(/[\\/]/).at(-1) ?? path;
+    return context.includes(path) || context.includes(basename);
+  });
+  if (mentionedFile) return getAiCodeFileKey(mentionedFile);
+
+  const roleKeywords = ['controller', 'service', 'filter', 'security', 'config', 'repository', 'dto', 'entity', 'util'];
+  const matchedRole = roleKeywords.find((keyword) => context.includes(keyword));
+  const roleFile = matchedRole
+    ? files.find((file) => `${getAiCodeFileKey(file)} ${file.role}`.toLowerCase().includes(matchedRole))
+    : null;
+  if (roleFile) return getAiCodeFileKey(roleFile);
+
+  return getAiCodeFileKey(files[fallbackIndex % files.length]);
+}
+
 export default function AiFunctionalTemplatePage() {
+  const router = useRouter();
+  const { nickname, profileImage } = useUserStore();
   const [draft, setDraft] = useState<AiTemplateDraft | null>(null);
   const [savedTemplateId, setSavedTemplateId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
@@ -423,6 +581,19 @@ export default function AiFunctionalTemplatePage() {
   const [instruction, setInstruction] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isMemoOpen, setIsMemoOpen] = useState(false);
+  const [isShowSettings, setIsShowSettings] = useState(false);
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+  const [isAiGuruHintMode, setIsAiGuruHintMode] = useState(true);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+  const [questionResults, setQuestionResults] = useState<Record<string, AiQuizGradeResponse>>({});
+  const [missionResults, setMissionResults] = useState<Record<string, AiMissionFeedbackResponse>>({});
+  const [completedQuestionIds, setCompletedQuestionIds] = useState<string[]>([]);
+  const [completedMissionIds, setCompletedMissionIds] = useState<string[]>([]);
+  const [gradingQuestionId, setGradingQuestionId] = useState<string | null>(null);
+  const [gradingMissionId, setGradingMissionId] = useState<string | null>(null);
+  const isDarkMode = themeMode === 'dark';
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -436,6 +607,8 @@ export default function AiFunctionalTemplatePage() {
         savedAt: restoredTemplate.savedAt,
       });
       setSavedTemplateId(restoredTemplate.id);
+      setCompletedQuestionIds(restoredTemplate.completedQuestionIds ?? []);
+      setCompletedMissionIds(restoredTemplate.completedMissionIds ?? []);
       return;
     }
 
@@ -460,6 +633,22 @@ export default function AiFunctionalTemplatePage() {
     ].filter((item): item is string => Boolean(item)),
     [draft?.request.framework, draft?.request.language, draft?.result.source],
   );
+  const totalLearningItems = (template?.basicQuestions.length ?? 0) + (template?.missions.length ?? 0);
+  const completedLearningItems = completedQuestionIds.length + completedMissionIds.length;
+  const progressPercent = totalLearningItems > 0
+    ? Math.round((completedLearningItems / totalLearningItems) * 100)
+    : 0;
+  const aiChatContext = useMemo(() => {
+    if (!template) return '';
+
+    return [
+      `기능 템플릿: ${template.overview.featureName}`,
+      `목적: ${template.overview.purpose}`,
+      `학습 목표: ${template.overview.learningGoals.join(', ')}`,
+      `기술 스택: ${template.overview.techStack.join(', ')}`,
+      `현재 섹션: ${activeLabel}`,
+    ].join('\n');
+  }, [activeLabel, template]);
 
   const handleRegenerateSection = async () => {
     if (!draft || !template) return;
@@ -506,10 +695,133 @@ export default function AiFunctionalTemplatePage() {
     setSaveMessage('내 학습에 저장되었습니다. 마이페이지 내 학습에서 이어서 볼 수 있어요.');
   };
 
+  const handleCodeFilesChange = (codeFiles: AiFeatureTemplateCodeFile[]) => {
+    if (!draft || !template) return;
+
+    const nextDraft: AiTemplateDraft = {
+      ...draft,
+      result: {
+        ...draft.result,
+        template: {
+          ...template,
+          codeFiles,
+        },
+      },
+      savedAt: new Date().toISOString(),
+    };
+
+    setAiTemplateDraft(nextDraft);
+    setDraft(nextDraft);
+    if (savedTemplateId) {
+      setAiTemplateToLibrary(nextDraft, savedTemplateId);
+    }
+  };
+
+  const openRelatedCode = (
+    contextParts: Array<string | string[] | null | undefined>,
+    fallbackIndex: number,
+  ) => {
+    if (!template) return;
+
+    const filePath = findRelatedAiCodeFile(template.codeFiles, contextParts, fallbackIndex);
+    if (!filePath) return;
+
+    window.dispatchEvent(new CustomEvent(AI_TEMPLATE_CODE_OPEN_EVENT, { detail: filePath }));
+  };
+
+  const handleOpenQuestionCode = (question: AiFeatureTemplateBasicQuestion, index: number) => {
+    openRelatedCode(
+      [question.relatedSection, question.question, question.explanation, question.answer, question.choices],
+      index,
+    );
+  };
+
+  const handleOpenMissionCode = (mission: AiFeatureTemplateMission, index: number) => {
+    openRelatedCode(
+      [
+        mission.title,
+        mission.description,
+        mission.missionType,
+        mission.requirements,
+        mission.successCriteria,
+        mission.relatedRequirements,
+      ],
+      index,
+    );
+  };
+
+  const syncAiProgress = (nextQuestionIds: string[], nextMissionIds: string[]) => {
+    if (!draft) return;
+    const saved = updateSavedAiTemplateProgress(draft, savedTemplateId, nextQuestionIds, nextMissionIds);
+    setSavedTemplateId(saved.id);
+    setCompletedQuestionIds(nextQuestionIds);
+    setCompletedMissionIds(nextMissionIds);
+  };
+
+  const handleGradeQuestion = async (question: AiFeatureTemplateBasicQuestion) => {
+    if (!template) return;
+    const userAnswer = questionAnswers[question.questionId]?.trim();
+    if (!userAnswer) return;
+
+    try {
+      setGradingQuestionId(question.questionId);
+      const result = await fetchAiQuizGrade({
+        featureName: template.overview.featureName,
+        question,
+        userAnswer,
+        relatedRequirements: template.requirements,
+        relatedApiSpecs: template.apiSpec,
+      });
+      setQuestionResults((current) => ({ ...current, [question.questionId]: result }));
+      if (result.isCorrect && !completedQuestionIds.includes(question.questionId)) {
+        syncAiProgress([...completedQuestionIds, question.questionId], completedMissionIds);
+      }
+    } catch (gradeError) {
+      setError(gradeError instanceof Error ? gradeError.message : '문제 채점에 실패했습니다.');
+    } finally {
+      setGradingQuestionId(null);
+    }
+  };
+
+  const handleSubmitMission = async (mission: AiFeatureTemplateMission) => {
+    if (!template) return;
+
+    try {
+      setGradingMissionId(mission.missionId);
+      const result = await fetchAiMissionFeedback({
+        featureName: template.overview.featureName,
+        mission,
+        submittedCode: template.codeFiles,
+        requirements: template.requirements,
+        apiSpecs: template.apiSpec,
+      });
+      setMissionResults((current) => ({ ...current, [mission.missionId]: result }));
+      if (result.passed && !completedMissionIds.includes(mission.missionId)) {
+        syncAiProgress(completedQuestionIds, [...completedMissionIds, mission.missionId]);
+      }
+    } catch (missionError) {
+      setError(missionError instanceof Error ? missionError.message : '미션 검토에 실패했습니다.');
+    } finally {
+      setGradingMissionId(null);
+    }
+  };
+
   if (!template) {
     return (
       <div className="min-h-screen bg-white">
-        <Header />
+        <FunctionalTemplateHeader
+          title="기능 템플릿"
+          isFavorite={false}
+          isFavoriteSaving={false}
+          profileImage={profileImage}
+          nickname={nickname}
+          onFavoriteToggle={() => undefined}
+          onProfileClick={() => router.push('/my-page/profile')}
+          onSettingsClick={() => undefined}
+          onMemoToggle={() => undefined}
+          isMemoOpen={false}
+          isDarkMode={false}
+        />
         <main className="mx-auto max-w-4xl px-8 py-16">
           <div className="rounded-lg border border-[#E2E8F0] bg-white p-10 text-center">
             <Sparkles className="mx-auto h-10 w-10 text-[#7C3AED]" />
@@ -528,8 +840,21 @@ export default function AiFunctionalTemplatePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <Header />
+    <div className={`flex h-screen flex-col ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
+      <FunctionalTemplateHeader
+        title="기능 템플릿"
+        isFavorite={isFavorite}
+        isFavoriteSaving={false}
+        profileImage={profileImage}
+        nickname={nickname}
+        onFavoriteToggle={() => setIsFavorite((current) => !current)}
+        onProfileClick={() => router.push('/my-page/profile')}
+        onAiChatOpen={() => window.dispatchEvent(new Event(AI_TEMPLATE_CHAT_OPEN_EVENT))}
+        onSettingsClick={() => setIsShowSettings(true)}
+        onMemoToggle={() => setIsMemoOpen((current) => !current)}
+        isMemoOpen={isMemoOpen}
+        isDarkMode={isDarkMode}
+      />
 
       <div className="border-b border-[#E2E8F0] bg-white px-6 py-4">
         <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6">
@@ -555,7 +880,16 @@ export default function AiFunctionalTemplatePage() {
               )}
             </div>
           </div>
-          <div className="shrink-0">
+          <div className="flex w-[28rem] max-w-[42vw] shrink-0 items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex items-center justify-between text-[11px] text-[#64748B]">
+                <span>학습 진행률</span>
+                <span className="font-semibold text-[#334155]">{progressPercent}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+                <div className="h-full rounded-full bg-[#7C3AED] transition-all" style={{ width: `${progressPercent}%` }} />
+              </div>
+            </div>
             <button
               type="button"
               onClick={handleSaveTemplate}
@@ -621,7 +955,26 @@ export default function AiFunctionalTemplatePage() {
               )}
             </div>
 
-            {renderSection(activeSection, template)}
+            {renderSection(
+              activeSection,
+              template,
+              handleOpenQuestionCode,
+              handleOpenMissionCode,
+              [
+                questionAnswers,
+                questionResults,
+                completedQuestionIds,
+                gradingQuestionId,
+                (questionId, value) => setQuestionAnswers((current) => ({ ...current, [questionId]: value })),
+                (question) => void handleGradeQuestion(question),
+              ],
+              [
+                missionResults,
+                completedMissionIds,
+                gradingMissionId,
+                (mission) => void handleSubmitMission(mission),
+              ],
+            )}
           </div>
         </section>
 
@@ -672,6 +1025,41 @@ export default function AiFunctionalTemplatePage() {
           </div>
         </aside>
       </main>
+
+      <AiTemplateCodeWorkspace
+        codeFiles={template.codeFiles}
+        templateTitle={template.overview.featureName}
+        chatContext={aiChatContext}
+        onCodeFilesChange={handleCodeFilesChange}
+      />
+
+      {isMemoOpen && <MemoPanel isDarkMode={isDarkMode} onClose={() => setIsMemoOpen(false)} />}
+
+      <div className={`flex h-14 shrink-0 items-center border-t px-6 ${
+        isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#F1F5F9] bg-white'
+      }`}>
+        <button
+          type="button"
+          onClick={() => router.push('/functional-template-hub')}
+          className={`flex items-center gap-2 rounded p-2 ${
+            isDarkMode ? 'text-[#94A3B8] hover:bg-[#334155]' : 'text-[#64748B] hover:bg-[#F8FAFC]'
+          }`}
+        >
+          <ChevronLeft className="h-5 w-5" />
+          <span className="text-sm font-medium">목록으로</span>
+        </button>
+      </div>
+
+      {isShowSettings && (
+        <SettingsModal
+          isDarkMode={isDarkMode}
+          themeMode={themeMode}
+          onThemeModeChange={setThemeMode}
+          isAiGuruHintMode={isAiGuruHintMode}
+          onAiGuruHintModeChange={setIsAiGuruHintMode}
+          onClose={() => setIsShowSettings(false)}
+        />
+      )}
     </div>
   );
 }

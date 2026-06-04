@@ -19,6 +19,8 @@ export type SavedAiTemplateDraft = AiTemplateDraft & {
   progressPercent: number;
   studySeconds: number;
   completed: boolean;
+  completedQuestionIds: string[];
+  completedMissionIds: string[];
 };
 
 function checkBrowser() {
@@ -82,6 +84,8 @@ export function setAiTemplateToLibrary(
     progressPercent: existing?.progressPercent ?? 0,
     studySeconds: existing?.studySeconds ?? 0,
     completed: existing?.completed ?? false,
+    completedQuestionIds: existing?.completedQuestionIds ?? [],
+    completedMissionIds: existing?.completedMissionIds ?? [],
   };
 
   const nextLibrary = existingIndex >= 0
@@ -93,6 +97,29 @@ export function setAiTemplateToLibrary(
   }
 
   return savedDraft;
+}
+
+export function updateSavedAiTemplateProgress(
+  draft: AiTemplateDraft,
+  savedTemplateId: string | null,
+  completedQuestionIds: string[],
+  completedMissionIds: string[],
+) {
+  const saved = setAiTemplateToLibrary(draft, savedTemplateId);
+  const totalCount = draft.result.template.basicQuestions.length + draft.result.template.missions.length;
+  const completedCount = completedQuestionIds.length + completedMissionIds.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const nextSaved: SavedAiTemplateDraft = {
+    ...saved,
+    updatedAt: new Date().toISOString(),
+    progressPercent,
+    completed: totalCount > 0 && completedCount >= totalCount,
+    completedQuestionIds,
+    completedMissionIds,
+  };
+  const nextLibrary = getSavedAiTemplates().map((template) => template.id === saved.id ? nextSaved : template);
+  if (checkBrowser()) localStorage.setItem(AI_TEMPLATE_LIBRARY_KEY, JSON.stringify(nextLibrary));
+  return nextSaved;
 }
 
 export function loadSavedAiTemplateToSession(id: string | null) {
@@ -121,8 +148,8 @@ export function mapSavedAiTemplateToLearningProgress(template: SavedAiTemplateDr
     thumbnailUrl: null,
     progressPercent: template.progressPercent,
     lastStep: 'AI 생성 초안',
-    solvedCount: 0,
-    correctCount: 0,
+    solvedCount: template.completedQuestionIds?.length ?? 0,
+    correctCount: template.completedQuestionIds?.length ?? 0,
     studySeconds: template.studySeconds,
     lastAccessedAt: template.updatedAt,
     completed: template.completed,

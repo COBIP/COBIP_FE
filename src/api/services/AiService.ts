@@ -88,9 +88,44 @@ export type AiFeatureTemplateApiSpec = {
   method: string;
   endpoint: string;
   description: string;
+  authenticationRequired?: boolean | null;
+  requestHeaders?: AiFeatureTemplateApiHeader[];
+  requestFields?: AiFeatureTemplateApiField[];
+  responseFields?: AiFeatureTemplateApiField[];
+  statusCodes?: AiFeatureTemplateStatusCode[];
+  errorResponses?: AiFeatureTemplateErrorResponse[];
+  frontendNotes?: string[];
   requestBody: Record<string, unknown> | string;
   responseBody: Record<string, unknown> | string;
   status: number;
+};
+
+export type AiFeatureTemplateApiHeader = {
+  header: string;
+  required: boolean;
+  value: string;
+  description: string;
+};
+
+export type AiFeatureTemplateApiField = {
+  fieldName: string;
+  type: string;
+  required: boolean;
+  description: string;
+  example: unknown;
+};
+
+export type AiFeatureTemplateStatusCode = {
+  code: number | string;
+  description: string;
+  condition: string;
+};
+
+export type AiFeatureTemplateErrorResponse = {
+  statusCode: number | string;
+  errorCode: string;
+  message: string;
+  example: unknown;
 };
 
 export type AiFeatureTemplateCodeFile = {
@@ -177,6 +212,33 @@ export type AiChatResponse = {
   ragUsed: boolean;
   references?: unknown[];
   agent?: unknown;
+};
+
+export type AiQuizGradeResponse = {
+  isCorrect: boolean;
+  score: number;
+  feedback: string;
+  correctAnswer: string;
+  explanation: string;
+  relatedSection?: string | null;
+};
+
+export type AiMissionFeedbackResponse = {
+  passed: boolean;
+  score: number;
+  summary: string;
+  satisfiedRequirements: string[];
+  missingRequirements: string[];
+  apiSpecIssues: string[];
+  codeIssues: Array<{
+    fileName?: string | null;
+    line?: number | null;
+    severity: string;
+    message: string;
+    suggestion: string;
+  }>;
+  improvementSuggestions: string[];
+  nextAction: string;
 };
 
 type AiApiResponse<T> = {
@@ -339,9 +401,83 @@ function mapApiSpec(value: unknown, index: number): AiFeatureTemplateApiSpec {
     method: convertToString(item.method, 'GET'),
     endpoint: convertToString(item.endpoint, '/'),
     description: convertToString(item.description),
+    authenticationRequired:
+      typeof item.authenticationRequired === 'boolean'
+        ? item.authenticationRequired
+        : typeof item.authRequired === 'boolean'
+          ? item.authRequired
+          : null,
+    requestHeaders: Array.isArray(item.requestHeaders)
+      ? item.requestHeaders.map(mapApiHeader)
+      : [],
+    requestFields: Array.isArray(item.requestFields)
+      ? item.requestFields.map(mapApiField)
+      : [],
+    responseFields: Array.isArray(item.responseFields)
+      ? item.responseFields.map(mapApiField)
+      : [],
+    statusCodes: Array.isArray(item.statusCodes)
+      ? item.statusCodes.map(mapStatusCode)
+      : [],
+    errorResponses: Array.isArray(item.errorResponses)
+      ? item.errorResponses.map(mapErrorResponse)
+      : [],
+    frontendNotes: convertToStringArray(item.frontendNotes),
     requestBody: checkRecord(item.requestBody) || typeof item.requestBody === 'string' ? item.requestBody : {},
     responseBody: checkRecord(item.responseBody) || typeof item.responseBody === 'string' ? item.responseBody : {},
     status: convertToNumber(item.status, 200),
+  };
+}
+
+function convertToBoolean(value: unknown) {
+  return value === true || value === 'true' || value === 'required' || value === 'Y';
+}
+
+function mapApiHeader(value: unknown): AiFeatureTemplateApiHeader {
+  const item = checkRecord(value) ? value : {};
+
+  return {
+    header: convertToString(item.header ?? item.name ?? item.headerName),
+    required: convertToBoolean(item.required ?? item.isRequired),
+    value: convertToString(item.value ?? item.example),
+    description: convertToString(item.description),
+  };
+}
+
+function mapApiField(value: unknown): AiFeatureTemplateApiField {
+  const item = checkRecord(value) ? value : {};
+
+  return {
+    fieldName: convertToString(item.fieldName ?? item.name ?? item.field),
+    type: convertToString(item.type ?? item.dataType),
+    required: convertToBoolean(item.required ?? item.isRequired),
+    description: convertToString(item.description),
+    example: item.example ?? item.exampleValue ?? '',
+  };
+}
+
+function mapStatusCode(value: unknown): AiFeatureTemplateStatusCode {
+  const item = checkRecord(value) ? value : {};
+
+  return {
+    code: typeof item.code === 'number' || typeof item.code === 'string'
+      ? item.code
+      : convertToString(item.statusCode),
+    description: convertToString(item.description ?? item.message),
+    condition: convertToString(item.condition ?? item.when),
+  };
+}
+
+function mapErrorResponse(value: unknown): AiFeatureTemplateErrorResponse {
+  const item = checkRecord(value) ? value : {};
+
+  return {
+    statusCode: typeof item.statusCode === 'number' || typeof item.statusCode === 'string'
+      ? item.statusCode
+      : convertToString(item.status),
+    errorCode: convertToString(item.errorCode ?? item.code),
+    message: convertToString(item.message ?? item.description),
+    example: item.example ?? item.responseBody ?? '',
   };
 }
 
@@ -533,5 +669,37 @@ export async function fetchAiChat(request: AiChatRequest): Promise<AiChatRespons
   });
 
   const result = await parseAiResponse<AiApiResponse<AiChatResponse>>(response);
+  return result.data;
+}
+
+export async function fetchAiQuizGrade(request: {
+  featureName: string;
+  question: AiFeatureTemplateBasicQuestion;
+  userAnswer: string;
+  relatedRequirements?: AiFeatureTemplateRequirement[];
+  relatedApiSpecs?: AiFeatureTemplateApiSpec[];
+}): Promise<AiQuizGradeResponse> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/quiz/grade`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ templateId: null, ...request }),
+  });
+  const result = await parseAiResponse<AiApiResponse<AiQuizGradeResponse>>(response);
+  return result.data;
+}
+
+export async function fetchAiMissionFeedback(request: {
+  featureName: string;
+  mission: AiFeatureTemplateMission;
+  submittedCode: AiFeatureTemplateCodeFile[];
+  requirements: AiFeatureTemplateRequirement[];
+  apiSpecs: AiFeatureTemplateApiSpec[];
+}): Promise<AiMissionFeedbackResponse> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/mission/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ templateId: null, ...request }),
+  });
+  const result = await parseAiResponse<AiApiResponse<AiMissionFeedbackResponse>>(response);
   return result.data;
 }

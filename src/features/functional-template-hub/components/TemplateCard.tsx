@@ -28,9 +28,9 @@ export function TemplateCard({
     <button
       type="button"
       onClick={() => isClickable && onClick(id)}
-      className={`group w-full text-left ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+      className={`group block h-full w-full text-left ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
     >
-      <div className={`relative min-h-[17rem] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white transition-all duration-200 ${
+      <div className={`relative flex h-full min-h-[17rem] flex-col overflow-hidden rounded-lg border border-[#E2E8F0] bg-white transition-all duration-200 ${
         isReady ? 'hover:border-[#C4B5FD] hover:shadow-sm' : 'opacity-75'
       }`}>
         {/* 준비 중 오버레이 */}
@@ -45,7 +45,7 @@ export function TemplateCard({
         {/* 상단 컬러 바 */}
         <div className={`h-1 ${isReady ? 'bg-[#7C3AED]' : 'bg-[#E2E8F0]'}`} />
 
-        <div className="flex min-h-[16.75rem] flex-col p-5">
+        <div className="flex min-h-[16.75rem] flex-1 flex-col p-5">
           {/* 헤더: 아이콘 + 상태 배지 */}
           <div className="mb-4 flex items-center justify-between">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F8FAFC] text-lg">

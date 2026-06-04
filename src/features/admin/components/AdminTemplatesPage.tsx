@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminService } from '@/api/services/AdminService';
 import { CodeEditor } from '@/features/functional-template/components/CodeEditor';
 import { SourceCodeSection } from '@/features/functional-template/components/SourceCodeSection';
+import { AdminApiSpecEditor } from './AdminApiSpecEditor';
 import type {
   AdminAccessLevel,
   AdminDifficulty,
@@ -1523,16 +1524,9 @@ export function AdminTemplatesPage() {
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                   />
                 </label>
-                <label className="text-sm font-semibold text-slate-700">
-                  API 명세
-                  <textarea
-                    value={form.apiSpec}
-                    onChange={(event) => updateForm('apiSpec', event.target.value)}
-                    rows={4}
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </label>
               </div>
+
+              <AdminApiSpecEditor value={form.apiSpec} onChange={(value) => updateForm('apiSpec', value)} />
 
               <section className="rounded-md border border-slate-200 p-3">
                 <div className="mb-3 flex items-center justify-between">
