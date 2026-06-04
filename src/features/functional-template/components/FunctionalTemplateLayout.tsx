@@ -573,12 +573,12 @@ export function FunctionalTemplateLayout({
     }
   };
 
-  const handleOpenAiChat = () => {
+  const handleOpenHeaderAiChat = () => {
+    setIsEditorOpen(false);
     setIsAiChatOpen(true);
-    if (!isEditorOpen) {
-      void openEditor();
-    }
   };
+
+  const handleOpenEditorAiChat = () => setIsAiChatOpen(true);
 
   const buildProjectFiles = () =>
     practiceFiles.map((file) => ({
@@ -907,7 +907,7 @@ export function FunctionalTemplateLayout({
         nickname={nickname}
         onFavoriteToggle={() => void handleFavoriteToggle()}
         onProfileClick={() => router.push('/my-page/profile')}
-        onAiChatOpen={handleOpenAiChat}
+        onAiChatOpen={handleOpenHeaderAiChat}
         onSettingsClick={() => setIsShowSettings(true)}
         onMemoToggle={() => setIsMemoOpen(!isMemoOpen)}
         isMemoOpen={isMemoOpen}
@@ -1052,7 +1052,7 @@ export function FunctionalTemplateLayout({
                       hasContent={hasPracticeFiles}
                       onRun={() => void handleRunProject()}
                       onSubmit={() => void handleSubmitProject()}
-                      onAiChatOpen={handleOpenAiChat}
+                      onAiChatOpen={handleOpenEditorAiChat}
                       isRunning={isRunning}
                       isSubmitting={isSubmitting}
                       runOutput={runOutput}
@@ -1108,6 +1108,18 @@ export function FunctionalTemplateLayout({
 
         {isMemoOpen && <MemoPanel isDarkMode={isDarkMode} onClose={() => setIsMemoOpen(false)} />}
       </div>
+
+      {!isEditorOpen && isAiChatOpen && (
+        <AiChatPanel
+          isOpen={isAiChatOpen}
+          title="AI 채팅"
+          context={aiChatContext}
+          isDarkMode={isDarkMode}
+          messages={aiChatMessages}
+          onMessagesChange={setAiChatMessages}
+          onClose={() => setIsAiChatOpen(false)}
+        />
+      )}
 
       <div className={`flex h-14 items-center border-t px-6 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#F1F5F9] bg-white'}`}>
         <button
