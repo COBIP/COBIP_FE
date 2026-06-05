@@ -64,6 +64,20 @@ const emptyForm: GrammarTemplatePayload = {
   contentJson: defaultContent,
 };
 
+type GrammarTemplateContentTab = 'theory' | 'problems' | 'missions';
+
+type GrammarTaskDraft = {
+  id: string;
+  title: string;
+  description: string;
+  orderIndex: number;
+};
+
+type ChapterTaskDrafts = {
+  problems: GrammarTaskDraft[];
+  missions: GrammarTaskDraft[];
+};
+
 function buildClonedContent(content: JSONContent = defaultContent) {
   return JSON.parse(JSON.stringify(content)) as JSONContent;
 }
@@ -195,6 +209,22 @@ function checkIsSubchapter(chapter: GrammarTemplateChapter) {
   return parseChapterNumber(chapter.title)?.isSubchapter ?? false;
 }
 
+function createTaskDraft(items: GrammarTaskDraft[] = []): GrammarTaskDraft {
+  return {
+    id: `draft-${Date.now()}-${items.length + 1}`,
+    title: '',
+    description: '',
+    orderIndex: getNextOrderIndex(items),
+  };
+}
+
+function buildChapterTaskDrafts(chapterDrafts?: Partial<ChapterTaskDrafts>): ChapterTaskDrafts {
+  return {
+    problems: chapterDrafts?.problems ?? [],
+    missions: chapterDrafts?.missions ?? [],
+  };
+}
+
 export function AdminGrammarTemplatesPage() {
   const [keyword, setKeyword] = useState('');
   const [language, setLanguage] = useState<GrammarTemplateLanguage | ''>('');
@@ -213,6 +243,8 @@ export function AdminGrammarTemplatesPage() {
   const [isChapterDirty, setIsChapterDirty] = useState(false);
   const [isFileDirty, setIsFileDirty] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [activeContentTab, setActiveContentTab] = useState<GrammarTemplateContentTab>('theory');
+  const [chapterTaskDrafts, setChapterTaskDrafts] = useState<Record<number, ChapterTaskDrafts>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -226,6 +258,11 @@ export function AdminGrammarTemplatesPage() {
   const selectedFile = useMemo(
     () => practiceFiles.find((file) => file.id === selectedFileId) ?? null,
     [practiceFiles, selectedFileId],
+  );
+
+  const activeChapterDrafts = useMemo(
+    () => (activeChapterId ? buildChapterTaskDrafts(chapterTaskDrafts[activeChapterId]) : buildChapterTaskDrafts()),
+    [activeChapterId, chapterTaskDrafts],
   );
 
   const previewSections = useMemo<AdminGrammarSection[]>(() => {
@@ -316,6 +353,65 @@ export function AdminGrammarTemplatesPage() {
     setIsFileDirty(true);
   };
 
+  const updateChapterTaskDrafts = (
+    chapterId: number,
+    updater: (currentDrafts: ChapterTaskDrafts) => ChapterTaskDrafts,
+  ) => {
+    setChapterTaskDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [chapterId]: updater(buildChapterTaskDrafts(currentDrafts[chapterId])),
+    }));
+  };
+
+  const handleAddTaskDraft = (taskType: 'problems' | 'missions') => {
+    if (!activeChapterId) {
+      setError('문제와 미션은 챕터를 선택한 뒤에 추가할 수 있습니다.');
+      return;
+    }
+
+    updateChapterTaskDrafts(activeChapterId, (currentDrafts) => ({
+      ...currentDrafts,
+      [taskType]: [...currentDrafts[taskType], createTaskDraft(currentDrafts[taskType])],
+    }));
+    setIsChapterDirty(true);
+  };
+
+  const handleUpdateTaskDraft = (
+    taskType: 'problems' | 'missions',
+    draftId: string,
+    key: keyof GrammarTaskDraft,
+    value: string | number,
+  ) => {
+    if (!activeChapterId) {
+      return;
+    }
+
+    updateChapterTaskDrafts(activeChapterId, (currentDrafts) => ({
+      ...currentDrafts,
+      [taskType]: currentDrafts[taskType].map((draft) =>
+        draft.id === draftId
+          ? {
+              ...draft,
+              [key]: value,
+            }
+          : draft,
+      ),
+    }));
+    setIsChapterDirty(true);
+  };
+
+  const handleDeleteTaskDraft = (taskType: 'problems' | 'missions', draftId: string) => {
+    if (!activeChapterId) {
+      return;
+    }
+
+    updateChapterTaskDrafts(activeChapterId, (currentDrafts) => ({
+      ...currentDrafts,
+      [taskType]: currentDrafts[taskType].filter((draft) => draft.id !== draftId),
+    }));
+    setIsChapterDirty(true);
+  };
+
   const resetFileEditor = useCallback((files: GrammarTemplatePracticeFile[] = practiceFiles) => {
     setSelectedFileId(null);
     setIsCreatingFile(false);
@@ -379,6 +475,8 @@ export function AdminGrammarTemplatesPage() {
     setIsTemplateDirty(false);
     setIsChapterDirty(false);
     setIsFileDirty(false);
+    setActiveContentTab('theory');
+    setChapterTaskDrafts({});
     setMessage('');
     setError('');
   };
@@ -395,6 +493,8 @@ export function AdminGrammarTemplatesPage() {
     try {
       const detail = await adminService.getGrammarTemplate(templateId);
       setSelectedId(detail.id);
+      setActiveContentTab('theory');
+      setChapterTaskDrafts({});
       setForm({
         slug: detail.slug,
         title: detail.title,
@@ -1258,11 +1358,36 @@ export function AdminGrammarTemplatesPage() {
             <div className="min-w-0 space-y-3">
               <AdminCard>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-bold text-slate-950">{activeChapter ? '챕터 본문' : '템플릿 본문'}</h2>
+                  <div className="space-y-3">
+                    <h2 className="text-sm font-bold text-slate-950">{activeChapter ? '챕터 콘텐츠' : '템플릿 본문'}</h2>
+                    {activeChapter ? (
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          ['theory', '이론'],
+                          ['problems', '문제'],
+                          ['missions', '미션'],
+                        ] as const).map(([tab, label]) => (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setActiveContentTab(tab)}
+                            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                              activeContentTab === tab
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'border border-slate-200 bg-white text-slate-600'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => setIsPreviewOpen((current) => !current)}
+                      disabled={activeContentTab !== 'theory'}
                       className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-40"
                     >
                       <Eye className="h-4 w-4" />
@@ -1271,6 +1396,10 @@ export function AdminGrammarTemplatesPage() {
                     <button
                       type="button"
                       onClick={() => {
+                        if (activeContentTab !== 'theory') {
+                          return;
+                        }
+
                         if (activeChapter) {
                           void handleSaveChapter();
                           return;
@@ -1278,40 +1407,160 @@ export function AdminGrammarTemplatesPage() {
 
                         void handleSaveTemplate();
                       }}
-                      disabled={isSaving}
+                      disabled={isSaving || activeContentTab !== 'theory'}
                       className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
                     >
                       <Save className="h-4 w-4" />
-                      {activeChapter ? '챕터 저장' : '템플릿 저장'}
+                      {activeContentTab === 'theory' ? (activeChapter ? '챕터 저장' : '템플릿 저장') : '연동 대기'}
                     </button>
                   </div>
                 </div>
 
                 {activeChapter ? (
-                  <label className="block text-sm font-semibold text-slate-700">
-                    챕터 제목
-                    <input
-                      value={activeChapter.title}
-                      onChange={(event) => updateActiveChapter({ title: event.target.value })}
-                      className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
-                    />
-                  </label>
+                  <>
+                    <label className="block text-sm font-semibold text-slate-700">
+                      챕터 제목
+                      <input
+                        value={activeChapter.title}
+                        onChange={(event) => updateActiveChapter({ title: event.target.value })}
+                        className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                      />
+                    </label>
+                    {activeContentTab !== 'theory' ? (
+                      <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        문제/미션 입력 UI만 먼저 연결한 상태입니다. 저장 연동은 백엔드 합의 후 추가됩니다.
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
               </AdminCard>
 
-              {isPreviewOpen ? (
-                <AdminCard>
-                  <TemplatePreview sections={previewSections} />
-                </AdminCard>
+              {activeContentTab === 'theory' ? (
+                isPreviewOpen ? (
+                  <AdminCard>
+                    <TemplatePreview sections={previewSections} />
+                  </AdminCard>
+                ) : (
+                  <RichTextEditor
+                    key={activeChapter?.id ?? `template-${selectedId ?? 'new'}`}
+                    value={buildNormalizedContent(activeChapter?.contentJson ?? form.contentJson)}
+                    onChange={(content) =>
+                      activeChapter ? updateActiveChapter({ contentJson: content }) : updateForm('contentJson', content)
+                    }
+                    onMediaUpload={handleMediaUpload}
+                  />
+                )
               ) : (
-                <RichTextEditor
-                  key={activeChapter?.id ?? `template-${selectedId ?? 'new'}`}
-                  value={buildNormalizedContent(activeChapter?.contentJson ?? form.contentJson)}
-                  onChange={(content) =>
-                    activeChapter ? updateActiveChapter({ contentJson: content }) : updateForm('contentJson', content)
-                  }
-                  onMediaUpload={handleMediaUpload}
-                />
+                <AdminCard className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-950">
+                        {activeContentTab === 'problems' ? '문제 목록' : '미션 목록'}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {activeContentTab === 'problems'
+                          ? '챕터별 문제 UI 초안을 먼저 구성합니다.'
+                          : '챕터별 미션 UI 초안을 먼저 구성합니다.'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddTaskDraft(activeContentTab === 'problems' ? 'problems' : 'missions')}
+                      disabled={!activeChapter}
+                      className="inline-flex items-center gap-2 rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" />
+                      {activeContentTab === 'problems' ? '새 문제' : '새 미션'}
+                    </button>
+                  </div>
+
+                  {(activeContentTab === 'problems' ? activeChapterDrafts.problems : activeChapterDrafts.missions).length ? (
+                    <div className="space-y-3">
+                      {(activeContentTab === 'problems' ? activeChapterDrafts.problems : activeChapterDrafts.missions).map((draft) => (
+                        <div key={draft.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                          <div className="mb-3 flex items-center justify-between gap-2">
+                            <p className="text-sm font-bold text-slate-950">
+                              {activeContentTab === 'problems' ? '문제' : '미션'} #{draft.orderIndex}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTaskDraft(activeContentTab === 'problems' ? 'problems' : 'missions', draft.id)}
+                              className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_8rem]">
+                            <label className="text-sm font-semibold text-slate-700">
+                              제목
+                              <input
+                                value={draft.title}
+                                onChange={(event) =>
+                                  handleUpdateTaskDraft(
+                                    activeContentTab === 'problems' ? 'problems' : 'missions',
+                                    draft.id,
+                                    'title',
+                                    event.target.value,
+                                  )
+                                }
+                                placeholder={activeContentTab === 'problems' ? '문제 제목' : '미션 제목'}
+                                className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                              />
+                            </label>
+                            <label className="text-sm font-semibold text-slate-700">
+                              순서
+                              <input
+                                type="number"
+                                min={1}
+                                value={draft.orderIndex}
+                                onChange={(event) =>
+                                  handleUpdateTaskDraft(
+                                    activeContentTab === 'problems' ? 'problems' : 'missions',
+                                    draft.id,
+                                    'orderIndex',
+                                    Number(event.target.value),
+                                  )
+                                }
+                                className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                              />
+                            </label>
+                          </div>
+
+                          <label className="mt-3 block text-sm font-semibold text-slate-700">
+                            설명
+                            <textarea
+                              value={draft.description}
+                              onChange={(event) =>
+                                handleUpdateTaskDraft(
+                                  activeContentTab === 'problems' ? 'problems' : 'missions',
+                                  draft.id,
+                                  'description',
+                                  event.target.value,
+                                )
+                              }
+                              rows={5}
+                              placeholder={
+                                activeContentTab === 'problems'
+                                  ? '사용자에게 보여줄 문제 설명을 입력합니다.'
+                                  : '사용자에게 보여줄 미션 설명을 입력합니다.'
+                              }
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                            />
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <AdminEmpty
+                      message={
+                        activeContentTab === 'problems'
+                          ? '아직 추가된 문제 UI 초안이 없습니다.'
+                          : '아직 추가된 미션 UI 초안이 없습니다.'
+                      }
+                    />
+                  )}
+                </AdminCard>
               )}
             </div>
 
