@@ -192,7 +192,6 @@ export function Header() {
                 { href: "/functional-template-hub", label: "기능 템플릿" },
                 { href: "/playground", label: "실습환경" },
                 { href: "/coding-test", label: "코테집" },
-                { href: "/pricing", label: "요금제" },
               ].map((item) => (
                 <Link
                   key={item.href}

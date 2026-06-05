@@ -8,7 +8,7 @@ export interface ActivityHistory {
 }
 
 export interface LearningProgress {
-    templateId: number;
+    templateId: number | null;
     aiTemplateId?: string;
     contentType?: 'TEMPLATE' | 'GRAMMAR_TEMPLATE' | 'AI_TEMPLATE';
     templateTitle: string;

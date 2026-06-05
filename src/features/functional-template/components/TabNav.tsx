@@ -25,7 +25,7 @@ export function TabNav({ activeTab, onTabChange, isDarkMode = false }: TabNavPro
         isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#F1F5F9] bg-white'
       }`}
     >
-      <div className="mx-auto flex w-full max-w-[1440px] gap-7 overflow-x-auto">
+      <div className="flex w-full gap-7 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}

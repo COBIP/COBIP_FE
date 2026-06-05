@@ -1,3 +1,4 @@
+import axiosInstance from '@/api/AxiosInstance';
 import type {
   AiFeatureTemplateGenerateRequest,
   AiFeatureTemplateGenerateResult,
@@ -5,7 +6,6 @@ import type {
 import type { LearningProgress } from '@/features/my-page/types/DashboardTypes';
 
 export const AI_TEMPLATE_SESSION_KEY = 'cobip.aiFeatureTemplateDraft';
-const AI_TEMPLATE_LIBRARY_KEY = 'cobip.aiFeatureTemplateLibrary';
 
 export type AiTemplateDraft = {
   request: AiFeatureTemplateGenerateRequest;
@@ -21,7 +21,35 @@ export type SavedAiTemplateDraft = AiTemplateDraft & {
   completed: boolean;
   completedQuestionIds: string[];
   completedMissionIds: string[];
+  lastStep?: string | null;
+  lastAccessedAt?: string | null;
 };
+
+export interface AiTemplateProgressResponse {
+  id: number;
+  contentType: 'AI_TEMPLATE';
+  aiTemplateId: string;
+  templateTitle: string;
+  templateSnapshot: AiTemplateDraft;
+  sections: AiTemplateProgressSections | null;
+  lastLearningPosition: AiTemplateLastLearningPosition | null;
+  progressPercent: number;
+  lastStep: string | null;
+  studySeconds: number;
+  completed: boolean;
+  lastAccessedAt: string;
+  updatedAt: string;
+}
+
+interface AiTemplateProgressSections {
+  completedQuestionIds?: string[];
+  completedMissionIds?: string[];
+}
+
+interface AiTemplateLastLearningPosition {
+  activeSection?: string;
+  activeFile?: string;
+}
 
 function checkBrowser() {
   return typeof window !== 'undefined';
@@ -29,6 +57,103 @@ function checkBrowser() {
 
 function createAiTemplateId() {
   return `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getTemplateTitle(draft: AiTemplateDraft) {
+  return draft.result.template.overview.featureName || draft.request.featureName || 'AI 생성 기능 템플릿';
+}
+
+function getProgressState(
+  draft: AiTemplateDraft,
+  completedQuestionIds: string[] = [],
+  completedMissionIds: string[] = [],
+) {
+  const totalCount = draft.result.template.basicQuestions.length + draft.result.template.missions.length;
+  const completedCount = completedQuestionIds.length + completedMissionIds.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  return {
+    progressPercent,
+    completed: totalCount > 0 && completedCount >= totalCount,
+    lastStep: completedCount > 0 ? `AI 템플릿 ${completedCount}/${totalCount} 완료` : 'AI 생성 초안',
+  };
+}
+
+function mapResponseToSavedDraft(response: AiTemplateProgressResponse): SavedAiTemplateDraft {
+  const snapshot = response.templateSnapshot;
+
+  return {
+    ...snapshot,
+    id: response.aiTemplateId,
+    updatedAt: response.updatedAt,
+    progressPercent: response.progressPercent,
+    studySeconds: response.studySeconds,
+    completed: response.completed,
+    completedQuestionIds: response.sections?.completedQuestionIds ?? [],
+    completedMissionIds: response.sections?.completedMissionIds ?? [],
+    lastStep: response.lastStep,
+    lastAccessedAt: response.lastAccessedAt,
+  };
+}
+
+function formatBackendLocalDateTime(date = new Date()) {
+  return date.toISOString().slice(0, 19);
+}
+
+function getSafeTemplateTitle(draft: AiTemplateDraft) {
+  return getTemplateTitle(draft).slice(0, 120);
+}
+
+function buildSavePayload(
+  draft: AiTemplateDraft,
+  aiTemplateId: string,
+  completedQuestionIds: string[] = [],
+  completedMissionIds: string[] = [],
+) {
+  const progress = getProgressState(draft, completedQuestionIds, completedMissionIds);
+  const now = formatBackendLocalDateTime();
+
+  return {
+    aiTemplateId,
+    templateTitle: getSafeTemplateTitle(draft),
+    templateSnapshot: draft,
+    sections: {
+      completedQuestionIds,
+      completedMissionIds,
+    },
+    lastLearningPosition: {
+      activeSection: 'overview',
+    },
+    progressPercent: progress.progressPercent,
+    lastStep: progress.lastStep,
+    studySeconds: 0,
+    completed: progress.completed,
+    lastAccessedAt: now,
+  };
+}
+
+function buildUpdatePayload(
+  draft: AiTemplateDraft,
+  completedQuestionIds: string[] = [],
+  completedMissionIds: string[] = [],
+) {
+  const progress = getProgressState(draft, completedQuestionIds, completedMissionIds);
+
+  return {
+    templateTitle: getSafeTemplateTitle(draft),
+    templateSnapshot: draft,
+    sections: {
+      completedQuestionIds,
+      completedMissionIds,
+    },
+    lastLearningPosition: {
+      activeSection: 'overview',
+    },
+    progressPercent: progress.progressPercent,
+    lastStep: progress.lastStep,
+    completed: progress.completed,
+    lastAccessedAt: formatBackendLocalDateTime(),
+  };
 }
 
 export function loadAiTemplateDraft(): AiTemplateDraft | null {
@@ -49,81 +174,56 @@ export function setAiTemplateDraft(draft: AiTemplateDraft) {
   sessionStorage.setItem(AI_TEMPLATE_SESSION_KEY, JSON.stringify(draft));
 }
 
-export function getSavedAiTemplates(): SavedAiTemplateDraft[] {
-  if (!checkBrowser()) return [];
+export async function getSavedAiTemplates(page = 0, size = 20) {
+  const response = await axiosInstance.get('/api/v1/users/me/ai-templates', {
+    params: { page, size },
+  });
 
-  try {
-    const raw = localStorage.getItem(AI_TEMPLATE_LIBRARY_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed as SavedAiTemplateDraft[] : [];
-  } catch {
-    return [];
-  }
+  return response.data.data;
 }
 
-export function getSavedAiTemplate(id: string | null) {
+export async function getSavedAiTemplate(id: string | null) {
   if (!id) return null;
-  return getSavedAiTemplates().find((template) => template.id === id) ?? null;
+
+  const response = await axiosInstance.get(`/api/v1/users/me/ai-templates/${encodeURIComponent(id)}`);
+
+  return mapResponseToSavedDraft(response.data.data);
 }
 
-export function setAiTemplateToLibrary(
+export async function setAiTemplateToLibrary(
   draft: AiTemplateDraft,
   savedTemplateId?: string | null,
-): SavedAiTemplateDraft {
-  const library = getSavedAiTemplates();
-  const now = new Date().toISOString();
-  const existingIndex = savedTemplateId
-    ? library.findIndex((template) => template.id === savedTemplateId)
-    : -1;
-  const existing = existingIndex >= 0 ? library[existingIndex] : null;
-  const savedDraft: SavedAiTemplateDraft = {
-    ...draft,
-    id: existing?.id ?? createAiTemplateId(),
-    savedAt: existing?.savedAt ?? draft.savedAt ?? now,
-    updatedAt: now,
-    progressPercent: existing?.progressPercent ?? 0,
-    studySeconds: existing?.studySeconds ?? 0,
-    completed: existing?.completed ?? false,
-    completedQuestionIds: existing?.completedQuestionIds ?? [],
-    completedMissionIds: existing?.completedMissionIds ?? [],
-  };
+): Promise<SavedAiTemplateDraft> {
+  const aiTemplateId = savedTemplateId ?? createAiTemplateId();
+  const payload = savedTemplateId
+    ? buildUpdatePayload(draft)
+    : buildSavePayload(draft, aiTemplateId);
+  const response = savedTemplateId
+    ? await axiosInstance.patch(`/api/v1/users/me/ai-templates/${encodeURIComponent(aiTemplateId)}`, payload)
+    : await axiosInstance.post('/api/v1/users/me/ai-templates', payload);
 
-  const nextLibrary = existingIndex >= 0
-    ? library.map((template, index) => index === existingIndex ? savedDraft : template)
-    : [savedDraft, ...library];
-
-  if (checkBrowser()) {
-    localStorage.setItem(AI_TEMPLATE_LIBRARY_KEY, JSON.stringify(nextLibrary));
-  }
-
-  return savedDraft;
+  return mapResponseToSavedDraft(response.data.data);
 }
 
-export function updateSavedAiTemplateProgress(
+export async function updateSavedAiTemplateProgress(
   draft: AiTemplateDraft,
   savedTemplateId: string | null,
   completedQuestionIds: string[],
   completedMissionIds: string[],
 ) {
-  const saved = setAiTemplateToLibrary(draft, savedTemplateId);
-  const totalCount = draft.result.template.basicQuestions.length + draft.result.template.missions.length;
-  const completedCount = completedQuestionIds.length + completedMissionIds.length;
-  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const nextSaved: SavedAiTemplateDraft = {
-    ...saved,
-    updatedAt: new Date().toISOString(),
-    progressPercent,
-    completed: totalCount > 0 && completedCount >= totalCount,
-    completedQuestionIds,
-    completedMissionIds,
-  };
-  const nextLibrary = getSavedAiTemplates().map((template) => template.id === saved.id ? nextSaved : template);
-  if (checkBrowser()) localStorage.setItem(AI_TEMPLATE_LIBRARY_KEY, JSON.stringify(nextLibrary));
-  return nextSaved;
+  const aiTemplateId = savedTemplateId ?? createAiTemplateId();
+  const payload = savedTemplateId
+    ? buildUpdatePayload(draft, completedQuestionIds, completedMissionIds)
+    : buildSavePayload(draft, aiTemplateId, completedQuestionIds, completedMissionIds);
+  const response = savedTemplateId
+    ? await axiosInstance.patch(`/api/v1/users/me/ai-templates/${encodeURIComponent(aiTemplateId)}`, payload)
+    : await axiosInstance.post('/api/v1/users/me/ai-templates', payload);
+
+  return mapResponseToSavedDraft(response.data.data);
 }
 
-export function loadSavedAiTemplateToSession(id: string | null) {
-  const savedTemplate = getSavedAiTemplate(id);
+export async function loadSavedAiTemplateToSession(id: string | null) {
+  const savedTemplate = await getSavedAiTemplate(id);
   if (!savedTemplate) return null;
 
   setAiTemplateDraft({
@@ -136,26 +236,25 @@ export function loadSavedAiTemplateToSession(id: string | null) {
 }
 
 export function mapSavedAiTemplateToLearningProgress(template: SavedAiTemplateDraft): LearningProgress {
-  const numericId = Math.abs(
-    Array.from(template.id).reduce((sum, char) => sum + char.charCodeAt(0), 0),
-  );
-
   return {
-    templateId: numericId,
+    templateId: null,
     aiTemplateId: template.id,
     contentType: 'AI_TEMPLATE',
-    templateTitle: template.result.template.overview.featureName || template.request.featureName || 'AI 생성 기능 템플릿',
+    templateTitle: getTemplateTitle(template),
     thumbnailUrl: null,
     progressPercent: template.progressPercent,
-    lastStep: 'AI 생성 초안',
+    lastStep: template.lastStep ?? 'AI 생성 초안',
     solvedCount: template.completedQuestionIds?.length ?? 0,
     correctCount: template.completedQuestionIds?.length ?? 0,
     studySeconds: template.studySeconds,
-    lastAccessedAt: template.updatedAt,
+    lastAccessedAt: template.lastAccessedAt ?? template.updatedAt,
     completed: template.completed,
   };
 }
 
-export function getSavedAiTemplateLearningItems() {
-  return getSavedAiTemplates().map(mapSavedAiTemplateToLearningProgress);
+export async function getSavedAiTemplateLearningItems() {
+  const response = await getSavedAiTemplates(0, 20);
+  const content = (response.content ?? []) as AiTemplateProgressResponse[];
+
+  return content.map(mapResponseToSavedDraft).map(mapSavedAiTemplateToLearningProgress);
 }
