@@ -133,6 +133,8 @@ type ChapterGroup = {
   subchapters: ChapterListItem[];
 };
 
+type ChapterContentTab = 'theory' | 'problems' | 'missions';
+
 function buildChapterGroups(chapters: GrammarTemplateDetail['chapters'] = []): ChapterGroup[] {
   const groups: ChapterGroup[] = [];
   let currentGroup: ChapterGroup | null = null;
@@ -180,6 +182,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [fileContents, setFileContents] = useState<Record<string, string>>({});
   const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+  const [activeContentTab, setActiveContentTab] = useState<ChapterContentTab>('theory');
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
   const chapterGroups = useMemo(() => buildChapterGroups(template?.chapters), [template?.chapters]);
@@ -240,6 +243,10 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setFileContents(workspace.contents);
     setActiveFilePath(workspace.firstFilePath);
   }, [template, currentChapterIndex]);
+
+  useEffect(() => {
+    setActiveContentTab('theory');
+  }, [currentChapterId]);
 
   useEffect(() => {
     if (!template) return;
@@ -578,7 +585,72 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
               {template?.chapters && template.chapters.length > 0 && currentChapterIndex < template.chapters.length && (
                 <>
                   <h2 className="text-xl font-semibold text-gray-800 mb-4">{template.chapters[currentChapterIndex].title}</h2>
-                  <TiptapRenderer content={template.chapters[currentChapterIndex].contentJson} />
+                  <div className="mb-6 flex flex-wrap gap-3 border-b border-gray-200">
+                    {([
+                      ['theory', '이론'],
+                      ['problems', '문제'],
+                      ['missions', '미션'],
+                    ] as const).map(([tab, label]) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setActiveContentTab(tab)}
+                        className={`border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                          activeContentTab === tab
+                            ? 'border-purple-500 text-purple-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeContentTab === 'theory' ? (
+                    <TiptapRenderer content={template.chapters[currentChapterIndex].contentJson} />
+                  ) : null}
+
+                  {activeContentTab === 'problems' ? (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-5">
+                        <h3 className="text-lg font-bold text-purple-700">문제 안내</h3>
+                        <p className="mt-2 text-sm leading-6 text-gray-700">
+                          이 챕터의 문제 영역은 현재 UI만 먼저 구성된 상태입니다. 문제 목록과 상세 구성은 백엔드 연동 후 연결됩니다.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-base font-bold text-gray-900">문제 리스트</p>
+                            <p className="mt-1 text-sm text-gray-500">이 챕터에서 풀게 될 문제들이 이 영역에 표시됩니다.</p>
+                          </div>
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">준비 중</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {activeContentTab === 'missions' ? (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-5">
+                        <h3 className="text-lg font-bold text-purple-700">미션 안내</h3>
+                        <p className="mt-2 text-sm leading-6 text-gray-700">
+                          이 챕터의 미션 영역도 현재는 UI 골격만 먼저 반영했습니다. 미션 진행 상태와 상세 내용은 추후 데이터 연동으로 연결됩니다.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-base font-bold text-gray-900">미션 리스트</p>
+                            <p className="mt-1 text-sm text-gray-500">챕터 기반 미션 카드와 진행 현황 UI가 이 영역에 배치될 예정입니다.</p>
+                          </div>
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">준비 중</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </>
               )}
               {(!template?.chapters || template.chapters.length === 0) && template?.summary && (
