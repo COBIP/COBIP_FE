@@ -72,7 +72,7 @@ export function AiTemplateCodeWorkspace({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [activeFile, setActiveFile] = useState(getFileKey(codeFiles[0] ?? { fileName: '' }));
   const [runOutput, setRunOutput] = useState('');
-  const [workspaceWidth, setWorkspaceWidth] = useState(880);
+  const [workspaceWidth, setWorkspaceWidth] = useState(960);
   const [explorerWidth, setExplorerWidth] = useState(260);
   const [chatPanelWidth, setChatPanelWidth] = useState(416);
   const resizeModeRef = useRef<ResizeMode | null>(null);
@@ -112,7 +112,7 @@ export function AiTemplateCodeWorkspace({
       const delta = startXRef.current - event.clientX;
 
       if (resizeModeRef.current === 'workspace') {
-        setWorkspaceWidth(Math.min(Math.max(startWidthRef.current + delta, 640), window.innerWidth - 320));
+        setWorkspaceWidth(Math.min(Math.max(startWidthRef.current + delta, 720), window.innerWidth - 280));
       } else if (resizeModeRef.current === 'explorer') {
         setExplorerWidth(Math.min(Math.max(startWidthRef.current - delta, 200), 420));
       } else {
@@ -164,7 +164,7 @@ export function AiTemplateCodeWorkspace({
           onClick={() => setIsOpen(true)}
           aria-label="코드 실행기 열기"
           title="코드 실행기 열기"
-          className="fixed right-0 top-[13.5rem] z-30 flex h-12 w-8 items-center justify-center rounded-l-lg border-2 border-r-0 border-[#D8B4FE] bg-[#F3E8FF] text-[#7C3AED] shadow-md transition hover:bg-[#EDE9FE]"
+          className="fixed right-0 top-[14.25rem] z-30 flex h-12 w-8 items-center justify-center rounded-l-lg border-2 border-r-0 border-[#D8B4FE] bg-[#F3E8FF] text-[#7C3AED] shadow-md transition hover:bg-[#EDE9FE]"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -173,7 +173,7 @@ export function AiTemplateCodeWorkspace({
       {isOpen && (
         <section
           style={{ width: `${workspaceWidth}px` }}
-          className="fixed right-0 top-[11.5rem] bottom-14 z-40 flex min-w-[40rem] overflow-visible border-l border-[#CBD5E1] bg-white shadow-xl"
+          className="fixed right-0 top-[14.25rem] bottom-14 z-40 flex min-w-[45rem] overflow-visible border-l border-[#CBD5E1] bg-white shadow-xl"
         >
           <div
             onMouseDown={(event) => beginResize(event, 'workspace', workspaceWidth)}

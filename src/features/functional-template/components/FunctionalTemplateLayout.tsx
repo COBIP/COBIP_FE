@@ -915,7 +915,7 @@ export function FunctionalTemplateLayout({
       />
 
       <div className={`border-b px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'}`}>
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6">
+        <div className="flex w-full items-center justify-between gap-6">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-3">
               <h2 className={`min-w-0 truncate text-[28px] font-bold leading-9 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
@@ -987,7 +987,7 @@ export function FunctionalTemplateLayout({
               style={{ width: `${contentWidth}px` }}
               className={`min-w-0 overflow-y-auto border-r ${isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#F1F5F9] bg-white'}`}
             >
-              <div className="mx-auto max-w-[880px] px-5 py-5 lg:px-6 lg:py-6">{renderContent()}</div>
+              <div className="px-5 py-5 lg:px-6 lg:py-6">{renderContent()}</div>
             </section>
 
             <div
@@ -1100,7 +1100,7 @@ export function FunctionalTemplateLayout({
               <ChevronLeft className="h-5 w-5" />
             </button>
             <section className={`min-w-0 flex-1 overflow-y-auto ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
-              <div className="mx-auto max-w-[1040px] px-5 py-5 lg:px-6 lg:py-6">{renderContent()}</div>
+              <div className="px-5 py-5 lg:px-6 lg:py-6">{renderContent()}</div>
             </section>
             {renderLearningSidebar()}
           </>
