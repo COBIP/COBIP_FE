@@ -168,7 +168,7 @@ function buildChapterGroups(chapters: GrammarTemplateDetail['chapters'] = []): C
 }
 
 export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps) {
-    const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
+  const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
@@ -183,6 +183,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [explorerTree, setExplorerTree] = useState<ExplorerNode[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [activeContentTab, setActiveContentTab] = useState<ChapterContentTab>('theory');
+  const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
+  const [selectedProblemTitle, setSelectedProblemTitle] = useState('');
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
   const chapterGroups = useMemo(() => buildChapterGroups(template?.chapters), [template?.chapters]);
@@ -254,6 +256,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
   useEffect(() => {
     setActiveContentTab('theory');
+    setSelectedProblemId(null);
+    setSelectedProblemTitle('');
   }, [currentChapterId]);
 
   useEffect(() => {
@@ -418,6 +422,12 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     }
   }, [isRunnerOpen]);
 
+  const handleStartProblemSolving = useCallback((problemId: number, problemTitle: string) => {
+    setSelectedProblemId(problemId);
+    setSelectedProblemTitle(problemTitle);
+    setIsRunnerOpen(true);
+  }, []);
+
   // ===== Resize 핸들러 =====
   const handleRunnerResizeStart = useCallback((e: React.MouseEvent) => {
     resizingRef.current = 'runner'; startXRef.current = e.clientX; startWidthRef.current = runnerWidth;
@@ -499,6 +509,28 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="mr-2 flex items-center gap-2">
+            {selectedProblemId ? (
+              <span className="hidden rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 lg:inline-flex">
+                현재 문제: {selectedProblemTitle}
+              </span>
+            ) : (
+              <span className="hidden rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-400 lg:inline-flex">
+                문제 선택 후 제출 가능
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={!selectedProblemId}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                selectedProblemId
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                  : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+              }`}
+            >
+              제출
+            </button>
+          </div>
           <button className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative">
             <Bookmark className="w-4 h-4 text-gray-500 group-hover:text-purple-600" />
           </button>
@@ -632,7 +664,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           {problemItems.map((mission, index) => (
                             <div key={mission.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                               <div className="flex items-start justify-between gap-3">
-                                <div>
+                                <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
                                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-bold text-white">
                                       {index + 1}
@@ -648,9 +680,22 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     </div>
                                   ) : null}
                                 </div>
-                                <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
-                                  order {mission.orderIndex}
-                                </span>
+                                <div className="flex shrink-0 flex-col items-end gap-3">
+                                  <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                    order {mission.orderIndex}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartProblemSolving(mission.id, mission.title)}
+                                    className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                                      selectedProblemId === mission.id
+                                        ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
+                                        : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
+                                    }`}
+                                  >
+                                    {selectedProblemId === mission.id ? '풀이 중' : '문제 풀기'}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ))}
