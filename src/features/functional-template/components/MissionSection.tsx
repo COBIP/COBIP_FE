@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import type { TemplatePracticeMissionApiResponse } from '@/api/services/FunctionalTemplateService';
+import type {
+  TemplatePracticeMissionApiResponse,
+  TemplatePracticeQuizSubmissionResponse,
+} from '@/api/services/FunctionalTemplateService';
 import { MarkdownTextView } from './MarkdownTextView';
 
 interface MissionSectionProps {
@@ -14,7 +17,7 @@ interface MissionSectionProps {
   activeMissionId?: number | null;
   completedMissionIds?: Set<number>;
   onOpenEditor?: (fileName: string, missionId: number) => void;
-  onProblemCorrect?: (missionId: number) => void | Promise<void>;
+  onSubmitQuizAnswer?: (missionId: number, answer: string) => Promise<TemplatePracticeQuizSubmissionResponse>;
   missions?: Array<TemplatePracticeMissionApiResponse & { fileName?: string }>;
 }
 
@@ -29,6 +32,13 @@ type MissionMeta = {
 };
 
 type AnswerResult = 'correct' | 'incorrect' | 'empty';
+
+type QuizFeedback = {
+  result: AnswerResult;
+  message: string;
+  explanation?: string | null;
+  status?: string;
+};
 
 function getStringArray(value: unknown): string[] {
   return Array.isArray(value)
@@ -80,12 +90,13 @@ export function MissionSection({
   activeMissionId,
   completedMissionIds,
   onOpenEditor,
-  onProblemCorrect,
+  onSubmitQuizAnswer,
   missions,
 }: MissionSectionProps) {
   const [revealedAnswerIds, setRevealedAnswerIds] = useState<Set<number>>(new Set());
   const [problemAnswers, setProblemAnswers] = useState<Record<number, string>>({});
-  const [answerResults, setAnswerResults] = useState<Record<number, AnswerResult>>({});
+  const [quizFeedbacks, setQuizFeedbacks] = useState<Record<number, QuizFeedback>>({});
+  const [checkingQuizIds, setCheckingQuizIds] = useState<Set<number>>(new Set());
   const steps = missions && missions.length > 0
     ? missions.map((mission, index) => {
         const meta = getMissionMeta(mission.validationJson);
@@ -108,7 +119,7 @@ export function MissionSection({
     : [];
   const updateProblemAnswer = (missionId: number, answer: string) => {
     setProblemAnswers((current) => ({ ...current, [missionId]: answer }));
-    setAnswerResults((current) => {
+    setQuizFeedbacks((current) => {
       const next = { ...current };
       delete next[missionId];
       return next;
@@ -120,19 +131,64 @@ export function MissionSection({
     });
   };
 
-  const checkAnswer = (missionId: number, answer?: string) => {
+  const checkAnswer = async (missionId: number, answer?: string) => {
+    const rawUserAnswer = problemAnswers[missionId] ?? '';
     const userAnswer = formatNormalizedAnswer(problemAnswers[missionId]);
     const correctAnswer = formatNormalizedAnswer(answer);
-    const result: AnswerResult = !userAnswer ? 'empty' : userAnswer === correctAnswer ? 'correct' : 'incorrect';
 
-    setAnswerResults((current) => ({
-      ...current,
-      [missionId]: result,
-    }));
-    setRevealedAnswerIds((current) => new Set(current).add(missionId));
+    if (!userAnswer) {
+      setQuizFeedbacks((current) => ({
+        ...current,
+        [missionId]: {
+          result: 'empty',
+          message: '답안을 먼저 선택하거나 입력해주세요.',
+        },
+      }));
+      setRevealedAnswerIds((current) => new Set(current).add(missionId));
+      return;
+    }
 
-    if (result === 'correct') {
-      void onProblemCorrect?.(missionId);
+    setCheckingQuizIds((current) => new Set(current).add(missionId));
+
+    try {
+      if (onSubmitQuizAnswer) {
+        const response = await onSubmitQuizAnswer(missionId, rawUserAnswer);
+        setQuizFeedbacks((current) => ({
+          ...current,
+          [missionId]: {
+            result: response.correct ? 'correct' : 'incorrect',
+            message: response.message,
+            explanation: response.explanation,
+            status: response.status,
+          },
+        }));
+      } else {
+        const result: AnswerResult = userAnswer === correctAnswer ? 'correct' : 'incorrect';
+        setQuizFeedbacks((current) => ({
+          ...current,
+          [missionId]: {
+            result,
+            message: result === 'correct' ? '정답입니다.' : '오답입니다.',
+          },
+        }));
+      }
+
+      setRevealedAnswerIds((current) => new Set(current).add(missionId));
+    } catch (error) {
+      setQuizFeedbacks((current) => ({
+        ...current,
+        [missionId]: {
+          result: 'incorrect',
+          message: error instanceof Error ? error.message : '정답 확인에 실패했습니다.',
+        },
+      }));
+      setRevealedAnswerIds((current) => new Set(current).add(missionId));
+    } finally {
+      setCheckingQuizIds((current) => {
+        const next = new Set(current);
+        next.delete(missionId);
+        return next;
+      });
     }
   };
 
@@ -209,9 +265,11 @@ export function MissionSection({
               const isCompleted = completedMissionIds?.has(step.id) ?? false;
               const isActive = step.id === activeMissionId;
               const isAnswerRevealed = revealedAnswerIds.has(step.id);
-              const answerResult = answerResults[step.id];
+              const quizFeedback = quizFeedbacks[step.id];
+              const answerResult = quizFeedback?.result;
               const currentAnswer = problemAnswers[step.id] ?? '';
               const hasMissionMeta = step.meta.requirements.length > 0 || step.meta.successCriteria.length > 0;
+              const isCheckingQuiz = checkingQuizIds.has(step.id);
 
               return (
                 <article
@@ -284,10 +342,11 @@ export function MissionSection({
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => checkAnswer(step.id, step.meta.answer)}
-                          className="h-10 rounded-md bg-[#7C3AED] px-4 text-sm font-bold text-white transition hover:bg-[#6D28D9]"
+                          disabled={isCheckingQuiz}
+                          onClick={() => void checkAnswer(step.id, step.meta.answer)}
+                          className="h-10 rounded-md bg-[#7C3AED] px-4 text-sm font-bold text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          정답 확인
+                          {isCheckingQuiz ? '확인 중...' : '정답 확인'}
                         </button>
                         <button
                           type="button"
@@ -308,8 +367,11 @@ export function MissionSection({
                         }`}>
                           {answerResult ? (
                             <p className="text-base font-bold">
-                              {answerResult === 'correct' ? '정답입니다.' : answerResult === 'incorrect' ? '오답입니다.' : '답안을 먼저 선택하거나 입력해주세요.'}
+                              {quizFeedback?.message ?? (answerResult === 'correct' ? '정답입니다.' : answerResult === 'incorrect' ? '오답입니다.' : '답안을 먼저 선택하거나 입력해주세요.')}
                             </p>
+                          ) : null}
+                          {quizFeedback?.status ? (
+                            <p className="text-xs font-semibold opacity-80">status: {quizFeedback.status}</p>
                           ) : null}
                           {step.meta.answer ? (
                             <div>
@@ -317,10 +379,10 @@ export function MissionSection({
                               <p className="mt-1 break-words">{step.meta.answer}</p>
                             </div>
                           ) : null}
-                          {step.meta.explanation ? (
+                          {(quizFeedback?.explanation || step.meta.explanation) ? (
                             <div>
                               <p className="font-bold text-[#7C3AED]">해설</p>
-                              <p className="mt-1 break-words">{step.meta.explanation}</p>
+                              <p className="mt-1 break-words">{quizFeedback?.explanation ?? step.meta.explanation}</p>
                             </div>
                           ) : null}
                         </div>
