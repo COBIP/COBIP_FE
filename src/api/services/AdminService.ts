@@ -67,6 +67,10 @@ function buildTemplateRequestBody(payload: AdminTemplatePayload | Partial<AdminT
     body.interviewQuestions = payload.interviewQuestions;
   }
 
+  if ('nextRecommendations' in payload) {
+    body.nextRecommendations = payload.nextRecommendations;
+  }
+
   if ('testCases' in payload) {
     body.testCases = payload.testCases?.map((testCase) => ({
       input: testCase.input,
