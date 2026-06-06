@@ -19,6 +19,8 @@ import type {
   ApiResponse,
   GrammarTemplateDetail,
   GrammarTemplateChapter,
+  GrammarTemplateChapterMission,
+  GrammarTemplateChapterMissionPayload,
   GrammarTemplateChapterPayload,
   GrammarTemplateLanguage,
   GrammarTemplateMediaUploadResponse,
@@ -309,6 +311,50 @@ export const adminService = {
   getGrammarTemplatePracticeFiles(templateId: number, chapterId: number) {
     return fetchAdminRequest<GrammarTemplatePracticeFile[]>(
       `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/practice-files`,
+    );
+  },
+
+  getGrammarTemplateChapterMissions(templateId: number, chapterId: number) {
+    return fetchAdminRequest<GrammarTemplateChapterMission[]>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/missions`,
+    );
+  },
+
+  createGrammarTemplateChapterMission(
+    templateId: number,
+    chapterId: number,
+    payload: GrammarTemplateChapterMissionPayload,
+  ) {
+    return fetchAdminRequest<GrammarTemplateChapterMission>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/missions`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
+  updateGrammarTemplateChapterMission(
+    templateId: number,
+    chapterId: number,
+    missionId: number,
+    payload: GrammarTemplateChapterMissionPayload,
+  ) {
+    return fetchAdminRequest<GrammarTemplateChapterMission>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/missions/${missionId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
+  deleteGrammarTemplateChapterMission(templateId: number, chapterId: number, missionId: number) {
+    return fetchAdminRequest<void>(
+      `/api/v1/admin/grammar-templates/${templateId}/chapters/${chapterId}/missions/${missionId}`,
+      {
+        method: 'DELETE',
+      },
     );
   },
 
