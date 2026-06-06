@@ -37,8 +37,23 @@ export interface GrammarTemplateChapter {
   orderIndex: number;
   contentJson: Record<string, unknown>;
   practiceFiles: GrammarTemplatePracticeFile[];
+  missions?: GrammarTemplateChapterMission[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type GrammarTemplateMissionType = 'PROBLEM' | 'MISSION';
+
+export interface GrammarTemplateChapterMission {
+  id: number;
+  templateId: number;
+  chapterId: number;
+  title: string;
+  description?: string | null;
+  missionType: GrammarTemplateMissionType;
+  orderIndex: number;
+  guideContent?: string | null;
+  validationJson?: Record<string, unknown> | null;
 }
 
 /** 문법 템플릿 실습 파일 */
