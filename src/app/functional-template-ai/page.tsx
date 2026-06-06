@@ -46,7 +46,6 @@ import {
 import {
   loadAiTemplateDraft,
   loadSavedAiTemplateToSession,
-  setAiTemplateToLibrary,
   setAiTemplateDraft,
   updateSavedAiTemplateProgress,
   type AiTemplateDraft,
@@ -596,11 +595,15 @@ export default function AiFunctionalTemplatePage() {
   const isDarkMode = themeMode === 'dark';
 
   useEffect(() => {
+    let isMounted = true;
+
+    const restoreTemplate = async () => {
     const searchParams = new URLSearchParams(window.location.search);
     const nextSavedTemplateId = searchParams.get('savedTemplateId');
-    const restoredTemplate = loadSavedAiTemplateToSession(nextSavedTemplateId);
+      const restoredTemplate = await loadSavedAiTemplateToSession(nextSavedTemplateId);
 
     if (restoredTemplate) {
+        if (!isMounted) return;
       setDraft({
         request: restoredTemplate.request,
         result: restoredTemplate.result,
@@ -612,7 +615,15 @@ export default function AiFunctionalTemplatePage() {
       return;
     }
 
+      if (!isMounted) return;
     setDraft(loadAiTemplateDraft());
+    };
+
+    void restoreTemplate();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const template = draft?.result.template ?? null;
@@ -677,7 +688,12 @@ export default function AiFunctionalTemplatePage() {
       setAiTemplateDraft(nextDraft);
       setDraft(nextDraft);
       if (savedTemplateId) {
-        setAiTemplateToLibrary(nextDraft, savedTemplateId);
+        await updateSavedAiTemplateProgress(
+          nextDraft,
+          savedTemplateId,
+          completedQuestionIds,
+          completedMissionIds,
+        );
       }
       setInstruction('');
     } catch (err) {
@@ -687,15 +703,25 @@ export default function AiFunctionalTemplatePage() {
     }
   };
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!draft) return;
 
-    const savedTemplate = setAiTemplateToLibrary(draft, savedTemplateId);
-    setSavedTemplateId(savedTemplate.id);
-    setSaveMessage('내 학습에 저장되었습니다. 마이페이지 내 학습에서 이어서 볼 수 있어요.');
+    try {
+      setError(null);
+      const savedTemplate = await updateSavedAiTemplateProgress(
+        draft,
+        savedTemplateId,
+        completedQuestionIds,
+        completedMissionIds,
+      );
+      setSavedTemplateId(savedTemplate.id);
+      setSaveMessage('내 학습에 저장되었습니다. 마이페이지 내 학습에서 이어서 볼 수 있어요.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'AI 템플릿 저장에 실패했습니다.');
+    }
   };
 
-  const handleCodeFilesChange = (codeFiles: AiFeatureTemplateCodeFile[]) => {
+  const handleCodeFilesChange = async (codeFiles: AiFeatureTemplateCodeFile[]) => {
     if (!draft || !template) return;
 
     const nextDraft: AiTemplateDraft = {
@@ -713,7 +739,16 @@ export default function AiFunctionalTemplatePage() {
     setAiTemplateDraft(nextDraft);
     setDraft(nextDraft);
     if (savedTemplateId) {
-      setAiTemplateToLibrary(nextDraft, savedTemplateId);
+      try {
+        await updateSavedAiTemplateProgress(
+          nextDraft,
+          savedTemplateId,
+          completedQuestionIds,
+          completedMissionIds,
+        );
+      } catch {
+        setError('AI 템플릿 코드 변경사항 저장에 실패했습니다.');
+      }
     }
   };
 
@@ -750,9 +785,9 @@ export default function AiFunctionalTemplatePage() {
     );
   };
 
-  const syncAiProgress = (nextQuestionIds: string[], nextMissionIds: string[]) => {
+  const syncAiProgress = async (nextQuestionIds: string[], nextMissionIds: string[]) => {
     if (!draft) return;
-    const saved = updateSavedAiTemplateProgress(draft, savedTemplateId, nextQuestionIds, nextMissionIds);
+    const saved = await updateSavedAiTemplateProgress(draft, savedTemplateId, nextQuestionIds, nextMissionIds);
     setSavedTemplateId(saved.id);
     setCompletedQuestionIds(nextQuestionIds);
     setCompletedMissionIds(nextMissionIds);
@@ -774,7 +809,7 @@ export default function AiFunctionalTemplatePage() {
       });
       setQuestionResults((current) => ({ ...current, [question.questionId]: result }));
       if (result.isCorrect && !completedQuestionIds.includes(question.questionId)) {
-        syncAiProgress([...completedQuestionIds, question.questionId], completedMissionIds);
+        await syncAiProgress([...completedQuestionIds, question.questionId], completedMissionIds);
       }
     } catch (gradeError) {
       setError(gradeError instanceof Error ? gradeError.message : '문제 채점에 실패했습니다.');
@@ -797,7 +832,7 @@ export default function AiFunctionalTemplatePage() {
       });
       setMissionResults((current) => ({ ...current, [mission.missionId]: result }));
       if (result.passed && !completedMissionIds.includes(mission.missionId)) {
-        syncAiProgress(completedQuestionIds, [...completedMissionIds, mission.missionId]);
+        await syncAiProgress(completedQuestionIds, [...completedMissionIds, mission.missionId]);
       }
     } catch (missionError) {
       setError(missionError instanceof Error ? missionError.message : '미션 검토에 실패했습니다.');
@@ -857,7 +892,7 @@ export default function AiFunctionalTemplatePage() {
       />
 
       <div className="border-b border-[#E2E8F0] bg-white px-6 py-4">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6">
+        <div className="flex w-full items-center justify-between gap-6">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-3">
               <h1 className="min-w-0 truncate text-[28px] font-bold text-[#1E293B]">
@@ -892,7 +927,7 @@ export default function AiFunctionalTemplatePage() {
             </div>
             <button
               type="button"
-              onClick={handleSaveTemplate}
+              onClick={() => void handleSaveTemplate()}
               className="h-10 rounded-lg bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
             >
               내 학습에 저장
@@ -905,7 +940,7 @@ export default function AiFunctionalTemplatePage() {
       </div>
 
       <div className="flex items-center border-b border-[#F1F5F9] bg-white px-6">
-        <div className="mx-auto flex w-full max-w-[1440px] gap-7 overflow-x-auto">
+        <div className="flex w-full gap-7 overflow-x-auto">
           {sections.map((section) => (
             <button
               key={section.key}
@@ -926,7 +961,7 @@ export default function AiFunctionalTemplatePage() {
 
       <main className="flex min-h-0 flex-1 overflow-hidden">
         <section className="min-w-0 flex-1 overflow-y-auto bg-white">
-          <div className="mx-auto max-w-[1040px] px-5 py-6 lg:px-6">
+          <div className="px-5 py-6 lg:px-6">
             <div className="mb-5 rounded-lg border border-[#EDE9FE] bg-white p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                 <div className="flex-1">

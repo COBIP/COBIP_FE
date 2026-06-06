@@ -85,9 +85,15 @@ export interface AdminTemplateSummary {
 }
 
 export interface AdminTemplateRequirement {
+  id?: string;
   type: string;
   description: string;
   optionalFlag: boolean;
+  priority?: string;
+  inputValue?: string;
+  condition?: string;
+  successResult?: string;
+  failureResult?: string;
 }
 
 export interface AdminTemplateMissionDraft {

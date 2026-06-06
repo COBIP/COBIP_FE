@@ -1,6 +1,5 @@
 // src/api/services/DashboardService.ts
 import axiosInstance from '@/api/AxiosInstance';
-import { getSavedAiTemplateLearningItems } from '@/api/services/AiTemplateStorage';
 import type {
     LearningActivityHeartbeatResponse,
     LearningProgress,
@@ -79,7 +78,7 @@ function mapPracticeToLearningProgress(practice: TemplatePracticeDetail): Learni
 }
 
 function getLearningKey(item: LearningProgress) {
-    return `${item.contentType ?? 'TEMPLATE'}:${item.templateId}`;
+    return `${item.contentType ?? 'TEMPLATE'}:${item.aiTemplateId ?? item.templateId}`;
 }
 
 function buildMergedLearningList(
@@ -139,9 +138,8 @@ async function getPracticeLearningFallback(): Promise<LearningProgress[]> {
 async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDashboardData> {
     try {
         const practiceLearning = await getPracticeLearningFallback();
-        const aiLearning = getSavedAiTemplateLearningItems();
 
-        if (practiceLearning.length === 0 && aiLearning.length === 0) {
+        if (practiceLearning.length === 0) {
             return {
                 ...dashboard,
                 averageCorrectRate: calculateCorrectRatePercent(dashboard.averageCorrectRate),
@@ -150,7 +148,7 @@ async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDash
 
         const mergedLearning = buildMergedLearningList(
             dashboard.recentLearning ?? [],
-            [...practiceLearning, ...aiLearning],
+            practiceLearning,
         );
         const recentLearning = mergedLearning.slice(0, 5);
         const inProgressLearningCount = mergedLearning.filter((learning) => !learning.completed).length;
@@ -166,27 +164,6 @@ async function applyPracticeProgress(dashboard: MyDashboardData): Promise<MyDash
             recentLearning,
         };
     } catch {
-        const aiLearning = getSavedAiTemplateLearningItems();
-        if (aiLearning.length > 0) {
-            const mergedLearning = buildMergedLearningList(dashboard.recentLearning ?? [], aiLearning);
-            const correctRatePercent = getCorrectRatePercent(mergedLearning);
-
-            return {
-                ...dashboard,
-                inProgressLearningCount: Math.max(
-                    dashboard.inProgressLearningCount,
-                    mergedLearning.filter((learning) => !learning.completed).length,
-                ),
-                completedLearningCount: Math.max(
-                    dashboard.completedLearningCount,
-                    mergedLearning.filter((learning) => learning.completed).length,
-                ),
-                averageCorrectRate: correctRatePercent ?? calculateCorrectRatePercent(dashboard.averageCorrectRate),
-                continueLearning: dashboard.continueLearning ?? mergedLearning.find((learning) => !learning.completed) ?? null,
-                recentLearning: mergedLearning.slice(0, 5),
-            };
-        }
-
         return {
             ...dashboard,
             averageCorrectRate: calculateCorrectRatePercent(dashboard.averageCorrectRate),

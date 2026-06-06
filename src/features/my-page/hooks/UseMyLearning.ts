@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { getSavedAiTemplateLearningItems } from '@/api/services/AiTemplateStorage';
 import { myLearningService, type PageResponse } from '@/api/services/MyLearningService';
 import type { LearningProgress } from '@/features/my-page/types/DashboardTypes';
 
@@ -32,13 +31,12 @@ export const useMyLearning = () => {
       try {
         const data = await myLearningService.getLearningProgress(page, PAGE_SIZE);
         if (isMounted) {
-          const aiLearningItems = page === 0 ? getSavedAiTemplateLearningItems() : [];
           const serverContent = data.content ?? [];
 
           setResponse({
             ...data,
-            content: [...aiLearningItems, ...serverContent],
-            totalElements: data.totalElements + aiLearningItems.length,
+            content: serverContent,
+            totalElements: data.totalElements,
           });
         }
       } catch (fetchError) {

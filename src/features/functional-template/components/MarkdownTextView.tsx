@@ -180,7 +180,7 @@ function renderInline(text: string, keyPrefix: string, isDarkMode: boolean): Rea
       return (
         <code
           key={key}
-          className={`rounded px-1.5 py-0.5 font-mono text-[0.92em] ${
+          className={`rounded px-1.5 py-0.5 font-mono text-[0.92em] break-all ${
             isDarkMode ? 'bg-[#0F172A] text-[#E9D5FF]' : 'bg-white text-[#5B21B6]'
           }`}
         >
@@ -249,7 +249,7 @@ export function MarkdownTextView({
     : 'my-3 max-w-full overflow-x-auto rounded-lg px-4 py-3 text-sm leading-6';
 
   return (
-    <div className={className}>
+    <div className={`min-w-0 break-words [overflow-wrap:anywhere] ${className ?? ''}`}>
       {blocks.map((block, index) => {
         if (block.type === 'h1') {
           return (
@@ -288,7 +288,7 @@ export function MarkdownTextView({
           return (
             <ul key={`ul-${index}`} className={listClass}>
               {block.items.slice(0, maxListItems).map((item, itemIndex) => (
-                <li key={`ul-item-${index}-${itemIndex}`}>
+                <li key={`ul-item-${index}-${itemIndex}`} className="min-w-0 break-words [overflow-wrap:anywhere]">
                   {renderInline(item, `ul-item-${index}-${itemIndex}`, isDarkMode)}
                 </li>
               ))}
@@ -300,7 +300,7 @@ export function MarkdownTextView({
           return (
             <ol key={`ol-${index}`} className={orderedListClass}>
               {block.items.slice(0, maxListItems).map((item, itemIndex) => (
-                <li key={`ol-item-${index}-${itemIndex}`}>
+                <li key={`ol-item-${index}-${itemIndex}`} className="min-w-0 break-words [overflow-wrap:anywhere]">
                   {renderInline(item, `ol-item-${index}-${itemIndex}`, isDarkMode)}
                 </li>
               ))}
@@ -322,7 +322,7 @@ export function MarkdownTextView({
         }
 
         return (
-          <p key={`p-${index}`} className={paragraphClass}>
+          <p key={`p-${index}`} className={`${paragraphClass} min-w-0 break-words [overflow-wrap:anywhere]`}>
             {renderInline(block.text, `p-${index}`, isDarkMode)}
           </p>
         );
