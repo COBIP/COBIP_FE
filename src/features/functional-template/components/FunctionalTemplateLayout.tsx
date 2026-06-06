@@ -26,6 +26,7 @@ import {
   getTemplatePractice,
   submitTemplatePracticeCode,
   submitTemplatePracticeProject,
+  updateTemplatePracticeMissionProgress,
   type TemplateDetailApiResponse,
   type TemplatePracticeDetailApiResponse,
   type TemplatePracticeFileApiResponse,
@@ -614,6 +615,19 @@ export function FunctionalTemplateLayout({
     });
   };
 
+  const handleProblemCorrect = async (missionId: number) => {
+    if (!templateId || completedMissionIds.has(missionId)) return;
+
+    try {
+      const progress = await updateTemplatePracticeMissionProgress(templateId, missionId, 'COMPLETED');
+      setPracticeProgress(progress);
+      markMissionCompleted(missionId);
+      await refreshPractice();
+    } catch {
+      markMissionCompleted(missionId);
+    }
+  };
+
   const handleRunProject = async () => {
     if (!templateId || isRunning) return;
     const missionId = activeMissionId ?? practiceMissions[0]?.id;
@@ -766,6 +780,7 @@ export function FunctionalTemplateLayout({
             activeMissionId={activeMissionId}
             completedMissionIds={completedMissionIds}
             onOpenEditor={openEditor}
+            onProblemCorrect={handleProblemCorrect}
             missions={problemItems.map((mission, index) => ({
               ...mission,
               fileName: getMissionFilePath(mission, practiceFiles, index),
