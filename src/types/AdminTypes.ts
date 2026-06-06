@@ -7,6 +7,7 @@ export type AdminVisibility = 'PUBLIC' | 'PRIVATE';
 export type AdminAccessLevel = 'FREE' | 'PREMIUM';
 export type GrammarTemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type GrammarTemplateLanguage = 'JAVA' | 'PYTHON' | 'JAVASCRIPT';
+export type GrammarTemplateMissionType = 'PROBLEM' | 'MISSION';
 export type AdminReportStatus = 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'REJECTED';
 export type AdminReportTargetType = 'TEMPLATE' | 'GRAMMAR_TEMPLATE' | 'COMMENT' | 'USER';
 export type AdminModerationTargetType = 'TEMPLATE' | 'GRAMMAR_TEMPLATE';
@@ -225,6 +226,20 @@ export interface GrammarTemplatePracticeFile {
   updatedAt?: string;
 }
 
+export interface GrammarTemplateChapterMission {
+  id: number;
+  templateId: number;
+  chapterId: number;
+  title: string;
+  description?: string | null;
+  missionType: GrammarTemplateMissionType;
+  orderIndex: number;
+  guideContent?: string | null;
+  validationJson?: Record<string, unknown> | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface GrammarTemplateChapter {
   id: number;
   templateId: number;
@@ -232,8 +247,18 @@ export interface GrammarTemplateChapter {
   orderIndex: number;
   contentJson: JSONContent;
   practiceFiles?: GrammarTemplatePracticeFile[];
+  missions?: GrammarTemplateChapterMission[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface GrammarTemplateChapterMissionPayload {
+  title: string;
+  description?: string;
+  missionType: GrammarTemplateMissionType;
+  orderIndex: number;
+  guideContent?: string;
+  validationJson?: Record<string, unknown>;
 }
 
 export interface GrammarTemplateChapterPayload {
