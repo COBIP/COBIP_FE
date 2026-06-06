@@ -186,6 +186,14 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
   const chapterGroups = useMemo(() => buildChapterGroups(template?.chapters), [template?.chapters]);
+  const problemItems = useMemo(
+    () => (currentChapter?.missions ?? []).filter((mission) => mission.missionType === 'PROBLEM'),
+    [currentChapter?.missions],
+  );
+  const missionItems = useMemo(
+    () => (currentChapter?.missions ?? []).filter((mission) => mission.missionType === 'MISSION'),
+    [currentChapter?.missions],
+  );
   const aiChatContext = useMemo(() => {
     const activeCode = fileContents[activeFilePath] ?? '';
     const parts = [
@@ -615,19 +623,43 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                       <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-5">
                         <h3 className="text-lg font-bold text-purple-700">문제 안내</h3>
                         <p className="mt-2 text-sm leading-6 text-gray-700">
-                          이 챕터의 문제 영역은 현재 UI만 먼저 구성된 상태입니다. 문제 목록과 상세 구성은 백엔드 연동 후 연결됩니다.
+                          이 챕터의 문제 목록입니다. 문제를 선택하거나 풀이하는 인터랙션은 다음 단계에서 더 확장할 수 있습니다.
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-base font-bold text-gray-900">문제 리스트</p>
-                            <p className="mt-1 text-sm text-gray-500">이 챕터에서 풀게 될 문제들이 이 영역에 표시됩니다.</p>
-                          </div>
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">준비 중</span>
+                      {problemItems.length > 0 ? (
+                        <div className="space-y-3">
+                          {problemItems.map((mission, index) => (
+                            <div key={mission.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-bold text-white">
+                                      {index + 1}
+                                    </span>
+                                    <p className="text-base font-bold text-gray-900">{mission.title}</p>
+                                  </div>
+                                  {mission.description ? (
+                                    <p className="mt-3 text-sm leading-6 text-gray-700">{mission.description}</p>
+                                  ) : null}
+                                  {mission.guideContent ? (
+                                    <div className="mt-3 rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-700">
+                                      {mission.guideContent}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                  order {mission.orderIndex}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
+                          등록된 문제가 없습니다.
+                        </div>
+                      )}
                     </div>
                   ) : null}
 
@@ -636,19 +668,43 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                       <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-5">
                         <h3 className="text-lg font-bold text-purple-700">미션 안내</h3>
                         <p className="mt-2 text-sm leading-6 text-gray-700">
-                          이 챕터의 미션 영역도 현재는 UI 골격만 먼저 반영했습니다. 미션 진행 상태와 상세 내용은 추후 데이터 연동으로 연결됩니다.
+                          이 챕터의 미션 목록입니다. 현재는 콘텐츠 확인 중심으로 연결했고, 추후 진행 상태/제출 흐름을 확장할 수 있습니다.
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-base font-bold text-gray-900">미션 리스트</p>
-                            <p className="mt-1 text-sm text-gray-500">챕터 기반 미션 카드와 진행 현황 UI가 이 영역에 배치될 예정입니다.</p>
-                          </div>
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">준비 중</span>
+                      {missionItems.length > 0 ? (
+                        <div className="space-y-3">
+                          {missionItems.map((mission, index) => (
+                            <div key={mission.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="rounded-full bg-purple-600 px-3 py-1 text-xs font-bold text-white">
+                                      미션 {index + 1}
+                                    </span>
+                                    <p className="text-base font-bold text-gray-900">{mission.title}</p>
+                                  </div>
+                                  {mission.description ? (
+                                    <p className="mt-3 text-sm leading-6 text-gray-700">{mission.description}</p>
+                                  ) : null}
+                                  {mission.guideContent ? (
+                                    <div className="mt-3 rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-700">
+                                      {mission.guideContent}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                  order {mission.orderIndex}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
+                          등록된 미션이 없습니다.
+                        </div>
+                      )}
                     </div>
                   ) : null}
                 </>
