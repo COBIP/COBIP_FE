@@ -32,7 +32,7 @@ export function InterviewSection({ isDarkMode = false, questions }: InterviewSec
 
   return (
     <div className="space-y-4">
-      <h2 className={`text-[20px] font-semibold tracking-[-0.02em] transition-colors duration-300 ${
+      <h2 className={`text-2xl font-bold transition-colors duration-300 ${
         isDarkMode ? 'text-white' : 'text-[#1E293B]'
       }`}>
         핵심 질문

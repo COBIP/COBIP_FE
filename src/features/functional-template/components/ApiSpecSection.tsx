@@ -38,26 +38,39 @@ export function ApiSpecSection({ content, isDarkMode = false }: { content?: stri
 
   if (!content?.trim()) {
     return (
-      <div className={`flex min-h-40 items-center justify-center rounded-lg border text-sm ${
-        isDarkMode ? 'border-[#334155] bg-[#1E293B] text-[#94A3B8]' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]'
-      }`}>
-        API 명세가 없습니다.
+      <div className="space-y-6">
+        <h2 className={`text-2xl font-bold transition-colors duration-300 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+          API 명세
+        </h2>
+        <div className={`flex min-h-40 items-center justify-center rounded-lg border text-sm ${
+          isDarkMode ? 'border-[#334155] bg-[#1E293B] text-[#94A3B8]' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]'
+        }`}>
+          API 명세가 없습니다.
+        </div>
       </div>
     );
   }
 
   if (!apiSpecs) {
     return (
-      <section className={`rounded-lg border p-5 ${
-        isDarkMode ? 'border-[#334155] bg-[#1E293B] text-[#E2E8F0]' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#1E293B]'
-      }`}>
-        <MarkdownTextView content={content} isDarkMode={isDarkMode} />
-      </section>
+      <div className="space-y-6">
+        <h2 className={`text-2xl font-bold transition-colors duration-300 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+          API 명세
+        </h2>
+        <section className={`rounded-lg border p-5 ${
+          isDarkMode ? 'border-[#334155] bg-[#1E293B] text-[#E2E8F0]' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#1E293B]'
+        }`}>
+          <MarkdownTextView content={content} isDarkMode={isDarkMode} />
+        </section>
+      </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      <h2 className={`text-2xl font-bold transition-colors duration-300 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+        API 명세
+      </h2>
       {apiSpecs.map((api, index) => (
         <article key={`${api.method}-${api.endpoint}-${index}`} className={`rounded-lg border p-5 ${
           isDarkMode ? 'border-[#334155] bg-[#1E293B]' : 'border-[#E2E8F0] bg-white'
