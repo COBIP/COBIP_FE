@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Layers3 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { TemplateNextRecommendationApiResponse } from '@/api/services/FunctionalTemplateService';
 
 interface NextRecommendationSectionProps {
@@ -18,8 +18,10 @@ export function NextRecommendationSection({
 
   if (sortedRecommendations.length === 0) {
     return (
-      <section>
-        <h2 className={`mb-6 text-3xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-950'}`}>다음 추천</h2>
+      <section className="space-y-4">
+        <h2 className={`text-2xl font-bold transition-colors duration-300 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+          다음 추천
+        </h2>
         <div
           className={`rounded-md border p-8 text-center ${
             isDarkMode ? 'border-slate-700 bg-slate-900 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-500'
@@ -32,17 +34,14 @@ export function NextRecommendationSection({
   }
 
   return (
-    <section>
-      <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-md bg-violet-100 text-violet-700">
-          <Layers3 size={24} />
-        </span>
-        <div>
-          <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-950'}`}>다음 추천</h2>
-          <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            현재 템플릿 다음에 이어서 학습하면 좋은 기능입니다.
-          </p>
-        </div>
+    <section className="space-y-4">
+      <div>
+        <h2 className={`text-2xl font-bold transition-colors duration-300 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+          다음 추천
+        </h2>
+        <p className={`mt-2 text-sm leading-6 ${isDarkMode ? 'text-[#CBD5E1]' : 'text-[#64748B]'}`}>
+          현재 템플릿 다음에 이어서 학습하면 좋은 기능입니다.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
