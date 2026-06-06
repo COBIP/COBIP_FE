@@ -136,6 +136,31 @@ function buildInterviewQuestions(
 }
 
 function buildRequirementSpec(requirements: AdminTemplateRequirement[]) {
+  const hasStructuredRequirements = requirements.some((requirement) =>
+    requirement.id ||
+    requirement.priority ||
+    requirement.inputValue ||
+    requirement.condition ||
+    requirement.successResult ||
+    requirement.failureResult,
+  );
+
+  if (hasStructuredRequirements) {
+    return JSON.stringify({
+      items: requirements.map((requirement, index) => ({
+        id: requirement.id?.trim() || `R-${String(index + 1).padStart(3, '0')}`,
+        type: requirement.type || 'Functional Requirement',
+        required: !requirement.optionalFlag,
+        priority: requirement.priority || 'HIGH',
+        description: requirement.description,
+        inputValue: requirement.inputValue ?? '',
+        condition: requirement.condition ?? '',
+        successResult: requirement.successResult ?? '',
+        failureResult: requirement.failureResult ?? '',
+      })),
+    }, null, 2);
+  }
+
   return requirements
     .map((requirement) => {
       const optionalText = requirement.optionalFlag ? 'optional' : 'required';
@@ -148,6 +173,40 @@ function buildRequirementSpec(requirements: AdminTemplateRequirement[]) {
 function parseRequirementSpec(value?: string): AdminTemplateRequirement[] {
   if (!value) {
     return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    const items = Array.isArray(parsed)
+      ? parsed
+      : typeof parsed === 'object' && parsed !== null && Array.isArray((parsed as { items?: unknown }).items)
+        ? (parsed as { items: unknown[] }).items
+        : [];
+
+    if (items.length > 0) {
+      return items
+        .map((item, index) => {
+          const record = item as Record<string, unknown>;
+          const description = String(record.description ?? record.name ?? record.title ?? '').trim();
+
+          if (!description) return null;
+
+          return {
+            id: String(record.id ?? `R-${String(index + 1).padStart(3, '0')}`),
+            type: String(record.type ?? 'Functional Requirement'),
+            description,
+            optionalFlag: record.required === false || record.optionalFlag === true,
+            priority: String(record.priority ?? 'HIGH'),
+            inputValue: String(record.inputValue ?? record.input ?? ''),
+            condition: String(record.condition ?? ''),
+            successResult: String(record.successResult ?? record.success ?? ''),
+            failureResult: String(record.failureResult ?? record.failure ?? ''),
+          };
+        })
+        .filter(Boolean) as AdminTemplateRequirement[];
+    }
+  } catch {
+    // Legacy requirement syntax is parsed below.
   }
 
   return value
@@ -175,6 +234,7 @@ function parseRequirementSpec(value?: string): AdminTemplateRequirement[] {
 }
 
 function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState {
+  const structuredRequirements = parseRequirementSpec(template.requirementsSpec);
   const missions = template.missions?.map((mission) => ({
     id: mission.id ?? '',
     title: mission.title ?? '',
@@ -207,7 +267,7 @@ function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState
     techStacksText: formatTextList(template.techStacks),
     designIntent: template.designIntent ?? '',
     structure: template.structure ?? template.projectStructure ?? '',
-    requirements: template.requirements?.length ? template.requirements : parseRequirementSpec(template.requirementsSpec),
+    requirements: structuredRequirements.length ? structuredRequirements : template.requirements?.length ? template.requirements : [],
     missions,
     erd: template.erd ?? '',
     apiSpec: template.apiSpec ?? '',
@@ -260,11 +320,26 @@ function buildNextOrderIndex(items: Array<{ orderIndex: number }>) {
 function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
   const requirements = form.requirements
     .map((requirement) => ({
+      id: requirement.id?.trim(),
       type: requirement.type.trim(),
       description: requirement.description.trim(),
       optionalFlag: requirement.optionalFlag,
+      priority: requirement.priority?.trim(),
+      inputValue: requirement.inputValue?.trim(),
+      condition: requirement.condition?.trim(),
+      successResult: requirement.successResult?.trim(),
+      failureResult: requirement.failureResult?.trim(),
     }))
-    .filter((requirement) => requirement.type || requirement.description);
+    .filter((requirement) =>
+      requirement.id ||
+      requirement.type ||
+      requirement.description ||
+      requirement.priority ||
+      requirement.inputValue ||
+      requirement.condition ||
+      requirement.successResult ||
+      requirement.failureResult,
+    );
   const missions = form.missions
     .map((mission) => ({
       id: String(mission.id).trim(),
@@ -407,7 +482,17 @@ function validateTemplatePayload(payload: AdminTemplatePayload) {
 }
 
 function createRequirement(): AdminTemplateRequirement {
-  return { type: '', description: '', optionalFlag: false };
+  return {
+    id: '',
+    type: 'Functional Requirement',
+    description: '',
+    optionalFlag: false,
+    priority: 'HIGH',
+    inputValue: '',
+    condition: '',
+    successResult: '',
+    failureResult: '',
+  };
 }
 
 function createTemplateMission(): AdminTemplateMissionDraft {
@@ -521,6 +606,16 @@ function getMissionValidationStringField(mission: AdminTemplateMissionDraft, key
   return typeof value === 'string' ? value : '';
 }
 
+function getMissionValidationStringArrayField(mission: AdminTemplateMissionDraft, key: string) {
+  const value = getMissionValidationJson(mission)[key];
+
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).join('\n');
+  }
+
+  return typeof value === 'string' ? value : '';
+}
+
 function buildMissionValidationJsonWithField(
   mission: AdminTemplateMissionDraft,
   key: string,
@@ -538,6 +633,23 @@ function buildMissionValidationJsonWithField(
     } else {
       validationJson[key] = nextValue;
     }
+  } else {
+    delete validationJson[key];
+  }
+
+  return validationJson;
+}
+
+function buildMissionValidationJsonWithArrayField(
+  mission: AdminTemplateMissionDraft,
+  key: string,
+  value: string,
+) {
+  const validationJson = { ...getMissionValidationJson(mission) };
+  const items = value.split(/\r?\n/g).map((item) => item.trim()).filter(Boolean);
+
+  if (items.length > 0) {
+    validationJson[key] = items;
   } else {
     delete validationJson[key];
   }
@@ -939,6 +1051,17 @@ export function AdminTemplatesPage() {
       missions: currentForm.missions.map((mission, missionIndex) =>
         missionIndex === index
           ? { ...mission, validationJson: buildMissionValidationJsonWithField(mission, key, value) }
+          : mission,
+      ),
+    }));
+  };
+
+  const updateTemplateMissionValidationArrayField = (index: number, key: string, value: string) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      missions: currentForm.missions.map((mission, missionIndex) =>
+        missionIndex === index
+          ? { ...mission, validationJson: buildMissionValidationJsonWithArrayField(mission, key, value) }
           : mission,
       ),
     }));
@@ -1496,15 +1619,19 @@ export function AdminTemplatesPage() {
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                   />
                 </label>
-                <label className="md:col-span-2 text-sm font-semibold text-slate-700">
-                  구조
+                <div className="md:col-span-2 text-sm font-semibold text-slate-700">
+                  흐름/구조
                   <textarea
                     value={form.structure}
                     onChange={(event) => updateForm('structure', event.target.value)}
-                    rows={5}
+                    rows={9}
+                    placeholder="JSON 구조를 입력하면 사용자 화면에서 처리 흐름/계층별 역할 카드로 표시됩니다."
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
                   />
-                </label>
+                  <p className="mt-1 text-xs font-normal text-slate-500">
+                    기존 마크다운도 그대로 사용할 수 있고, JSON이면 AI 기능 템플릿처럼 구조화해서 표시됩니다.
+                  </p>
+                </div>
                 <label className="md:col-span-2 text-sm font-semibold text-slate-700">
                   소스코드
                   <textarea
@@ -1530,50 +1657,96 @@ export function AdminTemplatesPage() {
 
               <section className="rounded-md border border-slate-200 p-3">
                 <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-950">요구사항</h4>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((currentForm) => ({
-                        ...currentForm,
-                        requirements: [...currentForm.requirements, createRequirement()],
-                      }))
-                    }
-                    className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
-                  >
-                    추가
-                  </button>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-950">요구사항</h4>
+                    <p className="mt-1 text-xs text-slate-500">입력값, 처리 조건, 성공/실패 결과를 사용자 화면에서 카드로 표시합니다.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((currentForm) => ({
+                          ...currentForm,
+                          requirements: [...currentForm.requirements, createRequirement()],
+                        }))
+                      }
+                      className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                    >
+                      추가
+                    </button>
+                  </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {form.requirements.map((requirement, index) => (
-                    <div key={index} className="grid grid-cols-1 gap-2 md:grid-cols-[8rem_minmax(0,1fr)_6rem_auto]">
-                      <input
-                        value={requirement.type}
-                        onChange={(event) => updateRequirement(index, 'type', event.target.value)}
-                        placeholder="type"
-                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
-                      />
-                      <input
+                    <div key={index} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[6rem_10rem_8rem_6rem_auto]">
+                        <input
+                          value={requirement.id ?? ''}
+                          onChange={(event) => updateRequirement(index, 'id', event.target.value)}
+                          placeholder="R-001"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <input
+                          value={requirement.type}
+                          onChange={(event) => updateRequirement(index, 'type', event.target.value)}
+                          placeholder="type"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <input
+                          value={requirement.priority ?? ''}
+                          onChange={(event) => updateRequirement(index, 'priority', event.target.value)}
+                          placeholder="HIGH"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <label className="flex h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={requirement.optionalFlag}
+                            onChange={(event) => updateRequirement(index, 'optionalFlag', event.target.checked)}
+                          />
+                          선택
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => deleteRequirement(index)}
+                          className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                      <textarea
                         value={requirement.description}
                         onChange={(event) => updateRequirement(index, 'description', event.target.value)}
-                        placeholder="description"
-                        className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        placeholder="요구사항 설명"
+                        rows={2}
+                        className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
-                      <label className="flex h-10 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm">
+                      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
                         <input
-                          type="checkbox"
-                          checked={requirement.optionalFlag}
-                          onChange={(event) => updateRequirement(index, 'optionalFlag', event.target.checked)}
+                          value={requirement.inputValue ?? ''}
+                          onChange={(event) => updateRequirement(index, 'inputValue', event.target.value)}
+                          placeholder="입력값"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
                         />
-                        optional
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => deleteRequirement(index)}
-                        className="rounded-md border border-rose-300 px-3 text-xs font-semibold text-rose-700"
-                      >
-                        삭제
-                      </button>
+                        <input
+                          value={requirement.condition ?? ''}
+                          onChange={(event) => updateRequirement(index, 'condition', event.target.value)}
+                          placeholder="처리 조건"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <input
+                          value={requirement.successResult ?? ''}
+                          onChange={(event) => updateRequirement(index, 'successResult', event.target.value)}
+                          placeholder="성공 결과"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                        <input
+                          value={requirement.failureResult ?? ''}
+                          onChange={(event) => updateRequirement(index, 'failureResult', event.target.value)}
+                          placeholder="실패 결과"
+                          className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1651,6 +1824,38 @@ export function AdminTemplatesPage() {
                         rows={4}
                         className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
+                      <div className="mt-2 rounded-md border border-violet-100 bg-white p-3">
+                        <p className="text-sm font-semibold text-slate-950">미션 표시 정보</p>
+                        <p className="mt-1 text-xs text-slate-500">사용자 화면에서 구현 요구사항과 완료 조건 카드로 표시됩니다.</p>
+                        <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <input
+                            value={getMissionValidationStringField(mission, 'difficulty')}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'difficulty', event.target.value)}
+                            placeholder="난이도 예: intermediate"
+                            className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                          />
+                          <input
+                            value={getMissionValidationStringField(mission, 'questionType')}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'questionType', event.target.value)}
+                            placeholder="표시 유형 예: implementation"
+                            className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                          />
+                          <textarea
+                            value={getMissionValidationStringArrayField(mission, 'requirements')}
+                            onChange={(event) => updateTemplateMissionValidationArrayField(index, 'requirements', event.target.value)}
+                            placeholder="구현 요구사항 (한 줄씩)"
+                            rows={3}
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          />
+                          <textarea
+                            value={getMissionValidationStringArrayField(mission, 'successCriteria')}
+                            onChange={(event) => updateTemplateMissionValidationArrayField(index, 'successCriteria', event.target.value)}
+                            placeholder="완료 조건 (한 줄씩)"
+                            rows={3}
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          />
+                        </div>
+                      </div>
                       <div className="mt-2 rounded-md border border-emerald-100 bg-emerald-50 p-3 text-sm text-slate-700">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                           <div>
@@ -1826,6 +2031,49 @@ export function AdminTemplatesPage() {
                         rows={4}
                         className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                       />
+                      <div className="mt-2 rounded-md border border-violet-100 bg-white p-3">
+                        <p className="text-sm font-semibold text-slate-950">문제 표시 정보</p>
+                        <p className="mt-1 text-xs text-slate-500">사용자 화면에서 객관식, 빈칸, 단답형 문제처럼 표시됩니다.</p>
+                        <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <select
+                            value={getMissionValidationStringField(mission, 'questionType') || 'short_answer'}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'questionType', event.target.value)}
+                            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                          >
+                            <option value="short_answer">short_answer · 단답형</option>
+                            <option value="multiple_choice">multiple_choice · 객관식</option>
+                            <option value="fill_blank">fill_blank · 빈칸</option>
+                          </select>
+                          <input
+                            value={getMissionValidationStringField(mission, 'difficulty')}
+                            onChange={(event) => updateTemplateMissionValidationField(index, 'difficulty', event.target.value)}
+                            placeholder="난이도 예: intermediate"
+                            className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                          />
+                          <textarea
+                            value={getMissionValidationStringArrayField(mission, 'choices')}
+                            onChange={(event) => updateTemplateMissionValidationArrayField(index, 'choices', event.target.value)}
+                            placeholder="객관식 선택지 (한 줄씩)"
+                            rows={4}
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          />
+                          <div className="space-y-2">
+                            <input
+                              value={getMissionValidationStringField(mission, 'answer')}
+                              onChange={(event) => updateTemplateMissionValidationField(index, 'answer', event.target.value)}
+                              placeholder="정답 또는 모범 답안"
+                              className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+                            />
+                            <textarea
+                              value={getMissionValidationStringField(mission, 'explanation')}
+                              onChange={(event) => updateTemplateMissionValidationField(index, 'explanation', event.target.value)}
+                              placeholder="풀이 힌트 또는 해설"
+                              rows={2}
+                              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
                       <div className="mt-2 rounded-md border border-emerald-100 bg-emerald-50 p-3 text-sm text-slate-700">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                           <div>
