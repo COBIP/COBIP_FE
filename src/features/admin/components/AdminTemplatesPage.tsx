@@ -138,6 +138,56 @@ function buildInterviewQuestions(
   );
 }
 
+function parseUnknownArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function getStringFromRecord(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null) {
+      return String(value);
+    }
+  }
+
+  return '';
+}
+
+function buildNextRecommendations(template: AdminTemplateDetail): AdminTemplateNextRecommendation[] {
+  const source = template as unknown as Record<string, unknown>;
+  const rawRecommendations = [
+    ...parseUnknownArray(source.nextRecommendations),
+    ...parseUnknownArray(source.next_recommendations),
+    ...parseUnknownArray(source.nextRecommendation),
+  ];
+
+  return rawRecommendations
+    .map((value, index) => {
+      const recommendation = value as Record<string, unknown>;
+
+      return {
+        featureName: getStringFromRecord(recommendation, ['featureName', 'feature_name', 'name', 'title']).trim(),
+        reason: getStringFromRecord(recommendation, ['reason', 'description']).trim(),
+        expectedLearning: getStringFromRecord(recommendation, ['expectedLearning', 'expected_learning', 'learning']).trim(),
+        priority: Number(recommendation.priority) || index + 1,
+      };
+    })
+    .filter((recommendation) => recommendation.featureName || recommendation.reason || recommendation.expectedLearning);
+}
+
 function buildRequirementSpec(requirements: AdminTemplateRequirement[]) {
   const hasStructuredRequirements = requirements.some((requirement) =>
     requirement.id ||
@@ -275,7 +325,7 @@ function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState
     erd: template.erd ?? '',
     apiSpec: template.apiSpec ?? '',
     interviewQuestions: buildInterviewQuestions(template.interviewQuestions),
-    nextRecommendations: template.nextRecommendations ?? [],
+    nextRecommendations: buildNextRecommendations(template),
     runtime: template.runtime ?? 'node',
     testCases,
     tagsText: formatTextList(template.tags),
@@ -407,6 +457,22 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
     published: form.published,
     license: form.license.trim() || undefined,
     source: form.source.trim() || undefined,
+  };
+}
+
+function buildTemplateWithFallbackNextRecommendations(
+  refreshed: AdminTemplateDetail,
+  fallbackRecommendations: AdminTemplateNextRecommendation[],
+): AdminTemplateDetail {
+  const refreshedRecommendations = buildNextRecommendations(refreshed);
+
+  if (refreshedRecommendations.length > 0 || fallbackRecommendations.length === 0) {
+    return refreshed;
+  }
+
+  return {
+    ...refreshed,
+    nextRecommendations: fallbackRecommendations,
   };
 }
 
@@ -702,10 +768,14 @@ function buildMissionProjectValidationJson(mission: AdminTemplateMissionDraft) {
 }
 
 async function fetchMergedTemplateDetail(templateId: number): Promise<AdminTemplateDetail> {
-  const [detail, practice] = await Promise.all([
+  const [rawDetail, practice] = await Promise.all([
     adminService.getTemplate(templateId),
     adminService.getTemplatePractice(templateId).catch(() => null),
   ]);
+  const detail =
+    rawDetail && typeof rawDetail === 'object' && 'data' in rawDetail
+      ? ((rawDetail as unknown as { data: AdminTemplateDetail }).data ?? rawDetail)
+      : rawDetail;
 
   return {
     ...detail,
@@ -926,7 +996,10 @@ export function AdminTemplatesPage() {
         await saveMissions(saved.id, form.missions);
       }
 
-      const refreshed = await fetchMergedTemplateDetail(saved.id);
+      const refreshed = buildTemplateWithFallbackNextRecommendations(
+        await fetchMergedTemplateDetail(saved.id),
+        payload.nextRecommendations ?? [],
+      );
       setSelectedTemplate(refreshed);
       setSelectedPracticeFileId(refreshed.practiceFiles?.[0]?.id ?? null);
       setPracticeFileForm(refreshed.practiceFiles?.[0] ? buildPracticeFileForm(refreshed.practiceFiles[0]) : emptyPracticeFileForm);

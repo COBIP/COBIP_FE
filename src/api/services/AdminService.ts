@@ -167,6 +167,7 @@ async function fetchAdminRequest<TData>(
   }
 
   const response = await fetch(`${API_BASE_URL}${path}${buildQueryString(options.query)}`, {
+    cache: 'no-store',
     ...options,
     headers,
   });
