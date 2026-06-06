@@ -21,7 +21,10 @@ import { TemplatePreview } from '@/components/editor/TemplatePreview';
 import type {
   AdminDifficulty,
   GrammarTemplateChapter,
+  GrammarTemplateChapterMission,
+  GrammarTemplateChapterMissionPayload,
   GrammarTemplateLanguage,
+  GrammarTemplateMissionType,
   GrammarTemplatePayload,
   GrammarTemplatePracticeFile,
   GrammarTemplatePracticeFileNodeType,
@@ -67,9 +70,12 @@ const emptyForm: GrammarTemplatePayload = {
 type GrammarTemplateContentTab = 'theory' | 'problems' | 'missions';
 
 type GrammarTaskDraft = {
-  id: string;
+  id: string | number;
   title: string;
   description: string;
+  guideContent: string;
+  validationJsonText: string;
+  missionType: GrammarTemplateMissionType;
   orderIndex: number;
 };
 
@@ -214,7 +220,40 @@ function createTaskDraft(items: GrammarTaskDraft[] = []): GrammarTaskDraft {
     id: `draft-${Date.now()}-${items.length + 1}`,
     title: '',
     description: '',
+    guideContent: '',
+    validationJsonText: '{}',
+    missionType: 'PROBLEM',
     orderIndex: getNextOrderIndex(items),
+  };
+}
+
+function createTaskDraftByType(taskType: 'problems' | 'missions', items: GrammarTaskDraft[] = []): GrammarTaskDraft {
+  return {
+    ...createTaskDraft(items),
+    missionType: taskType === 'problems' ? 'PROBLEM' : 'MISSION',
+  };
+}
+
+function convertMissionToTaskDraft(mission: GrammarTemplateChapterMission): GrammarTaskDraft {
+  return {
+    id: mission.id,
+    title: mission.title,
+    description: mission.description ?? '',
+    guideContent: mission.guideContent ?? '',
+    validationJsonText: JSON.stringify(mission.validationJson ?? {}, null, 2),
+    missionType: mission.missionType,
+    orderIndex: mission.orderIndex,
+  };
+}
+
+function buildTaskDraftsFromMissions(missions: GrammarTemplateChapterMission[] = []): ChapterTaskDrafts {
+  return {
+    problems: missions
+      .filter((mission) => mission.missionType === 'PROBLEM')
+      .map(convertMissionToTaskDraft),
+    missions: missions
+      .filter((mission) => mission.missionType === 'MISSION')
+      .map(convertMissionToTaskDraft),
   };
 }
 
@@ -223,6 +262,15 @@ function buildChapterTaskDrafts(chapterDrafts?: Partial<ChapterTaskDrafts>): Cha
     problems: chapterDrafts?.problems ?? [],
     missions: chapterDrafts?.missions ?? [],
   };
+}
+
+function parseValidationJsonText(value: string) {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    throw new Error('검증 JSON 형식이 올바르지 않습니다.');
+  }
 }
 
 export function AdminGrammarTemplatesPage() {
@@ -261,8 +309,14 @@ export function AdminGrammarTemplatesPage() {
   );
 
   const activeChapterDrafts = useMemo(
-    () => (activeChapterId ? buildChapterTaskDrafts(chapterTaskDrafts[activeChapterId]) : buildChapterTaskDrafts()),
-    [activeChapterId, chapterTaskDrafts],
+    () => {
+      if (!activeChapterId) {
+        return buildChapterTaskDrafts();
+      }
+
+      return chapterTaskDrafts[activeChapterId] ?? buildTaskDraftsFromMissions(activeChapter?.missions ?? []);
+    },
+    [activeChapter?.missions, activeChapterId, chapterTaskDrafts],
   );
 
   const previewSections = useMemo<AdminGrammarSection[]>(() => {
@@ -359,7 +413,12 @@ export function AdminGrammarTemplatesPage() {
   ) => {
     setChapterTaskDrafts((currentDrafts) => ({
       ...currentDrafts,
-      [chapterId]: updater(buildChapterTaskDrafts(currentDrafts[chapterId])),
+      [chapterId]: updater(
+        currentDrafts[chapterId] ??
+          (chapterId === activeChapterId
+            ? buildTaskDraftsFromMissions(activeChapter?.missions ?? [])
+            : buildChapterTaskDrafts()),
+      ),
     }));
   };
 
@@ -371,14 +430,14 @@ export function AdminGrammarTemplatesPage() {
 
     updateChapterTaskDrafts(activeChapterId, (currentDrafts) => ({
       ...currentDrafts,
-      [taskType]: [...currentDrafts[taskType], createTaskDraft(currentDrafts[taskType])],
+      [taskType]: [...currentDrafts[taskType], createTaskDraftByType(taskType, currentDrafts[taskType])],
     }));
     setIsChapterDirty(true);
   };
 
   const handleUpdateTaskDraft = (
     taskType: 'problems' | 'missions',
-    draftId: string,
+    draftId: string | number,
     key: keyof GrammarTaskDraft,
     value: string | number,
   ) => {
@@ -400,7 +459,7 @@ export function AdminGrammarTemplatesPage() {
     setIsChapterDirty(true);
   };
 
-  const handleDeleteTaskDraft = (taskType: 'problems' | 'missions', draftId: string) => {
+  const handleDeleteTaskDraft = (taskType: 'problems' | 'missions', draftId: string | number) => {
     if (!activeChapterId) {
       return;
     }
@@ -410,6 +469,111 @@ export function AdminGrammarTemplatesPage() {
       [taskType]: currentDrafts[taskType].filter((draft) => draft.id !== draftId),
     }));
     setIsChapterDirty(true);
+  };
+
+  const syncChapterMissionDrafts = useCallback(
+    (chapterId: number, missions: GrammarTemplateChapterMission[]) => {
+      setChapters((currentChapters) =>
+        currentChapters.map((chapter) =>
+          chapter.id === chapterId
+            ? {
+                ...chapter,
+                missions,
+              }
+            : chapter,
+        ),
+      );
+      setChapterTaskDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [chapterId]: buildTaskDraftsFromMissions(missions),
+      }));
+    },
+    [],
+  );
+
+  const buildMissionPayloadFromDraft = (draft: GrammarTaskDraft): GrammarTemplateChapterMissionPayload => {
+    if (!draft.title.trim()) {
+      throw new Error(draft.missionType === 'PROBLEM' ? '문제 제목을 입력해주세요.' : '미션 제목을 입력해주세요.');
+    }
+
+    return {
+      title: draft.title.trim(),
+      description: draft.description.trim(),
+      missionType: draft.missionType,
+      orderIndex: draft.orderIndex,
+      guideContent: draft.guideContent.trim(),
+      validationJson: parseValidationJsonText(draft.validationJsonText),
+    };
+  };
+
+  const handleSaveTaskDraft = async (taskType: 'problems' | 'missions', draftId: string | number) => {
+    if (!selectedId || !activeChapterId) {
+      return;
+    }
+
+    const currentDraft = (taskType === 'problems' ? activeChapterDrafts.problems : activeChapterDrafts.missions).find(
+      (draft) => draft.id === draftId,
+    );
+
+    if (!currentDraft) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const payload = buildMissionPayloadFromDraft(currentDraft);
+      const savedMission =
+        typeof currentDraft.id === 'number'
+          ? await adminService.updateGrammarTemplateChapterMission(selectedId, activeChapterId, currentDraft.id, payload)
+          : await adminService.createGrammarTemplateChapterMission(selectedId, activeChapterId, payload);
+
+      const currentMissions = activeChapter?.missions ?? [];
+      const nextMissions = [...currentMissions.filter((mission) => mission.id !== savedMission.id), savedMission].sort(
+        (left, right) => left.orderIndex - right.orderIndex || left.id - right.id,
+      );
+
+      syncChapterMissionDrafts(activeChapterId, nextMissions);
+      setIsChapterDirty(false);
+      setMessage(savedMission.missionType === 'PROBLEM' ? '문제를 저장했습니다.' : '미션을 저장했습니다.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : '문제/미션 저장에 실패했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteTaskMission = async (taskType: 'problems' | 'missions', draftId: string | number) => {
+    if (!selectedId || !activeChapterId) {
+      return;
+    }
+
+    if (typeof draftId !== 'number') {
+      handleDeleteTaskDraft(taskType, String(draftId));
+      return;
+    }
+
+    if (!confirm(taskType === 'problems' ? '선택한 문제를 삭제할까요?' : '선택한 미션을 삭제할까요?')) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError('');
+    setMessage('');
+
+    try {
+      await adminService.deleteGrammarTemplateChapterMission(selectedId, activeChapterId, draftId);
+      const nextMissions = (activeChapter?.missions ?? []).filter((mission) => mission.id !== draftId);
+      syncChapterMissionDrafts(activeChapterId, nextMissions);
+      setIsChapterDirty(false);
+      setMessage(taskType === 'problems' ? '문제를 삭제했습니다.' : '미션을 삭제했습니다.');
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : '문제/미션 삭제에 실패했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const resetFileEditor = useCallback((files: GrammarTemplatePracticeFile[] = practiceFiles) => {
@@ -1411,7 +1575,7 @@ export function AdminGrammarTemplatesPage() {
                       className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
                     >
                       <Save className="h-4 w-4" />
-                      {activeContentTab === 'theory' ? (activeChapter ? '챕터 저장' : '템플릿 저장') : '연동 대기'}
+                      {activeContentTab === 'theory' ? (activeChapter ? '챕터 저장' : '템플릿 저장') : '이론 저장'}
                     </button>
                   </div>
                 </div>
@@ -1427,8 +1591,8 @@ export function AdminGrammarTemplatesPage() {
                       />
                     </label>
                     {activeContentTab !== 'theory' ? (
-                      <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                        문제/미션 입력 UI만 먼저 연결한 상태입니다. 저장 연동은 백엔드 합의 후 추가됩니다.
+                      <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                        챕터별 문제/미션은 이제 실제 API와 연결되어 저장됩니다.
                       </div>
                     ) : null}
                   </>
@@ -1459,8 +1623,8 @@ export function AdminGrammarTemplatesPage() {
                       </h3>
                       <p className="mt-1 text-sm text-slate-500">
                         {activeContentTab === 'problems'
-                          ? '챕터별 문제 UI 초안을 먼저 구성합니다.'
-                          : '챕터별 미션 UI 초안을 먼저 구성합니다.'}
+                          ? '챕터별 문제를 저장하고 순서를 관리합니다.'
+                          : '챕터별 미션을 저장하고 순서를 관리합니다.'}
                       </p>
                     </div>
                     <button
@@ -1484,7 +1648,7 @@ export function AdminGrammarTemplatesPage() {
                             </p>
                             <button
                               type="button"
-                              onClick={() => handleDeleteTaskDraft(activeContentTab === 'problems' ? 'problems' : 'missions', draft.id)}
+                              onClick={() => handleDeleteTaskMission(activeContentTab === 'problems' ? 'problems' : 'missions', draft.id)}
                               className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1548,6 +1712,58 @@ export function AdminGrammarTemplatesPage() {
                               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                             />
                           </label>
+
+                          <label className="mt-3 block text-sm font-semibold text-slate-700">
+                            가이드
+                            <textarea
+                              value={draft.guideContent}
+                              onChange={(event) =>
+                                handleUpdateTaskDraft(
+                                  activeContentTab === 'problems' ? 'problems' : 'missions',
+                                  draft.id,
+                                  'guideContent',
+                                  event.target.value,
+                                )
+                              }
+                              rows={3}
+                              placeholder={
+                                activeContentTab === 'problems'
+                                  ? '문제 풀이에 도움이 되는 가이드를 입력합니다.'
+                                  : '미션 진행에 필요한 가이드를 입력합니다.'
+                              }
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                            />
+                          </label>
+
+                          <label className="mt-3 block text-sm font-semibold text-slate-700">
+                            검증 JSON
+                            <textarea
+                              value={draft.validationJsonText}
+                              onChange={(event) =>
+                                handleUpdateTaskDraft(
+                                  activeContentTab === 'problems' ? 'problems' : 'missions',
+                                  draft.id,
+                                  'validationJsonText',
+                                  event.target.value,
+                                )
+                              }
+                              rows={5}
+                              placeholder='{"answer":"example"}'
+                              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm"
+                            />
+                          </label>
+
+                          <div className="mt-4 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => void handleSaveTaskDraft(activeContentTab === 'problems' ? 'problems' : 'missions', draft.id)}
+                              disabled={isSaving}
+                              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                            >
+                              <Save className="h-4 w-4" />
+                              {typeof draft.id === 'number' ? '수정 저장' : '새로 저장'}
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1555,8 +1771,8 @@ export function AdminGrammarTemplatesPage() {
                     <AdminEmpty
                       message={
                         activeContentTab === 'problems'
-                          ? '아직 추가된 문제 UI 초안이 없습니다.'
-                          : '아직 추가된 미션 UI 초안이 없습니다.'
+                          ? '등록된 문제가 없습니다.'
+                          : '등록된 미션이 없습니다.'
                       }
                     />
                   )}
