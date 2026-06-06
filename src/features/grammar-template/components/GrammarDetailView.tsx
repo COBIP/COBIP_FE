@@ -185,6 +185,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [activeContentTab, setActiveContentTab] = useState<ChapterContentTab>('theory');
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
   const [selectedProblemTitle, setSelectedProblemTitle] = useState('');
+  const [selectedMissionId, setSelectedMissionId] = useState<number | null>(null);
+  const [selectedMissionTitle, setSelectedMissionTitle] = useState('');
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
   const chapterGroups = useMemo(() => buildChapterGroups(template?.chapters), [template?.chapters]);
@@ -196,6 +198,23 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     () => (currentChapter?.missions ?? []).filter((mission) => mission.missionType === 'MISSION'),
     [currentChapter?.missions],
   );
+  const activeSubmissionTarget = useMemo(() => {
+    if (selectedProblemId) {
+      return {
+        typeLabel: '문제',
+        title: selectedProblemTitle,
+      };
+    }
+
+    if (selectedMissionId) {
+      return {
+        typeLabel: '미션',
+        title: selectedMissionTitle,
+      };
+    }
+
+    return null;
+  }, [selectedMissionId, selectedMissionTitle, selectedProblemId, selectedProblemTitle]);
   const aiChatContext = useMemo(() => {
     const activeCode = fileContents[activeFilePath] ?? '';
     const parts = [
@@ -258,6 +277,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setActiveContentTab('theory');
     setSelectedProblemId(null);
     setSelectedProblemTitle('');
+    setSelectedMissionId(null);
+    setSelectedMissionTitle('');
   }, [currentChapterId]);
 
   useEffect(() => {
@@ -425,6 +446,18 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const handleStartProblemSolving = useCallback((problemId: number, problemTitle: string) => {
     setSelectedProblemId(problemId);
     setSelectedProblemTitle(problemTitle);
+    setSelectedMissionId(null);
+    setSelectedMissionTitle('');
+    setActiveContentTab('problems');
+    setIsRunnerOpen(true);
+  }, []);
+
+  const handleStartMission = useCallback((missionId: number, missionTitle: string) => {
+    setSelectedMissionId(missionId);
+    setSelectedMissionTitle(missionTitle);
+    setSelectedProblemId(null);
+    setSelectedProblemTitle('');
+    setActiveContentTab('missions');
     setIsRunnerOpen(true);
   }, []);
 
@@ -510,20 +543,20 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         </div>
         <div className="flex items-center gap-2">
           <div className="mr-2 flex items-center gap-2">
-            {selectedProblemId ? (
+            {activeSubmissionTarget ? (
               <span className="hidden rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 lg:inline-flex">
-                현재 문제: {selectedProblemTitle}
+                현재 {activeSubmissionTarget.typeLabel}: {activeSubmissionTarget.title}
               </span>
             ) : (
               <span className="hidden rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-400 lg:inline-flex">
-                문제 선택 후 제출 가능
+                문제 또는 미션 선택 후 제출 가능
               </span>
             )}
             <button
               type="button"
-              disabled={!selectedProblemId}
+              disabled={!activeSubmissionTarget}
               className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-                selectedProblemId
+                activeSubmissionTarget
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                   : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
               }`}
@@ -722,7 +755,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           {missionItems.map((mission, index) => (
                             <div key={mission.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                               <div className="flex items-start justify-between gap-3">
-                                <div>
+                                <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
                                     <span className="rounded-full bg-purple-600 px-3 py-1 text-xs font-bold text-white">
                                       미션 {index + 1}
@@ -738,9 +771,22 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     </div>
                                   ) : null}
                                 </div>
-                                <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
-                                  order {mission.orderIndex}
-                                </span>
+                                <div className="flex shrink-0 flex-col items-end gap-3">
+                                  <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                    order {mission.orderIndex}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartMission(mission.id, mission.title)}
+                                    className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                                      selectedMissionId === mission.id
+                                        ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
+                                        : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
+                                    }`}
+                                  >
+                                    {selectedMissionId === mission.id ? '진행 중' : '미션 시작하기'}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ))}
