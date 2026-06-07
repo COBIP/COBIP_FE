@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+﻿import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
@@ -685,37 +685,48 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'problems' ? (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-5">
-                        <h3 className="text-lg font-bold text-purple-700">문제 안내</h3>
-                        <p className="mt-2 text-sm leading-6 text-gray-700">
-                          이 챕터의 문제 목록입니다. 문제를 선택하거나 풀이하는 인터랙션은 다음 단계에서 더 확장할 수 있습니다.
-                        </p>
+                      <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
+                            Q
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-purple-700">문제 안내</h3>
+                            <p className="mt-2 text-sm leading-6 text-gray-700">
+                              이 챕터의 문제 목록입니다. 문제를 선택하거나 풀이하는 인터랙션은 다음 단계에서 더 확장할 수 있습니다.
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
                       {problemItems.length > 0 ? (
                         <div className="space-y-3">
                           {problemItems.map((mission, index) => (
-                            <div key={mission.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <div key={mission.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-purple-200 hover:shadow-md">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-bold text-white">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white shadow-sm">
                                       {index + 1}
+                                    </span>
+                                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                      문제
                                     </span>
                                     <p className="text-base font-bold text-gray-900">{mission.title}</p>
                                   </div>
                                   {mission.description ? (
-                                    <p className="mt-3 text-sm leading-6 text-gray-700">{mission.description}</p>
+                                    <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-3 rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-700">
-                                      {mission.guideContent}
+                                    <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50 px-4 py-4">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">가이드</p>
+                                      <p className="mt-2 text-sm leading-6 text-purple-700">{mission.guideContent}</p>
                                     </div>
                                   ) : null}
                                 </div>
                                 <div className="flex shrink-0 flex-col items-end gap-3">
-                                  <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
-                                    order {mission.orderIndex}
+                                  <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
+                                    순서 {mission.orderIndex}
                                   </span>
                                   <button
                                     type="button"
@@ -734,8 +745,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           ))}
                         </div>
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
-                          등록된 문제가 없습니다.
+                        <div className="rounded-3xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
+                          <p className="text-sm font-semibold text-gray-700">등록된 문제가 없습니다.</p>
+                          <p className="mt-2 text-sm text-gray-500">어드민에서 문제를 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
                         </div>
                       )}
                     </div>
@@ -743,37 +755,48 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'missions' ? (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-5">
-                        <h3 className="text-lg font-bold text-purple-700">미션 안내</h3>
-                        <p className="mt-2 text-sm leading-6 text-gray-700">
-                          이 챕터의 미션 목록입니다. 현재는 콘텐츠 확인 중심으로 연결했고, 추후 진행 상태/제출 흐름을 확장할 수 있습니다.
-                        </p>
+                      <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
+                            M
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-purple-700">미션 안내</h3>
+                            <p className="mt-2 text-sm leading-6 text-gray-700">
+                              이 챕터의 미션 목록입니다. 현재는 콘텐츠 확인 중심으로 연결했고, 추후 진행 상태/제출 흐름을 확장할 수 있습니다.
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
                       {missionItems.length > 0 ? (
                         <div className="space-y-3">
                           {missionItems.map((mission, index) => (
-                            <div key={mission.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <div key={mission.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-purple-200 hover:shadow-md">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <span className="rounded-full bg-purple-600 px-3 py-1 text-xs font-bold text-white">
                                       미션 {index + 1}
+                                    </span>
+                                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                      실습
                                     </span>
                                     <p className="text-base font-bold text-gray-900">{mission.title}</p>
                                   </div>
                                   {mission.description ? (
-                                    <p className="mt-3 text-sm leading-6 text-gray-700">{mission.description}</p>
+                                    <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-3 rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-700">
-                                      {mission.guideContent}
+                                    <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50 px-4 py-4">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">가이드</p>
+                                      <p className="mt-2 text-sm leading-6 text-purple-700">{mission.guideContent}</p>
                                     </div>
                                   ) : null}
                                 </div>
                                 <div className="flex shrink-0 flex-col items-end gap-3">
-                                  <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
-                                    order {mission.orderIndex}
+                                  <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
+                                    순서 {mission.orderIndex}
                                   </span>
                                   <button
                                     type="button"
@@ -792,8 +815,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           ))}
                         </div>
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
-                          등록된 미션이 없습니다.
+                        <div className="rounded-3xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
+                          <p className="text-sm font-semibold text-gray-700">등록된 미션이 없습니다.</p>
+                          <p className="mt-2 text-sm text-gray-500">어드민에서 미션을 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
                         </div>
                       )}
                     </div>
