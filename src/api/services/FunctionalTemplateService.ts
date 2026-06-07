@@ -61,9 +61,17 @@ export type TemplateDetailApiResponse = TemplateSummaryApiResponse & {
   apiSpec: string;
   projectStructure: string;
   interviewQuestions: Array<string | TemplateInterviewQuestionApiResponse>;
+  nextRecommendations?: TemplateNextRecommendationApiResponse[];
   fileUrl: string | null;
   favorited: boolean;
   updatedAt: string;
+};
+
+export type TemplateNextRecommendationApiResponse = {
+  featureName: string;
+  reason: string;
+  expectedLearning: string;
+  priority: number;
 };
 
 export type TemplatePracticeMissionType = 'CONCEPT' | 'IMPLEMENTATION' | 'DEBUGGING' | 'TEST' | 'REVIEW';
@@ -143,6 +151,14 @@ export type TemplatePracticeSubmissionResponse = {
   compileOutput?: string | null;
   message?: string | null;
   createdAt?: string;
+};
+
+export type TemplatePracticeQuizSubmissionResponse = {
+  correct: boolean;
+  status: string;
+  message: string;
+  explanation: string | null;
+  progressPercent: number;
 };
 
 export type FunctionalTemplateCardViewModel = {
@@ -298,6 +314,27 @@ export async function updateTemplatePracticeComplete(
   }
 
   return progress;
+}
+
+export async function submitTemplatePracticeQuiz(
+  templateId: number,
+  missionId: number,
+  answer: string,
+): Promise<TemplatePracticeQuizSubmissionResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/templates/${templateId}/practice/missions/${missionId}/quiz-submissions`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ answer }),
+    },
+  );
+
+  const result = await parseJsonResponse<{ data: TemplatePracticeQuizSubmissionResponse }>(response);
+  return result.data;
 }
 
 export async function fetchTemplatePracticeProjectRun(

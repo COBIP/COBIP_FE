@@ -67,6 +67,10 @@ function buildTemplateRequestBody(payload: AdminTemplatePayload | Partial<AdminT
     body.interviewQuestions = payload.interviewQuestions;
   }
 
+  if ('nextRecommendations' in payload) {
+    body.nextRecommendations = payload.nextRecommendations;
+  }
+
   if ('testCases' in payload) {
     body.testCases = payload.testCases?.map((testCase) => ({
       input: testCase.input,
@@ -163,6 +167,7 @@ async function fetchAdminRequest<TData>(
   }
 
   const response = await fetch(`${API_BASE_URL}${path}${buildQueryString(options.query)}`, {
+    cache: 'no-store',
     ...options,
     headers,
   });

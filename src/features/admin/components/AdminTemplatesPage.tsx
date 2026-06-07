@@ -12,6 +12,7 @@ import type {
   AdminTemplateDetail,
   AdminTemplateInterviewQuestion,
   AdminTemplateMissionDraft,
+  AdminTemplateNextRecommendation,
   AdminTemplatePayload,
   AdminTemplateRequirement,
   AdminTemplateSummary,
@@ -55,6 +56,7 @@ type TemplateFormState = {
   erd: string;
   apiSpec: string;
   interviewQuestions: AdminTemplateInterviewQuestion[];
+  nextRecommendations: AdminTemplateNextRecommendation[];
   runtime: string;
   testCases: AdminTemplateTestCase[];
   tagsText: string;
@@ -87,6 +89,7 @@ const emptyForm: TemplateFormState = {
   erd: '',
   apiSpec: '',
   interviewQuestions: [],
+  nextRecommendations: [],
   runtime: 'node',
   testCases: [],
   tagsText: '',
@@ -133,6 +136,56 @@ function buildInterviewQuestions(
           },
     ) ?? []
   );
+}
+
+function parseUnknownArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function getStringFromRecord(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null) {
+      return String(value);
+    }
+  }
+
+  return '';
+}
+
+function buildNextRecommendations(template: AdminTemplateDetail): AdminTemplateNextRecommendation[] {
+  const source = template as unknown as Record<string, unknown>;
+  const rawRecommendations = [
+    ...parseUnknownArray(source.nextRecommendations),
+    ...parseUnknownArray(source.next_recommendations),
+    ...parseUnknownArray(source.nextRecommendation),
+  ];
+
+  return rawRecommendations
+    .map((value, index) => {
+      const recommendation = value as Record<string, unknown>;
+
+      return {
+        featureName: getStringFromRecord(recommendation, ['featureName', 'feature_name', 'name', 'title']).trim(),
+        reason: getStringFromRecord(recommendation, ['reason', 'description']).trim(),
+        expectedLearning: getStringFromRecord(recommendation, ['expectedLearning', 'expected_learning', 'learning']).trim(),
+        priority: Number(recommendation.priority) || index + 1,
+      };
+    })
+    .filter((recommendation) => recommendation.featureName || recommendation.reason || recommendation.expectedLearning);
 }
 
 function buildRequirementSpec(requirements: AdminTemplateRequirement[]) {
@@ -272,6 +325,7 @@ function buildFormFromTemplate(template: AdminTemplateDetail): TemplateFormState
     erd: template.erd ?? '',
     apiSpec: template.apiSpec ?? '',
     interviewQuestions: buildInterviewQuestions(template.interviewQuestions),
+    nextRecommendations: buildNextRecommendations(template),
     runtime: template.runtime ?? 'node',
     testCases,
     tagsText: formatTextList(template.tags),
@@ -359,6 +413,14 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
       answerHint: question.answerHint.trim(),
     }))
     .filter((question) => question.question || question.answerHint);
+  const nextRecommendations = form.nextRecommendations
+    .map((recommendation, index) => ({
+      featureName: recommendation.featureName.trim(),
+      reason: recommendation.reason.trim(),
+      expectedLearning: recommendation.expectedLearning.trim(),
+      priority: Number(recommendation.priority) || index + 1,
+    }))
+    .filter((recommendation) => recommendation.featureName || recommendation.reason || recommendation.expectedLearning);
   const testCases = form.testCases
     .map((testCase, index) => ({
       input: testCase.input.trim(),
@@ -385,6 +447,7 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
     apiSpec: form.apiSpec.trim(),
     projectStructure: structure,
     interviewQuestions,
+    nextRecommendations,
     runtime: form.runtime,
     testCases,
     tags: parseTextList(form.tagsText),
@@ -394,6 +457,22 @@ function buildTemplatePayload(form: TemplateFormState): AdminTemplatePayload {
     published: form.published,
     license: form.license.trim() || undefined,
     source: form.source.trim() || undefined,
+  };
+}
+
+function buildTemplateWithFallbackNextRecommendations(
+  refreshed: AdminTemplateDetail,
+  fallbackRecommendations: AdminTemplateNextRecommendation[],
+): AdminTemplateDetail {
+  const refreshedRecommendations = buildNextRecommendations(refreshed);
+
+  if (refreshedRecommendations.length > 0 || fallbackRecommendations.length === 0) {
+    return refreshed;
+  }
+
+  return {
+    ...refreshed,
+    nextRecommendations: fallbackRecommendations,
   };
 }
 
@@ -462,6 +541,18 @@ function validateTemplatePayload(payload: AdminTemplatePayload) {
     throw new Error('면접질문은 question을 입력해야 합니다.');
   }
 
+  const hasInvalidRecommendation = payload.nextRecommendations?.some(
+    (recommendation) => !recommendation.featureName || !recommendation.reason || !recommendation.expectedLearning || !recommendation.priority,
+  );
+
+  if (hasInvalidRecommendation) {
+    throw new Error('다음 추천은 기능명, 추천 이유, 기대 학습, 우선순위를 모두 입력해야 합니다.');
+  }
+
+  payload.nextRecommendations?.forEach((recommendation, index) => {
+    assertMaxLength(recommendation.featureName, 120, `다음 추천 ${index + 1}번 기능명`);
+  });
+
   const hasInvalidTestCase = payload.testCases?.some((testCase) => !testCase.input || !testCase.expectedOutput);
 
   if (hasInvalidTestCase) {
@@ -505,6 +596,10 @@ function createTemplateProblem(): AdminTemplateMissionDraft {
 
 function createInterviewQuestion(): AdminTemplateInterviewQuestion {
   return { question: '', answerHint: '' };
+}
+
+function createNextRecommendation(): AdminTemplateNextRecommendation {
+  return { featureName: '', reason: '', expectedLearning: '', priority: 1 };
 }
 
 function createTestCase(): AdminTemplateTestCase {
@@ -673,10 +768,14 @@ function buildMissionProjectValidationJson(mission: AdminTemplateMissionDraft) {
 }
 
 async function fetchMergedTemplateDetail(templateId: number): Promise<AdminTemplateDetail> {
-  const [detail, practice] = await Promise.all([
+  const [rawDetail, practice] = await Promise.all([
     adminService.getTemplate(templateId),
     adminService.getTemplatePractice(templateId).catch(() => null),
   ]);
+  const detail =
+    rawDetail && typeof rawDetail === 'object' && 'data' in rawDetail
+      ? ((rawDetail as unknown as { data: AdminTemplateDetail }).data ?? rawDetail)
+      : rawDetail;
 
   return {
     ...detail,
@@ -897,7 +996,10 @@ export function AdminTemplatesPage() {
         await saveMissions(saved.id, form.missions);
       }
 
-      const refreshed = await fetchMergedTemplateDetail(saved.id);
+      const refreshed = buildTemplateWithFallbackNextRecommendations(
+        await fetchMergedTemplateDetail(saved.id),
+        payload.nextRecommendations ?? [],
+      );
       setSelectedTemplate(refreshed);
       setSelectedPracticeFileId(refreshed.practiceFiles?.[0]?.id ?? null);
       setPracticeFileForm(refreshed.practiceFiles?.[0] ? buildPracticeFileForm(refreshed.practiceFiles[0]) : emptyPracticeFileForm);
@@ -1160,6 +1262,26 @@ export function AdminTemplatesPage() {
     setForm((currentForm) => ({
       ...currentForm,
       interviewQuestions: currentForm.interviewQuestions.filter((_, questionIndex) => questionIndex !== index),
+    }));
+  };
+
+  const updateNextRecommendation = <TKey extends keyof AdminTemplateNextRecommendation>(
+    index: number,
+    key: TKey,
+    value: AdminTemplateNextRecommendation[TKey],
+  ) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      nextRecommendations: currentForm.nextRecommendations.map((recommendation, recommendationIndex) =>
+        recommendationIndex === index ? { ...recommendation, [key]: value } : recommendation,
+      ),
+    }));
+  };
+
+  const deleteNextRecommendation = (index: number) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      nextRecommendations: currentForm.nextRecommendations.filter((_, recommendationIndex) => recommendationIndex !== index),
     }));
   };
 
@@ -2275,6 +2397,83 @@ export function AdminTemplatesPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </section>
+
+              <section className="rounded-md border border-slate-200 p-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-950">다음 추천</h4>
+                    <p className="mt-1 text-xs text-slate-500">
+                      사용자 템플릿의 다음 추천 탭에 표시할 연계 학습입니다.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((currentForm) => ({
+                        ...currentForm,
+                        nextRecommendations: [...currentForm.nextRecommendations, createNextRecommendation()],
+                      }))
+                    }
+                    className="rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    추가
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {form.nextRecommendations.length === 0 ? (
+                    <p className="rounded-md bg-slate-50 px-3 py-4 text-sm text-slate-500">
+                      아직 입력된 다음 추천이 없습니다.
+                    </p>
+                  ) : (
+                    form.nextRecommendations.map((recommendation, index) => (
+                      <div key={index} className="rounded-md border border-slate-200 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-violet-700">recommendation {index + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => deleteNextRecommendation(index)}
+                            className="rounded-md border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-[96px_minmax(0,1fr)]">
+                          <input
+                            type="number"
+                            min={1}
+                            value={recommendation.priority}
+                            onChange={(event) =>
+                              updateNextRecommendation(index, 'priority', Number(event.target.value) || index + 1)
+                            }
+                            placeholder="우선순위"
+                            className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                          />
+                          <input
+                            value={recommendation.featureName}
+                            onChange={(event) => updateNextRecommendation(index, 'featureName', event.target.value)}
+                            placeholder="추천 기능명 예: OAuth 소셜 로그인"
+                            className="h-10 rounded-md border border-slate-300 px-3 text-sm"
+                          />
+                          <textarea
+                            value={recommendation.reason}
+                            onChange={(event) => updateNextRecommendation(index, 'reason', event.target.value)}
+                            placeholder="추천 이유"
+                            rows={3}
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+                          />
+                          <textarea
+                            value={recommendation.expectedLearning}
+                            onChange={(event) => updateNextRecommendation(index, 'expectedLearning', event.target.value)}
+                            placeholder="기대 학습 예: 외부 인증 제공자 연동 흐름과 계정 연결 전략을 학습합니다."
+                            rows={3}
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </section>
 
