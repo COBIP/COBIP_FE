@@ -15,6 +15,7 @@ import { MissionSection } from './MissionSection';
 import { RequirementsSection } from './RequirementsSection';
 import { StructureSection } from './StructureSection';
 import { InterviewSection } from './InterviewSection';
+import { NextRecommendationSection } from './NextRecommendationSection';
 import { MarkdownTextView } from './MarkdownTextView';
 import { SourceCodeSection } from './SourceCodeSection';
 import { ApiSpecSection } from './ApiSpecSection';
@@ -26,7 +27,7 @@ import {
   getTemplatePractice,
   submitTemplatePracticeCode,
   submitTemplatePracticeProject,
-  updateTemplatePracticeMissionProgress,
+  submitTemplatePracticeQuiz,
   type TemplateDetailApiResponse,
   type TemplatePracticeDetailApiResponse,
   type TemplatePracticeFileApiResponse,
@@ -615,17 +616,19 @@ export function FunctionalTemplateLayout({
     });
   };
 
-  const handleProblemCorrect = async (missionId: number) => {
-    if (!templateId || completedMissionIds.has(missionId)) return;
+  const handleSubmitQuizAnswer = async (missionId: number, answer: string) => {
+    if (!templateId) {
+      throw new Error('템플릿 정보를 찾을 수 없습니다.');
+    }
 
-    try {
-      const progress = await updateTemplatePracticeMissionProgress(templateId, missionId, 'COMPLETED');
-      setPracticeProgress(progress);
+    const result = await submitTemplatePracticeQuiz(templateId, missionId, answer);
+
+    if (result.correct) {
       markMissionCompleted(missionId);
       await refreshPractice();
-    } catch {
-      markMissionCompleted(missionId);
     }
+
+    return result;
   };
 
   const handleRunProject = async () => {
@@ -727,6 +730,10 @@ export function FunctionalTemplateLayout({
   };
 
   const renderContent = () => {
+    if (activeTab === 'next-recommendation') {
+      return <NextRecommendationSection isDarkMode={isDarkMode} recommendations={template?.nextRecommendations} />;
+    }
+
     if (activeTab === 'api-spec') {
       return <ApiSpecSection isDarkMode={isDarkMode} content={template?.apiSpec} />;
     }
@@ -780,7 +787,7 @@ export function FunctionalTemplateLayout({
             activeMissionId={activeMissionId}
             completedMissionIds={completedMissionIds}
             onOpenEditor={openEditor}
-            onProblemCorrect={handleProblemCorrect}
+            onSubmitQuizAnswer={handleSubmitQuizAnswer}
             missions={problemItems.map((mission, index) => ({
               ...mission,
               fileName: getMissionFilePath(mission, practiceFiles, index),

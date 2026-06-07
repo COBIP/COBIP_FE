@@ -122,6 +122,13 @@ export interface AdminTemplateTestCase {
   orderIndex?: number;
 }
 
+export interface AdminTemplateNextRecommendation {
+  featureName: string;
+  reason: string;
+  expectedLearning: string;
+  priority: number;
+}
+
 export interface AdminTemplateDetail extends AdminTemplateSummary {
   description?: string;
   techStacks?: string[];
@@ -135,6 +142,7 @@ export interface AdminTemplateDetail extends AdminTemplateSummary {
   apiSpec?: string;
   projectStructure?: string;
   interviewQuestions?: Array<string | AdminTemplateInterviewQuestion>;
+  nextRecommendations?: AdminTemplateNextRecommendation[];
   runtime?: string;
   testCases?: AdminTemplateTestCase[];
   tags?: string[];
@@ -166,6 +174,7 @@ export interface AdminTemplatePayload {
   apiSpec: string;
   projectStructure: string;
   interviewQuestions: AdminTemplateInterviewQuestion[];
+  nextRecommendations?: AdminTemplateNextRecommendation[];
   runtime?: string;
   testCases?: AdminTemplateTestCase[];
   tags?: string[];
