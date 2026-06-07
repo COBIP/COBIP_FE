@@ -1,15 +1,36 @@
 const AI_API_BASE_URL = (process.env.NEXT_PUBLIC_AI_API_BASE_URL ?? 'http://localhost:8000').replace(/\/$/, '');
 const SPRING_BOOT_FRAMEWORK = 'Spring Boot';
 
+function formatValidationDetail(detail: unknown) {
+  if (!Array.isArray(detail)) return null;
+
+  const messages = detail
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const record = item as Record<string, unknown>;
+      const location = Array.isArray(record.loc) ? record.loc.join('.') : '';
+      const message = typeof record.msg === 'string' ? record.msg : '';
+
+      return [location, message].filter(Boolean).join(': ');
+    })
+    .filter(Boolean);
+
+  return messages.length > 0 ? messages.join('\n') : null;
+}
+
 async function parseAiResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get('content-type') ?? '';
   const body = contentType.includes('application/json') ? await response.json() : null;
 
   if (!response.ok) {
+    const validationMessage = body && typeof body === 'object' && 'detail' in body
+      ? formatValidationDetail((body as { detail?: unknown }).detail)
+      : null;
     const message =
-      body && typeof body === 'object' && 'message' in body
+      validationMessage ??
+      (body && typeof body === 'object' && 'message' in body
         ? String(body.message)
-        : `AI 요청에 실패했습니다. (${response.status})`;
+        : `AI 요청에 실패했습니다. (${response.status})`);
 
     throw new Error(message);
   }
@@ -695,10 +716,18 @@ export async function fetchAiMissionFeedback(request: {
   requirements: AiFeatureTemplateRequirement[];
   apiSpecs: AiFeatureTemplateApiSpec[];
 }): Promise<AiMissionFeedbackResponse> {
+  const payload = {
+    templateId: null,
+    featureName: request.featureName,
+    mission: request.mission,
+    submittedCode: request.submittedCode,
+    requirements: request.requirements ?? [],
+    apiSpecs: request.apiSpecs ?? [],
+  };
   const response = await fetch(`${AI_API_BASE_URL}/ai/mission/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ templateId: null, ...request }),
+    body: JSON.stringify(payload),
   });
   const result = await parseAiResponse<AiApiResponse<AiMissionFeedbackResponse>>(response);
   return result.data;
