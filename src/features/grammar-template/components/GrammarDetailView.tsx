@@ -769,6 +769,26 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                         </div>
                       </div>
 
+                      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-bold text-slate-900">미션 진행 현황</p>
+                                <p className="mt-1 text-xs text-slate-500">0 / {missionItems.length} 완료</p>
+                              </div>
+                              <span className="shrink-0 text-sm font-bold text-purple-600">0%</span>
+                            </div>
+                            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-500"
+                                style={{ width: '0%' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {missionItems.length > 0 ? (
                         <div className="space-y-3">
                           {missionItems.map((mission, index) => (
