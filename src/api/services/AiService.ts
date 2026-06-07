@@ -502,6 +502,121 @@ function mapErrorResponse(value: unknown): AiFeatureTemplateErrorResponse {
   };
 }
 
+function getFirstString(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+
+  return '';
+}
+
+function getFirstValue(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+
+  return null;
+}
+
+function convertOptionalNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function prepareApiHeaders(value?: AiFeatureTemplateApiHeader[]) {
+  return (value ?? [])
+    .map((header) => {
+      const record = header as unknown as Record<string, unknown>;
+      const name = getFirstString(record, ['name', 'header', 'key', 'headerName']);
+
+      if (!name) return null;
+
+      return {
+        name,
+        required: convertToBoolean(record.required ?? record.isRequired),
+        value: convertToString(record.value),
+        description: convertToString(record.description),
+      };
+    })
+    .filter((header): header is NonNullable<typeof header> => Boolean(header));
+}
+
+function prepareApiFields(value?: AiFeatureTemplateApiField[]) {
+  return (value ?? [])
+    .map((field) => {
+      const record = field as unknown as Record<string, unknown>;
+      const name = getFirstString(record, ['name', 'fieldName', 'field', 'key']);
+
+      if (!name) return null;
+
+      return {
+        name,
+        type: convertToString(record.type ?? record.dataType, 'string'),
+        required: convertToBoolean(record.required ?? record.isRequired),
+        description: convertToString(record.description),
+        example: record.example ?? record.exampleValue ?? '',
+      };
+    })
+    .filter((field): field is NonNullable<typeof field> => Boolean(field));
+}
+
+function prepareApiStatusCodes(value?: AiFeatureTemplateStatusCode[]) {
+  return (value ?? [])
+    .map((statusCode) => {
+      const record = statusCode as unknown as Record<string, unknown>;
+      const code = getFirstValue(record, ['code', 'statusCode', 'status']);
+      const normalizedCode = convertOptionalNumber(code) ?? getFirstString(record, ['code', 'statusCode', 'status']);
+
+      if (!normalizedCode) return null;
+
+      return {
+        code: normalizedCode,
+        description: convertToString(record.description ?? record.message),
+        when: convertToString(record.when ?? record.condition),
+      };
+    })
+    .filter((statusCode): statusCode is NonNullable<typeof statusCode> => Boolean(statusCode));
+}
+
+function prepareApiErrorResponses(value?: AiFeatureTemplateErrorResponse[]) {
+  return (value ?? [])
+    .map((errorResponse) => {
+      const record = errorResponse as unknown as Record<string, unknown>;
+      const status = convertOptionalNumber(getFirstValue(record, ['status', 'statusCode']));
+
+      if (!status) return null;
+
+      return {
+        status,
+        code: getFirstString(record, ['code', 'errorCode']),
+        message: convertToString(record.message ?? record.description),
+        example: record.example ?? record.responseBody ?? {},
+      };
+    })
+    .filter((errorResponse): errorResponse is NonNullable<typeof errorResponse> => Boolean(errorResponse));
+}
+
+function prepareApiSpecsForAiServer(apiSpecs?: AiFeatureTemplateApiSpec[]) {
+  return (apiSpecs ?? []).map((api) => ({
+    ...api,
+    requestHeaders: prepareApiHeaders(api.requestHeaders),
+    requestFields: prepareApiFields(api.requestFields),
+    responseFields: prepareApiFields(api.responseFields),
+    statusCodes: prepareApiStatusCodes(api.statusCodes),
+    errorResponses: prepareApiErrorResponses(api.errorResponses),
+  }));
+}
+
 function mapCodeFile(value: unknown, index: number): AiFeatureTemplateCodeFile {
   const item = checkRecord(value) ? value : {};
 
@@ -703,7 +818,11 @@ export async function fetchAiQuizGrade(request: {
   const response = await fetch(`${AI_API_BASE_URL}/ai/quiz/grade`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ templateId: null, ...request }),
+    body: JSON.stringify({
+      templateId: null,
+      ...request,
+      relatedApiSpecs: prepareApiSpecsForAiServer(request.relatedApiSpecs),
+    }),
   });
   const result = await parseAiResponse<AiApiResponse<AiQuizGradeResponse>>(response);
   return result.data;
@@ -722,7 +841,7 @@ export async function fetchAiMissionFeedback(request: {
     mission: request.mission,
     submittedCode: request.submittedCode,
     requirements: request.requirements ?? [],
-    apiSpecs: request.apiSpecs ?? [],
+    apiSpecs: prepareApiSpecsForAiServer(request.apiSpecs),
   };
   const response = await fetch(`${AI_API_BASE_URL}/ai/mission/feedback`, {
     method: 'POST',
