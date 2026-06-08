@@ -5,61 +5,61 @@ interface GrammarTemplateCardProps {
   onClick: (id: number) => void;
 }
 
-/** 언어별 아이콘 매핑 */
 const LANGUAGE_ICONS: Record<string, string> = {
   PYTHON: '🐍',
   JAVA: '☕',
   JAVASCRIPT: '🟨',
 };
 
-/** 난이도별 컬러 매핑 */
+const DIFFICULTY_LABELS: Record<string, string> = {
+  BEGINNER: '초급',
+  INTERMEDIATE: '중급',
+  ADVANCED: '고급',
+};
+
 const DIFFICULTY_COLORS: Record<string, string> = {
-  BEGINNER: 'from-blue-100 to-green-100',
-  INTERMEDIATE: 'from-yellow-100 to-amber-100',
-  ADVANCED: 'from-red-100 to-orange-100',
+  BEGINNER: 'from-blue-100 to-emerald-100',
+  INTERMEDIATE: 'from-amber-100 to-yellow-100',
+  ADVANCED: 'from-rose-100 to-orange-100',
 };
 
 export function GrammarTemplateCard({ template, onClick }: GrammarTemplateCardProps) {
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onClick(template.id)}
-      className="group cursor-pointer"
+      className="group block w-full text-left"
     >
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:border-purple-300 hover:shadow-md hover:shadow-purple-100 hover:-translate-y-0.5">
-        {/* 상단 컬러 바 */}
-        <div className={`h-2 bg-gradient-to-r ${DIFFICULTY_COLORS[template.difficulty] || 'from-gray-100 to-gray-100'}`} />
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md hover:shadow-purple-100">
+        <div
+          className={`h-2 bg-gradient-to-r ${DIFFICULTY_COLORS[template.difficulty] || 'from-gray-100 to-gray-100'}`}
+        />
 
         <div className="p-4">
-          {/* 헤더: 아이콘 + 난이도 */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-lg">
-              {LANGUAGE_ICONS[template.language] || '📄'}
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 text-lg">
+              {LANGUAGE_ICONS[template.language] || '📘'}
             </div>
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full border bg-purple-50 text-purple-600 border-purple-200">
-              {template.difficulty === 'BEGINNER' ? '초급' : template.difficulty === 'INTERMEDIATE' ? '중급' : '고급'}
+            <span className="rounded-md border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-semibold text-purple-700">
+              {DIFFICULTY_LABELS[template.difficulty] || template.difficulty}
             </span>
           </div>
 
-          {/* 제목 */}
-          <h3 className="text-sm font-bold text-gray-900 mb-1">{template.title}</h3>
-          <p className="text-xs text-gray-500 line-clamp-2 mb-3">{template.summary}</p>
+          <h3 className="text-base font-bold text-gray-900">{template.title}</h3>
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-gray-500">{template.summary}</p>
 
-          {/* 카테고리 */}
-          {template.category && (
-            <div className="flex flex-wrap gap-1 mb-3">
-              <span className="px-1.5 py-0.5 bg-purple-50 text-purple-600 text-[10px] rounded-md border border-purple-100">
+          <div className="mt-4 flex flex-wrap gap-2">
+            {template.category ? (
+              <span className="rounded-md border border-purple-100 bg-purple-50 px-2 py-1 text-[11px] font-medium text-purple-700">
                 {template.category}
               </span>
-              <span className="px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[10px] rounded-md border border-gray-100">
-                {template.language}
-              </span>
-            </div>
-          )}
-
-          {/* 푸터 */}
-          <div className="pt-2.5 border-t border-gray-50" />
+            ) : null}
+            <span className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-600">
+              {template.language}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

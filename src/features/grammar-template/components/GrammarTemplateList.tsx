@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, BookOpen, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import { useUserStore } from '@/store/UseUserStore';
@@ -18,20 +18,19 @@ const DIFFICULTY_FILTERS = [
 ] as const;
 
 export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListProps) {
-  const isLoggedIn = useUserStore((s) => s.isLoggedIn);
+  const isLoggedIn = useUserStore((state) => state.isLoggedIn);
   const [templates, setTemplates] = useState<GrammarTemplateItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
 
-    /** API에서 템플릿 목록 불러오기 */
-    useEffect(() => {
-      if (!isLoggedIn) {
-        setIsLoading(false);
-        return;
-      }
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setIsLoading(false);
+      return;
+    }
 
-      let isCancelled = false;
+    let isCancelled = false;
 
     const fetchTemplates = async () => {
       setIsLoading(true);
@@ -42,73 +41,71 @@ export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListPro
           page: 0,
           size: 50,
         });
+
         if (!isCancelled) {
           setTemplates(result.content);
         }
-      } catch (err) {
-        console.error('문법 템플릿 목록 조회 실패:', err);
-        if (!isCancelled) setTemplates([]);
+      } catch (error) {
+        console.error('문법 템플릿 목록 조회 실패:', error);
+        if (!isCancelled) {
+          setTemplates([]);
+        }
       } finally {
-        if (!isCancelled) setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchTemplates();
+    void fetchTemplates();
 
-        return () => {
+    return () => {
       isCancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, activeFilter]);
+  }, [activeFilter, isLoggedIn, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
-      {/* 메인 페이지와 동일한 헤더 */}
+    <div className="min-h-screen bg-[#F8FAFC]">
       <Header />
 
-      {/* 페이지 타이틀 */}
-      <header className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
+      <header className="border-b border-[#E2E8F0] bg-white px-8 py-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <BookOpen className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-                  문법 템플릿
-                </h1>
+              <div className="mb-1 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-[#7C3AED]" />
+                <h1 className="text-[28px] font-bold tracking-tight text-[#1E293B]">문법 템플릿</h1>
               </div>
-              <p className="text-sm text-gray-500">
-                언어별 문법을 체계적으로 학습하고 코드 실행 흐름을 시각화해보세요.
+              <p className="text-sm text-[#64748B]">
+                문법 개념을 챕터별로 학습하고 코드 실행과 제출 흐름으로 바로 확인해보세요.
               </p>
             </div>
 
-            {/* 검색창 */}
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="relative w-full lg:w-80">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
               <input
                 type="text"
-                placeholder="템플릿 검색..."
+                placeholder="템플릿 검색"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition placeholder:text-gray-400"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="h-10 w-full rounded-lg border border-[#E2E8F0] bg-white pl-9 pr-3 text-sm text-[#1E293B] transition placeholder:text-[#94A3B8] focus:border-[#C4B5FD] focus:outline-none focus:ring-2 focus:ring-[#EDE9FE]"
               />
             </div>
           </div>
         </div>
       </header>
 
-      {/* 메인 콘텐츠 */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
-        {/* 필터 버튼 (난이도별) */}
-        <div className="flex items-center gap-2 mb-8">
+      <main className="mx-auto max-w-7xl px-8 py-8">
+        <div className="mb-8 flex flex-wrap items-center gap-2">
           {DIFFICULTY_FILTERS.map((filter) => (
             <button
               key={filter.value}
+              type="button"
               onClick={() => setActiveFilter(filter.value)}
-              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+              className={`inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold transition ${
                 activeFilter === filter.value
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  ? 'border-[#7C3AED] bg-[#7C3AED] text-white shadow-sm'
+                  : 'border-[#E2E8F0] bg-white text-[#475569] hover:border-[#D8B4FE] hover:bg-[#F8FAFC]'
               }`}
             >
               {filter.label}
@@ -116,17 +113,15 @@ export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListPro
           ))}
         </div>
 
-                {/* 로딩 상태 */}
-        {isLoading && (
+        {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
-            <span className="ml-2 text-sm text-gray-500">불러오는 중...</span>
+            <Loader2 className="h-6 w-6 animate-spin text-[#7C3AED]" />
+            <span className="ml-2 text-sm text-[#64748B]">불러오는 중...</span>
           </div>
-        )}
+        ) : null}
 
-                {/* 템플릿 그리드 (4열) */}
-        {!isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {!isLoading && templates.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {templates.map((template) => (
               <GrammarTemplateCard
                 key={template.id}
@@ -135,13 +130,13 @@ export function GrammarTemplateList({ onSelectTemplate }: GrammarTemplateListPro
               />
             ))}
           </div>
-        )}
-        {/* 결과 없음 */}
-        {!isLoading && templates.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-gray-400 text-sm">검색 결과가 없습니다.</p>
+        ) : null}
+
+        {!isLoading && templates.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-[#CBD5E1] bg-white px-6 py-16 text-center">
+            <p className="text-sm font-medium text-[#64748B]">검색 결과가 없습니다.</p>
           </div>
-        )}
+        ) : null}
       </main>
     </div>
   );

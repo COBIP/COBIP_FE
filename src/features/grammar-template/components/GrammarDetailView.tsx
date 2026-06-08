@@ -669,11 +669,11 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         <div className="flex items-center gap-2">
           <div className="mr-2 flex items-center gap-2">
             {activeSubmissionTarget ? (
-              <span className="hidden rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 lg:inline-flex">
+              <span className="hidden h-10 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-semibold text-purple-700 lg:inline-flex items-center">
                 현재 {activeSubmissionTarget.typeLabel}: {activeSubmissionTarget.title}
               </span>
             ) : (
-              <span className="hidden rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-400 lg:inline-flex">
+              <span className="hidden h-10 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-400 lg:inline-flex items-center">
                 문제 또는 미션 선택 후 제출 가능
               </span>
             )}
@@ -681,7 +681,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
               type="button"
               onClick={() => void handleSubmitMission()}
               disabled={!activeSubmissionTarget}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold transition ${
                 activeSubmissionTarget
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                   : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
@@ -706,7 +706,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
             <Settings className="w-4 h-4 text-gray-500 group-hover:text-purple-600" />
           </button>
           <div className="w-7 h-7 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">U</div>
-          <button onClick={onBack} className="ml-2 px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition cursor-pointer flex items-center gap-1">
+          <button onClick={onBack} className="ml-2 inline-flex h-10 items-center gap-1 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 cursor-pointer">
             <Check className="w-3.5 h-3.5" /> 레슨완료
           </button>
         </div>
@@ -811,9 +811,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'problems' ? (
                     <div className="space-y-4">
-                      <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
+                      <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-5 shadow-sm">
                         <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-600 text-sm font-bold text-white">
                             Q
                           </div>
                           <div>
@@ -835,7 +835,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                             return (
                             <div
                               key={mission.id}
-                              className={`rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
+                              className={`rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md ${
                                 hasSolved
                                   ? 'border-emerald-200 bg-emerald-50/60 shadow-emerald-100'
                                   : hasFailed
@@ -848,7 +848,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white shadow-sm">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-600 text-sm font-bold text-white shadow-sm">
                                       {index + 1}
                                     </span>
                                     <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
@@ -860,7 +860,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50 px-4 py-4">
+                                    <div className="mt-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-4">
                                       <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">가이드</p>
                                       <p className="mt-2 text-sm leading-6 text-purple-700">{mission.guideContent}</p>
                                     </div>
@@ -873,7 +873,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                   {isSelected && hasSubmissionFeedback ? (
                                     <>
                                       <span
-                                        className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                                        className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold ${
                                           hasSolved
                                             ? 'bg-emerald-600 text-white'
                                             : 'bg-amber-500 text-white'
@@ -884,7 +884,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       <button
                                         type="button"
                                         onClick={handleRetrySubmission}
-                                        className="rounded-lg border border-purple-200 bg-white px-4 py-2 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
+                                        className="inline-flex h-10 items-center rounded-lg border border-purple-200 bg-white px-4 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
                                       >
                                         다시풀기
                                       </button>
@@ -893,7 +893,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <button
                                       type="button"
                                       onClick={() => handleStartProblemSolving(mission.id, mission.title)}
-                                      className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                                      className={`inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold transition ${
                                         isSelected
                                           ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
                                           : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
@@ -906,7 +906,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                               </div>
                               {isSelected && hasSubmissionFeedback ? (
                                 <div
-                                  className={`mt-4 rounded-2xl border px-4 py-4 ${
+                                  className={`mt-4 rounded-lg border px-4 py-4 ${
                                     hasSolved
                                       ? 'border-emerald-200 bg-white/90'
                                       : 'border-amber-200 bg-white/90'
@@ -953,7 +953,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           )})}
                         </div>
                       ) : (
-                        <div className="rounded-3xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
                           <p className="text-sm font-semibold text-gray-700">등록된 문제가 없습니다.</p>
                           <p className="mt-2 text-sm text-gray-500">어드민에서 문제를 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
                         </div>
@@ -963,9 +963,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'missions' ? (
                     <div className="space-y-4">
-                      <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
+                      <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-5 shadow-sm">
                         <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-600 text-sm font-bold text-white">
                             M
                           </div>
                           <div>
@@ -977,7 +977,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                         </div>
                       </div>
 
-                      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="flex items-center justify-between gap-4">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-3">
@@ -1007,7 +1007,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                             return (
                             <div
                               key={mission.id}
-                              className={`rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
+                              className={`rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md ${
                                 hasSolved
                                   ? 'border-emerald-200 bg-emerald-50/60 shadow-emerald-100'
                                   : hasFailed
@@ -1032,7 +1032,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50 px-4 py-4">
+                                    <div className="mt-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-4">
                                       <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">가이드</p>
                                       <p className="mt-2 text-sm leading-6 text-purple-700">{mission.guideContent}</p>
                                     </div>
@@ -1045,7 +1045,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                   {isSelected && hasSubmissionFeedback ? (
                                     <>
                                       <span
-                                        className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                                        className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold ${
                                           hasSolved
                                             ? 'bg-emerald-600 text-white'
                                             : 'bg-amber-500 text-white'
@@ -1056,7 +1056,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       <button
                                         type="button"
                                         onClick={handleRetrySubmission}
-                                        className="rounded-lg border border-purple-200 bg-white px-4 py-2 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
+                                        className="inline-flex h-10 items-center rounded-lg border border-purple-200 bg-white px-4 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
                                       >
                                         다시풀기
                                       </button>
@@ -1065,7 +1065,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <button
                                       type="button"
                                       onClick={() => handleStartMission(mission.id, mission.title)}
-                                      className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                                      className={`inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold transition ${
                                         isSelected
                                           ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
                                           : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
@@ -1078,7 +1078,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                               </div>
                               {isSelected && hasSubmissionFeedback ? (
                                 <div
-                                  className={`mt-4 rounded-2xl border px-4 py-4 ${
+                                  className={`mt-4 rounded-lg border px-4 py-4 ${
                                     hasSolved
                                       ? 'border-emerald-200 bg-white/90'
                                       : 'border-amber-200 bg-white/90'
@@ -1125,7 +1125,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           )})}
                         </div>
                       ) : (
-                        <div className="rounded-3xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
+                        <div className="rounded-xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
                           <p className="text-sm font-semibold text-gray-700">등록된 미션이 없습니다.</p>
                           <p className="mt-2 text-sm text-gray-500">어드민에서 미션을 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
                         </div>
