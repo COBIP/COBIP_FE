@@ -58,7 +58,7 @@ function buildQueryString(params?: QueryParams) {
   return queryString ? `?${queryString}` : '';
 }
 
-async function requestAdminCoding<TData>(
+async function fetchAdminCoding<TData>(
   path: string,
   options: RequestInit & { query?: QueryParams } = {},
 ): Promise<TData> {
@@ -92,7 +92,7 @@ async function requestAdminCoding<TData>(
 
 export const adminCodingWorkbookService = {
   getWorkbooks(params: AdminCodingWorkbookQuery = {}) {
-    return requestAdminCoding<PageResponse<AdminCodingWorkbookSummary>>('/api/v1/admin/coding-workbooks', {
+    return fetchAdminCoding<PageResponse<AdminCodingWorkbookSummary>>('/api/v1/admin/coding-workbooks', {
       query: {
         keyword: params.keyword,
         category: params.category,
@@ -106,48 +106,48 @@ export const adminCodingWorkbookService = {
   },
 
   createWorkbook(payload: AdminCodingWorkbookPayload) {
-    return requestAdminCoding<AdminCodingWorkbookDetail>('/api/v1/admin/coding-workbooks', {
+    return fetchAdminCoding<AdminCodingWorkbookDetail>('/api/v1/admin/coding-workbooks', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
 
   getWorkbook(workbookId: number) {
-    return requestAdminCoding<AdminCodingWorkbookDetail>(`/api/v1/admin/coding-workbooks/${workbookId}`);
+    return fetchAdminCoding<AdminCodingWorkbookDetail>(`/api/v1/admin/coding-workbooks/${workbookId}`);
   },
 
   updateWorkbook(workbookId: number, payload: Partial<AdminCodingWorkbookPayload>) {
-    return requestAdminCoding<AdminCodingWorkbookDetail>(`/api/v1/admin/coding-workbooks/${workbookId}`, {
+    return fetchAdminCoding<AdminCodingWorkbookDetail>(`/api/v1/admin/coding-workbooks/${workbookId}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
   },
 
   deleteWorkbook(workbookId: number) {
-    return requestAdminCoding<void>(`/api/v1/admin/coding-workbooks/${workbookId}`, {
+    return fetchAdminCoding<void>(`/api/v1/admin/coding-workbooks/${workbookId}`, {
       method: 'DELETE',
     });
   },
 
   getProblems(workbookId: number) {
-    return requestAdminCoding<AdminCodingProblemSummary[]>(`/api/v1/admin/coding-workbooks/${workbookId}/problems`);
+    return fetchAdminCoding<AdminCodingProblemSummary[]>(`/api/v1/admin/coding-workbooks/${workbookId}/problems`);
   },
 
   createProblem(workbookId: number, payload: AdminCodingProblemPayload) {
-    return requestAdminCoding<AdminCodingProblemDetail>(`/api/v1/admin/coding-workbooks/${workbookId}/problems`, {
+    return fetchAdminCoding<AdminCodingProblemDetail>(`/api/v1/admin/coding-workbooks/${workbookId}/problems`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
 
   getProblem(workbookId: number, problemId: number) {
-    return requestAdminCoding<AdminCodingProblemDetail>(
+    return fetchAdminCoding<AdminCodingProblemDetail>(
       `/api/v1/admin/coding-workbooks/${workbookId}/problems/${problemId}`,
     );
   },
 
   updateProblem(workbookId: number, problemId: number, payload: Partial<AdminCodingProblemPayload>) {
-    return requestAdminCoding<AdminCodingProblemDetail>(
+    return fetchAdminCoding<AdminCodingProblemDetail>(
       `/api/v1/admin/coding-workbooks/${workbookId}/problems/${problemId}`,
       {
         method: 'PATCH',
@@ -157,7 +157,7 @@ export const adminCodingWorkbookService = {
   },
 
   deleteProblem(workbookId: number, problemId: number) {
-    return requestAdminCoding<void>(`/api/v1/admin/coding-workbooks/${workbookId}/problems/${problemId}`, {
+    return fetchAdminCoding<void>(`/api/v1/admin/coding-workbooks/${workbookId}/problems/${problemId}`, {
       method: 'DELETE',
     });
   },

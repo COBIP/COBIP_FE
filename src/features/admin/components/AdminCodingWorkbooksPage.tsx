@@ -107,7 +107,7 @@ function buildDocFromText(value: string): TiptapTextDoc {
   };
 }
 
-function readTextFromDoc(doc?: TiptapTextDoc | null) {
+function parseTextFromDoc(doc?: TiptapTextDoc | null) {
   if (!doc?.content?.length) {
     return '';
   }
@@ -135,8 +135,8 @@ function buildProblemForm(problem: AdminCodingProblemDetail): ProblemForm {
     title: problem.title,
     category: problem.category,
     difficulty: problem.difficulty,
-    contentText: readTextFromDoc(problem.contentJson),
-    explanationText: readTextFromDoc(problem.explanationJson),
+    contentText: parseTextFromDoc(problem.contentJson),
+    explanationText: parseTextFromDoc(problem.explanationJson),
     orderIndex: problem.orderIndex,
     timeLimitMillis: problem.timeLimitMillis,
     memoryLimitMb: problem.memoryLimitMb,
