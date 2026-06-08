@@ -22,6 +22,7 @@ const adminNavItems = [
   { href: '/admin', label: '대시보드', icon: LayoutDashboard },
   { href: '/admin/users', label: '사용자 관리', icon: Users },
   { href: '/admin/grammar-templates', label: '문법 템플릿', icon: BookOpen },
+  { href: '/admin/coding-workbooks', label: '코테집 관리', icon: FileCode2 },
   { href: '/admin/templates', label: '기능 템플릿', icon: FileCode2 },
   { href: '/admin/subscription-plans', label: '구독 플랜', icon: Receipt },
   { href: '/admin/reports', label: '신고 관리', icon: Flag },
