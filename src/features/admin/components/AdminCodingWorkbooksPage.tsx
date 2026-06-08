@@ -39,6 +39,7 @@ type ProblemForm = Omit<AdminCodingProblemPayload, 'contentJson' | 'explanationJ
   contentText: string;
   explanationText: string;
 };
+type FormMode = 'hidden' | 'create' | 'edit';
 
 const emptyWorkbookForm: WorkbookForm = {
   slug: '',
@@ -212,8 +213,10 @@ export function AdminCodingWorkbooksPage() {
   const [workbooks, setWorkbooks] = useState<PageResponse<AdminCodingWorkbookSummary> | null>(null);
   const [selectedWorkbook, setSelectedWorkbook] = useState<AdminCodingWorkbookDetail | null>(null);
   const [workbookForm, setWorkbookForm] = useState<WorkbookForm>(emptyWorkbookForm);
+  const [workbookFormMode, setWorkbookFormMode] = useState<FormMode>('hidden');
   const [selectedProblemId, setSelectedProblemId] = useState<number | null>(null);
   const [problemForm, setProblemForm] = useState<ProblemForm>(() => createProblemForm());
+  const [problemFormMode, setProblemFormMode] = useState<FormMode>('hidden');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -254,6 +257,8 @@ export function AdminCodingWorkbooksPage() {
     setWorkbookForm(buildWorkbookForm(detail));
     setSelectedProblemId(null);
     setProblemForm(createProblemForm(getNextProblemOrder(detail.problems)));
+    setWorkbookFormMode('hidden');
+    setProblemFormMode('hidden');
   }, []);
 
   useEffect(() => {
@@ -263,10 +268,28 @@ export function AdminCodingWorkbooksPage() {
   const handleNewWorkbook = () => {
     setSelectedWorkbook(null);
     setWorkbookForm(emptyWorkbookForm);
+    setWorkbookFormMode('create');
     setSelectedProblemId(null);
     setProblemForm(createProblemForm());
+    setProblemFormMode('hidden');
     setMessage('');
     setError('');
+  };
+
+  const handleEditWorkbook = async (workbookId: number) => {
+    try {
+      setError('');
+      const detail = await adminCodingWorkbookService.getWorkbook(workbookId);
+
+      setSelectedWorkbook(detail);
+      setWorkbookForm(buildWorkbookForm(detail));
+      setSelectedProblemId(null);
+      setProblemForm(createProblemForm(getNextProblemOrder(detail.problems)));
+      setWorkbookFormMode('edit');
+      setProblemFormMode('hidden');
+    } catch (selectError) {
+      setError(selectError instanceof Error ? selectError.message : '코테집을 불러오지 못했습니다.');
+    }
   };
 
   const handleSaveWorkbook = async () => {
@@ -292,6 +315,8 @@ export function AdminCodingWorkbooksPage() {
       setSelectedWorkbook(saved);
       setWorkbookForm(buildWorkbookForm(saved));
       setProblemForm(createProblemForm(getNextProblemOrder(saved.problems)));
+      setWorkbookFormMode('hidden');
+      setProblemFormMode('hidden');
       setMessage('코테집을 저장했습니다.');
       await loadWorkbooks();
     } catch (saveError) {
@@ -308,7 +333,12 @@ export function AdminCodingWorkbooksPage() {
 
     try {
       await adminCodingWorkbookService.deleteWorkbook(selectedWorkbook.id);
-      handleNewWorkbook();
+      setSelectedWorkbook(null);
+      setWorkbookForm(emptyWorkbookForm);
+      setWorkbookFormMode('hidden');
+      setSelectedProblemId(null);
+      setProblemForm(createProblemForm());
+      setProblemFormMode('hidden');
       setMessage('코테집을 삭제했습니다.');
       await loadWorkbooks();
     } catch (deleteError) {
@@ -319,11 +349,12 @@ export function AdminCodingWorkbooksPage() {
   const handleNewProblem = () => {
     setSelectedProblemId(null);
     setProblemForm(createProblemForm(getNextProblemOrder(problems)));
+    setProblemFormMode('create');
     setMessage('');
     setError('');
   };
 
-  const handleSelectProblem = async (problem: AdminCodingProblemSummary) => {
+  const handleEditProblem = async (problem: AdminCodingProblemSummary) => {
     if (!selectedWorkbook) {
       return;
     }
@@ -334,6 +365,7 @@ export function AdminCodingWorkbooksPage() {
 
       setSelectedProblemId(detail.id);
       setProblemForm(buildProblemForm(detail));
+      setProblemFormMode('edit');
     } catch (selectError) {
       setError(selectError instanceof Error ? selectError.message : '문제를 불러오지 못했습니다.');
     }
@@ -359,6 +391,7 @@ export function AdminCodingWorkbooksPage() {
       setSelectedProblemId(saved.id);
       setProblemForm(buildProblemForm(saved));
       await loadWorkbookDetail(selectedWorkbook.id);
+      setProblemFormMode('hidden');
       setMessage('문제를 저장했습니다.');
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '문제 저장에 실패했습니다.');
@@ -375,6 +408,7 @@ export function AdminCodingWorkbooksPage() {
     try {
       await adminCodingWorkbookService.deleteProblem(selectedWorkbook.id, selectedProblemId);
       await loadWorkbookDetail(selectedWorkbook.id);
+      setProblemFormMode('hidden');
       setMessage('문제를 삭제했습니다.');
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : '문제 삭제에 실패했습니다.');
@@ -492,11 +526,10 @@ export function AdminCodingWorkbooksPage() {
             ) : (
               <div className="space-y-2">
                 {workbooks.content.map((workbook) => (
-                  <button
+                  <div
                     key={workbook.id}
-                    type="button"
                     onClick={() => void loadWorkbookDetail(workbook.id)}
-                    className={`w-full rounded-md border px-3 py-3 text-left ${
+                    className={`w-full cursor-pointer rounded-md border px-3 py-3 text-left ${
                       selectedWorkbook?.id === workbook.id
                         ? 'border-emerald-400 bg-emerald-50'
                         : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -507,16 +540,28 @@ export function AdminCodingWorkbooksPage() {
                         <p className="truncate text-sm font-bold text-slate-950">{workbook.title}</p>
                         <p className="mt-1 truncate text-xs text-slate-500">{workbook.summary}</p>
                       </div>
-                      <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600">
-                        {workbook.status}
-                      </span>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600">
+                          {workbook.status}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleEditWorkbook(workbook.id);
+                          }}
+                          className="rounded-md border border-slate-300 px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-white"
+                        >
+                          수정
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
                       <span>{workbook.category}</span>
                       <span>{workbook.difficulty}</span>
                       <span>order {workbook.displayOrder}</span>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -526,15 +571,16 @@ export function AdminCodingWorkbooksPage() {
         </div>
 
         <div className="space-y-5">
+          {workbookFormMode !== 'hidden' && (
           <AdminCard>
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-950">
-                  {selectedWorkbook ? '코테집 수정' : '코테집 생성'}
+                  {workbookFormMode === 'edit' ? '코테집 수정' : '코테집 생성'}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">공개 목록 검색에 쓰이는 카테고리와 난이도까지 함께 저장합니다.</p>
               </div>
-              {selectedWorkbook && (
+              {workbookFormMode === 'edit' && selectedWorkbook && (
                 <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
                   ID {selectedWorkbook.id}
                 </span>
@@ -622,7 +668,19 @@ export function AdminCodingWorkbooksPage() {
                 <Save size={16} />
                 코테집 저장
               </button>
-              {selectedWorkbook && (
+              <button
+                type="button"
+                onClick={() => {
+                  setWorkbookFormMode('hidden');
+                  if (!selectedWorkbook) {
+                    setWorkbookForm(emptyWorkbookForm);
+                  }
+                }}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+              >
+                취소
+              </button>
+              {workbookFormMode === 'edit' && selectedWorkbook && (
                 <button
                   type="button"
                   onClick={() => void handleDeleteWorkbook()}
@@ -634,6 +692,7 @@ export function AdminCodingWorkbooksPage() {
               )}
             </div>
           </AdminCard>
+          )}
 
           <AdminCard>
             <div className="mb-4 flex items-start justify-between gap-3">
@@ -659,19 +718,26 @@ export function AdminCodingWorkbooksPage() {
             ) : (
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 {problems.map((problem) => (
-                  <button
+                  <div
                     key={problem.id}
-                    type="button"
-                    onClick={() => void handleSelectProblem(problem)}
                     className={`rounded-md border px-3 py-3 text-left ${
                       selectedProblemId === problem.id
                         ? 'border-emerald-400 bg-emerald-50'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <BookOpen size={15} className="text-slate-400" />
-                      <p className="truncate text-sm font-bold text-slate-950">{problem.title}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <BookOpen size={15} className="shrink-0 text-slate-400" />
+                        <p className="truncate text-sm font-bold text-slate-950">{problem.title}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleEditProblem(problem)}
+                        className="shrink-0 rounded-md border border-slate-300 px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-white"
+                      >
+                        수정
+                      </button>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
                       <span>#{problem.orderIndex}</span>
@@ -680,21 +746,22 @@ export function AdminCodingWorkbooksPage() {
                       <span>{problem.status}</span>
                     </div>
                     <p className="mt-2 text-[11px] text-slate-400">{formatDateTime(problem.updatedAt)}</p>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
           </AdminCard>
 
+          {problemFormMode !== 'hidden' && (
           <AdminCard>
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-950">
-                  {selectedProblemId ? '문제 수정' : '문제 추가'}
+                  {problemFormMode === 'edit' ? '문제 수정' : '문제 추가'}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">문제 설명, 테스트케이스, 언어별 스타터코드를 함께 저장합니다.</p>
               </div>
-              {selectedProblemId && (
+              {problemFormMode === 'edit' && selectedProblemId && (
                 <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
                   ID {selectedProblemId}
                 </span>
@@ -895,7 +962,17 @@ export function AdminCodingWorkbooksPage() {
                 <Save size={16} />
                 문제 저장
               </button>
-              {selectedProblemId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setProblemFormMode('hidden');
+                  setSelectedProblemId(null);
+                }}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+              >
+                취소
+              </button>
+              {problemFormMode === 'edit' && selectedProblemId && (
                 <button
                   type="button"
                   onClick={() => void handleDeleteProblem()}
@@ -907,6 +984,7 @@ export function AdminCodingWorkbooksPage() {
               )}
             </div>
           </AdminCard>
+          )}
         </div>
       </div>
     </div>
