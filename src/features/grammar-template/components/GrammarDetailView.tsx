@@ -146,6 +146,53 @@ type ActiveSubmissionTarget = {
   title: string;
 };
 
+function getSubmissionStatusLabel(status?: string) {
+  switch (status) {
+    case 'ACCEPTED':
+      return '정답';
+    case 'WRONG_ANSWER':
+      return '오답';
+    case 'COMPILE_ERROR':
+      return '컴파일 오류';
+    case 'RUNTIME_ERROR':
+      return '채점 실패';
+    case 'TIME_LIMIT_EXCEEDED':
+      return '시간 초과';
+    case 'INTERNAL_ERROR':
+      return '서버 오류';
+    default:
+      return status ?? '결과 확인 필요';
+  }
+}
+
+function getSubmissionSummaryMessage(status?: string, message?: string | null) {
+  switch (status) {
+    case 'ACCEPTED':
+      return message || '제출한 코드가 채점 기준을 통과했습니다.';
+    case 'WRONG_ANSWER':
+      return '제출한 코드가 문제의 정답 조건을 만족하지 않았습니다.';
+    case 'COMPILE_ERROR':
+      return '코드가 컴파일되지 않아 채점을 진행할 수 없습니다.';
+    case 'RUNTIME_ERROR':
+      return '제출한 코드가 정답 조건을 만족하지 않았거나 채점 명령 실행에 실패했습니다.';
+    case 'TIME_LIMIT_EXCEEDED':
+      return '채점 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.';
+    case 'INTERNAL_ERROR':
+      return '채점 중 서버 오류가 발생했습니다.';
+    default:
+      return message || '';
+  }
+}
+
+function checkSubmissionStderrHidden(status?: string, stderr?: string | null) {
+  if (!stderr?.trim()) return true;
+  if (status === 'ACCEPTED' && stderr.includes("Unable to find image '")) {
+    return true;
+  }
+
+  return false;
+}
+
 function buildChapterGroups(chapters: GrammarTemplateDetail['chapters'] = []): ChapterGroup[] {
   const groups: ChapterGroup[] = [];
   let currentGroup: ChapterGroup | null = null;
@@ -525,68 +572,19 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   }, [activeSubmissionTarget, currentChapterId, fileContents, isSubmittingMission, template?.language, templateId]);
 
   const isSubmissionAccepted = submissionResult?.status === 'ACCEPTED';
+  const hasSubmissionFeedback = Boolean(submissionResult || submissionError);
+  const submissionStatusLabel = getSubmissionStatusLabel(submissionResult?.status);
+  const submissionSummaryMessage = submissionError
+    ? submissionError
+    : getSubmissionSummaryMessage(submissionResult?.status, submissionResult?.message);
+  const visibleSubmissionStderr = checkSubmissionStderrHidden(submissionResult?.status, submissionResult?.stderr)
+    ? ''
+    : submissionResult?.stderr ?? '';
 
-  const submissionFeedbackCard = useMemo(() => {
-    if (!activeSubmissionTarget) return null;
-    if (!submissionResult && !submissionError) return null;
-
-    return (
-      <div
-        className={`rounded-2xl border p-4 shadow-sm ${
-          submissionError
-            ? 'border-rose-200 bg-rose-50'
-            : isSubmissionAccepted
-              ? 'border-emerald-200 bg-emerald-50'
-              : 'border-amber-200 bg-amber-50'
-        }`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-slate-900">
-              {activeSubmissionTarget.typeLabel} 제출 결과
-            </p>
-            <p className="mt-1 text-xs text-slate-500">{activeSubmissionTarget.title}</p>
-          </div>
-          {!submissionError && submissionResult ? (
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                isSubmissionAccepted
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-amber-100 text-amber-700'
-              }`}
-            >
-              {submissionResult.status}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="mt-3 space-y-2 text-sm">
-          {submissionError ? <p className="text-rose-700">{submissionError}</p> : null}
-          {submissionResult?.message ? <p className="text-slate-700">{submissionResult.message}</p> : null}
-          {submissionResult ? (
-            <p className="text-xs font-medium text-slate-500">
-              통과 개수 {submissionResult.passedCount} / {submissionResult.totalCount}
-            </p>
-          ) : null}
-          {submissionResult?.stdout ? (
-            <pre className="overflow-x-auto rounded-xl bg-white/80 p-3 text-xs text-slate-700">
-              {submissionResult.stdout}
-            </pre>
-          ) : null}
-          {submissionResult?.stderr ? (
-            <pre className="overflow-x-auto rounded-xl bg-white/80 p-3 text-xs text-rose-700">
-              {submissionResult.stderr}
-            </pre>
-          ) : null}
-          {submissionResult?.compileOutput ? (
-            <pre className="overflow-x-auto rounded-xl bg-white/80 p-3 text-xs text-amber-700">
-              {submissionResult.compileOutput}
-            </pre>
-          ) : null}
-        </div>
-      </div>
-    );
-  }, [activeSubmissionTarget, isSubmissionAccepted, submissionError, submissionResult]);
+  const handleRetrySubmission = useCallback(() => {
+    setSubmissionResult(null);
+    setSubmissionError('');
+  }, []);
 
   // ===== Resize 핸들러 =====
   const handleRunnerResizeStart = useCallback((e: React.MouseEvent) => {
@@ -813,7 +811,6 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'problems' ? (
                     <div className="space-y-4">
-                      {activeSubmissionTarget?.type === 'problem' ? submissionFeedbackCard : null}
                       <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
                         <div className="flex items-start gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
@@ -830,8 +827,24 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                       {problemItems.length > 0 ? (
                         <div className="space-y-3">
-                          {problemItems.map((mission, index) => (
-                            <div key={mission.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-purple-200 hover:shadow-md">
+                          {problemItems.map((mission, index) => {
+                            const isSelected = selectedProblemId === mission.id;
+                            const hasSolved = isSelected && hasSubmissionFeedback && isSubmissionAccepted;
+                            const hasFailed = isSelected && hasSubmissionFeedback && !isSubmissionAccepted;
+
+                            return (
+                            <div
+                              key={mission.id}
+                              className={`rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
+                                hasSolved
+                                  ? 'border-emerald-200 bg-emerald-50/60 shadow-emerald-100'
+                                  : hasFailed
+                                    ? 'border-amber-200 bg-amber-50/60 shadow-amber-100'
+                                    : isSelected
+                                      ? 'border-purple-200 bg-purple-50/50 shadow-purple-100 hover:border-purple-300'
+                                      : 'border-gray-200 hover:border-purple-200'
+                              }`}
+                            >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -857,21 +870,87 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                   <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
                                     순서 {mission.orderIndex}
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleStartProblemSolving(mission.id, mission.title)}
-                                    className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-                                      selectedProblemId === mission.id
-                                        ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
-                                        : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
-                                    }`}
-                                  >
-                                    {selectedProblemId === mission.id ? '풀이 중' : '문제 풀기'}
-                                  </button>
+                                  {isSelected && hasSubmissionFeedback ? (
+                                    <>
+                                      <span
+                                        className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                                          hasSolved
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-amber-500 text-white'
+                                        }`}
+                                      >
+                                        {hasSolved ? '정답' : '다시 시도'}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={handleRetrySubmission}
+                                        className="rounded-lg border border-purple-200 bg-white px-4 py-2 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
+                                      >
+                                        다시풀기
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartProblemSolving(mission.id, mission.title)}
+                                      className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                                        isSelected
+                                          ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
+                                          : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
+                                      }`}
+                                    >
+                                      {isSelected ? '풀이 중' : '문제 풀기'}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
+                              {isSelected && hasSubmissionFeedback ? (
+                                <div
+                                  className={`mt-4 rounded-2xl border px-4 py-4 ${
+                                    hasSolved
+                                      ? 'border-emerald-200 bg-white/90'
+                                      : 'border-amber-200 bg-white/90'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <p className="text-sm font-bold text-slate-900">문제 제출 결과</p>
+                                    <span
+                                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                        hasSolved
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}
+                                    >
+                                      {submissionStatusLabel}
+                                    </span>
+                                  </div>
+                                  {submissionSummaryMessage ? (
+                                    <p className="mt-3 text-sm leading-6 text-slate-700">{submissionSummaryMessage}</p>
+                                  ) : null}
+                                  {submissionResult ? (
+                                    <p className="mt-2 text-xs font-medium text-slate-500">
+                                      통과 개수 {submissionResult.passedCount} / {submissionResult.totalCount}
+                                    </p>
+                                  ) : null}
+                                  {submissionResult?.stdout ? (
+                                    <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+                                      {submissionResult.stdout}
+                                    </pre>
+                                  ) : null}
+                                  {visibleSubmissionStderr ? (
+                                    <pre className="mt-3 overflow-x-auto rounded-xl bg-rose-50 p-3 text-xs text-rose-700">
+                                      {visibleSubmissionStderr}
+                                    </pre>
+                                  ) : null}
+                                  {submissionResult?.compileOutput ? (
+                                    <pre className="mt-3 overflow-x-auto rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+                                      {submissionResult.compileOutput}
+                                    </pre>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
-                          ))}
+                          )})}
                         </div>
                       ) : (
                         <div className="rounded-3xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
@@ -884,7 +963,6 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'missions' ? (
                     <div className="space-y-4">
-                      {activeSubmissionTarget?.type === 'mission' ? submissionFeedbackCard : null}
                       <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
                         <div className="flex items-start gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
@@ -921,8 +999,24 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                       {missionItems.length > 0 ? (
                         <div className="space-y-3">
-                          {missionItems.map((mission, index) => (
-                            <div key={mission.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-purple-200 hover:shadow-md">
+                          {missionItems.map((mission, index) => {
+                            const isSelected = selectedMissionId === mission.id;
+                            const hasSolved = isSelected && hasSubmissionFeedback && isSubmissionAccepted;
+                            const hasFailed = isSelected && hasSubmissionFeedback && !isSubmissionAccepted;
+
+                            return (
+                            <div
+                              key={mission.id}
+                              className={`rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
+                                hasSolved
+                                  ? 'border-emerald-200 bg-emerald-50/60 shadow-emerald-100'
+                                  : hasFailed
+                                    ? 'border-amber-200 bg-amber-50/60 shadow-amber-100'
+                                    : isSelected
+                                      ? 'border-purple-200 bg-purple-50/50 shadow-purple-100 hover:border-purple-300'
+                                      : 'border-gray-200 hover:border-purple-200'
+                              }`}
+                            >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -948,21 +1042,87 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                   <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
                                     순서 {mission.orderIndex}
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleStartMission(mission.id, mission.title)}
-                                    className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-                                      selectedMissionId === mission.id
-                                        ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
-                                        : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
-                                    }`}
-                                  >
-                                    {selectedMissionId === mission.id ? '진행 중' : '미션 시작하기'}
-                                  </button>
+                                  {isSelected && hasSubmissionFeedback ? (
+                                    <>
+                                      <span
+                                        className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                                          hasSolved
+                                            ? 'bg-emerald-600 text-white'
+                                            : 'bg-amber-500 text-white'
+                                        }`}
+                                      >
+                                        {hasSolved ? '정답' : '다시 시도'}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={handleRetrySubmission}
+                                        className="rounded-lg border border-purple-200 bg-white px-4 py-2 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
+                                      >
+                                        다시풀기
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartMission(mission.id, mission.title)}
+                                      className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                                        isSelected
+                                          ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
+                                          : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
+                                      }`}
+                                    >
+                                      {isSelected ? '진행 중' : '미션 시작하기'}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
+                              {isSelected && hasSubmissionFeedback ? (
+                                <div
+                                  className={`mt-4 rounded-2xl border px-4 py-4 ${
+                                    hasSolved
+                                      ? 'border-emerald-200 bg-white/90'
+                                      : 'border-amber-200 bg-white/90'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <p className="text-sm font-bold text-slate-900">미션 제출 결과</p>
+                                    <span
+                                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                        hasSolved
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}
+                                    >
+                                      {submissionStatusLabel}
+                                    </span>
+                                  </div>
+                                  {submissionSummaryMessage ? (
+                                    <p className="mt-3 text-sm leading-6 text-slate-700">{submissionSummaryMessage}</p>
+                                  ) : null}
+                                  {submissionResult ? (
+                                    <p className="mt-2 text-xs font-medium text-slate-500">
+                                      통과 개수 {submissionResult.passedCount} / {submissionResult.totalCount}
+                                    </p>
+                                  ) : null}
+                                  {submissionResult?.stdout ? (
+                                    <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+                                      {submissionResult.stdout}
+                                    </pre>
+                                  ) : null}
+                                  {visibleSubmissionStderr ? (
+                                    <pre className="mt-3 overflow-x-auto rounded-xl bg-rose-50 p-3 text-xs text-rose-700">
+                                      {visibleSubmissionStderr}
+                                    </pre>
+                                  ) : null}
+                                  {submissionResult?.compileOutput ? (
+                                    <pre className="mt-3 overflow-x-auto rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+                                      {submissionResult.compileOutput}
+                                    </pre>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
-                          ))}
+                          )})}
                         </div>
                       ) : (
                         <div className="rounded-3xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
