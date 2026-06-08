@@ -1,11 +1,13 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { useCodingSolving } from '@/hooks/useCodingSolving';
 import ProblemDescription from '@/features/coding-test/components/ProblemDescription';
 import CodeEditor from '@/features/coding-test/components/CodeEditor';
 import ConsolePanel from '@/features/coding-test/components/ConsolePanel';
 import { Header } from '@/features/main-home/components/Header';
+import { getWorkbookDetail } from '@/api/services/CodingWorkbookService';
+import type { CodingWorkbookProblemSummaryResponse } from '@/types/CodingWorkbookTypes';
 
 export default function CodingProblemDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -27,6 +29,37 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
         resetCode,
         executionError,
     } = useCodingSolving(problemId);
+    const [relatedProblems, setRelatedProblems] = useState<CodingWorkbookProblemSummaryResponse[]>([]);
+
+    useEffect(() => {
+        if (!problem?.workbookId) {
+            return;
+        }
+
+        let isMounted = true;
+
+        const fetchRelatedProblems = async () => {
+            try {
+                const workbook = await getWorkbookDetail(problem.workbookId);
+                if (!isMounted) return;
+                setRelatedProblems(workbook.problems);
+            } catch (err) {
+                console.error('Failed to fetch related coding problems:', err);
+                if (isMounted) setRelatedProblems([]);
+            }
+        };
+
+        fetchRelatedProblems();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [problem?.workbookId]);
+
+    const sortedRelatedProblems = useMemo(
+        () => [...relatedProblems].sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id),
+        [relatedProblems]
+    );
 
     if (isLoading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -41,7 +74,7 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
             <Header />
             <main className="flex-grow flex w-full overflow-hidden">
                 <div className="w-[40%] min-w-[450px] h-full shadow-inner">
-                    <ProblemDescription problem={problem} />
+                    <ProblemDescription problem={problem} relatedProblems={sortedRelatedProblems} />
                 </div>
                 <div className="w-[60%] flex flex-col h-full bg-[#1E1E1E]">
                     <div className="flex-grow overflow-hidden">
@@ -55,12 +88,14 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
                     </div>
                     <div className="h-[35%] min-h-[250px]">
                         <ConsolePanel
+                            key={problem.id}
                             isExecuting={isExecuting}
                             handleRun={handleRun}
                             handleSubmit={handleSubmit}
                             runResult={runResult}
                             submissionResult={submissionResult}
                             executionError={executionError}
+                            defaultInput={problem.sampleTestCases[0]?.input ?? ''}
                         />
                     </div>
                 </div>

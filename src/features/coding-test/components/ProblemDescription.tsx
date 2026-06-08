@@ -1,11 +1,18 @@
+'use client';
+
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
+import type { CodingWorkbookProblemSummaryResponse } from '@/types/CodingWorkbookTypes';
 import type {
     CodingProblemContentBlock,
     CodingProblemDetailResponse,
     CodingProblemJson,
 } from '@/types/CodingProblemTypes';
+import { useState } from 'react';
 
 interface ProblemDescriptionProps {
     problem: CodingProblemDetailResponse;
+    relatedProblems: CodingWorkbookProblemSummaryResponse[];
 }
 
 const difficultyLabel: Record<CodingProblemDetailResponse['difficulty'], string> = {
@@ -14,8 +21,16 @@ const difficultyLabel: Record<CodingProblemDetailResponse['difficulty'], string>
     HARD: '고급',
 };
 
+const normalizeProblemText = (text: string) => (
+    text
+        .replace(/\\r\\n/g, '\n')
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\n')
+        .replace(/\/n/g, '\n')
+);
+
 const collectText = (block: CodingProblemContentBlock): string => {
-    if (block.text) return block.text;
+    if (block.text) return normalizeProblemText(block.text);
     return block.content?.map(collectText).join('') ?? '';
 };
 
@@ -25,7 +40,7 @@ const renderContent = (content: CodingProblemJson) => {
     }
 
     if (typeof content === 'string') {
-        return <p className="whitespace-pre-wrap leading-7">{content}</p>;
+        return <p className="whitespace-pre-wrap leading-7">{normalizeProblemText(content)}</p>;
     }
 
     const blocks = Array.isArray(content) ? content : content.content ?? [content];
@@ -34,12 +49,12 @@ const renderContent = (content: CodingProblemJson) => {
         const text = collectText(block);
 
         if (block.type === 'heading') {
-            return <h2 key={index} className="text-xl font-bold text-gray-900 mt-8 mb-3">{text}</h2>;
+            return <h2 key={index} className="mb-3 mt-7 text-xl font-bold text-gray-950">{text}</h2>;
         }
 
         if (block.type === 'codeBlock') {
             return (
-                <pre key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-x-auto my-4">
+                <pre key={index} className="my-4 overflow-x-auto rounded-md border border-gray-200 bg-gray-50 p-4 text-sm">
                     {text}
                 </pre>
             );
@@ -47,7 +62,7 @@ const renderContent = (content: CodingProblemJson) => {
 
         if (block.type === 'bulletList' || block.type === 'orderedList') {
             return (
-                <ul key={index} className="list-disc pl-5 space-y-2 my-4">
+                <ul key={index} className="my-4 list-disc space-y-2 pl-5">
                     {block.content?.map((item, itemIndex) => (
                         <li key={itemIndex}>{collectText(item)}</li>
                     ))}
@@ -55,45 +70,159 @@ const renderContent = (content: CodingProblemJson) => {
             );
         }
 
-        return <p key={index} className="leading-7 mb-4 whitespace-pre-wrap">{text}</p>;
+        return <p key={index} className="mb-4 whitespace-pre-wrap leading-7">{text}</p>;
     });
 };
 
-export default function ProblemDescription({ problem }: ProblemDescriptionProps) {
+export default function ProblemDescription({ problem, relatedProblems }: ProblemDescriptionProps) {
+    const [activeTab, setActiveTab] = useState<'description' | 'related'>('description');
+
     return (
-        <div className="h-full overflow-y-auto p-6 bg-white border-r border-gray-200">
-            <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold">{problem.category}</span>
-                    <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold">{difficultyLabel[problem.difficulty]}</span>
-                </div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">{problem.orderIndex}. {problem.title}</h1>
-                <div className="flex gap-4 text-sm text-gray-500 font-medium">
-                    <span>시간 제한: {problem.timeLimitMillis}ms</span>
-                    <span>메모리 제한: {problem.memoryLimitMb}MB</span>
-                </div>
+        <div className="flex h-full flex-col border-r border-gray-200 bg-white">
+            <div className="flex h-12 shrink-0 border-b border-gray-200 bg-white">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('description')}
+                    className={`flex-1 border-b-2 text-sm font-bold transition-colors ${
+                        activeTab === 'description'
+                            ? 'border-violet-600 text-violet-700'
+                            : 'border-transparent text-gray-500 hover:text-gray-800'
+                    }`}
+                >
+                    문제 설명
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('related')}
+                    className={`flex-1 border-b-2 text-sm font-bold transition-colors ${
+                        activeTab === 'related'
+                            ? 'border-violet-600 text-violet-700'
+                            : 'border-transparent text-gray-500 hover:text-gray-800'
+                    }`}
+                >
+                    관련 문제
+                </button>
             </div>
 
-            <hr className="my-6 border-gray-100" />
-
-            <div className="max-w-none text-gray-800 mb-10">
-                {renderContent(problem.contentJson)}
-            </div>
-
-            <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-900">입출력 예시</h2>
-                {problem.sampleTestCases.map((testCase) => (
-                    <div key={testCase.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div className="mb-2">
-                            <span className="text-xs font-bold text-gray-500 uppercase">Input</span>
-                            <pre className="mt-1 text-sm bg-white p-2 rounded border border-gray-100 whitespace-pre-wrap">{testCase.input}</pre>
+            <div className="min-h-0 flex-grow overflow-y-auto p-6">
+                {activeTab === 'description' ? (
+                    <>
+                        <div className="mb-6">
+                            <div className="mb-3 flex items-center gap-2">
+                                <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                                    {problem.category}
+                                </span>
+                                <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                                    {difficultyLabel[problem.difficulty]}
+                                </span>
+                            </div>
+                            <h1 className="mb-4 text-3xl font-bold text-gray-950">
+                                {problem.orderIndex}. {problem.title}
+                            </h1>
+                            <div className="flex gap-4 text-sm font-medium text-gray-500">
+                                <span>시간 제한: {problem.timeLimitMillis}ms</span>
+                                <span>메모리 제한: {problem.memoryLimitMb}MB</span>
+                            </div>
                         </div>
-                        <div>
-                            <span className="text-xs font-bold text-gray-500 uppercase">Output</span>
-                            <pre className="mt-1 text-sm bg-white p-2 rounded border border-gray-100 whitespace-pre-wrap">{testCase.expectedOutput}</pre>
+
+                        <hr className="my-6 border-gray-100" />
+
+                        <div className="max-w-none text-gray-800">
+                            {renderContent(problem.contentJson)}
                         </div>
+
+                        {problem.sampleTestCases.length > 0 && (
+                            <section className="mt-8">
+                                <h2 className="mb-3 text-xl font-bold text-gray-950">입출력 예시</h2>
+                                <div className="overflow-hidden rounded-md border border-gray-200">
+                                    <table className="w-full table-fixed border-collapse text-sm">
+                                        <thead className="bg-gray-50 text-xs font-bold text-gray-500">
+                                            <tr>
+                                                <th className="border-b border-r border-gray-200 px-3 py-2 text-left">입력 예시</th>
+                                                <th className="border-b border-gray-200 px-3 py-2 text-left">출력 예시</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {problem.sampleTestCases.map((testCase) => (
+                                                <tr key={testCase.id} className="align-top">
+                                                    <td className="border-r border-gray-200 px-3 py-3">
+                                                        <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800">
+                                                            {normalizeProblemText(testCase.input)}
+                                                        </pre>
+                                                    </td>
+                                                    <td className="px-3 py-3">
+                                                        <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800">
+                                                            {normalizeProblemText(testCase.expectedOutput)}
+                                                        </pre>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        )}
+                    </>
+                ) : (
+                    <div>
+                        <div className="mb-5">
+                            <h2 className="text-xl font-bold text-gray-950">같은 문제집의 관련 문제</h2>
+                            <p className="mt-1 text-sm text-gray-500">같은 문제집 안의 다른 문제로 바로 이동할 수 있습니다.</p>
+                        </div>
+
+                        {relatedProblems.length === 0 ? (
+                            <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+                                관련 문제를 불러오는 중입니다.
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {relatedProblems.map((relatedProblem) => {
+                                    const isCurrent = relatedProblem.id === problem.id;
+                                    const row = (
+                                        <div
+                                            className={`flex items-center gap-3 rounded-md border px-4 py-3 transition-colors ${
+                                                isCurrent
+                                                    ? 'border-violet-200 bg-violet-50'
+                                                    : 'border-gray-200 bg-white hover:border-violet-200 hover:bg-violet-50/60'
+                                            }`}
+                                        >
+                                            <span className="w-7 shrink-0 text-sm font-bold text-gray-600">
+                                                {relatedProblem.orderIndex}
+                                            </span>
+                                            <div className="min-w-0 flex-grow">
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                    <p className="truncate text-sm font-bold text-gray-950">{relatedProblem.title}</p>
+                                                    {isCurrent && (
+                                                        <span className="shrink-0 rounded bg-violet-600 px-2 py-0.5 text-[11px] font-bold text-white">
+                                                            현재 풀이 중
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="mt-1 flex gap-1.5 text-[11px] font-bold">
+                                                    <span className="rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-blue-700">
+                                                        {relatedProblem.category}
+                                                    </span>
+                                                    <span className="rounded border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-emerald-700">
+                                                        {difficultyLabel[relatedProblem.difficulty]}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {!isCurrent && <ChevronRight size={17} className="shrink-0 text-gray-400" />}
+                                        </div>
+                                    );
+
+                                    return isCurrent ? (
+                                        <div key={relatedProblem.id}>{row}</div>
+                                    ) : (
+                                        <Link key={relatedProblem.id} href={`/coding-test/problem/${relatedProblem.id}`}>
+                                            {row}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
-                ))}
+                )}
             </div>
         </div>
     );

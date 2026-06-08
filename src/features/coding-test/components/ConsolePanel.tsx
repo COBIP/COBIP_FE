@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { Play, Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import type { CodingCodeRunResponse, CodingSubmissionResponse } from '@/types/CodingProblemTypes';
 
 interface ConsolePanelProps {
     isExecuting: boolean;
-    handleRun: (customInput?: string) => void;
-    handleSubmit: () => void;
+    handleRun: (customInput?: string) => Promise<CodingCodeRunResponse | null> | CodingCodeRunResponse | null | void;
+    handleSubmit: () => Promise<CodingSubmissionResponse | null> | CodingSubmissionResponse | null | void;
     runResult: CodingCodeRunResponse | null;
     submissionResult: CodingSubmissionResponse | null;
     executionError: string | null;
+    defaultInput?: string;
 }
 
 const statusLabel: Record<string, string> = {
@@ -22,34 +25,78 @@ const statusLabel: Record<string, string> = {
 };
 
 function ResultBlock({ result }: { result: CodingCodeRunResponse | CodingSubmissionResponse }) {
+    const isAccepted = result.status === 'ACCEPTED';
+    const hasSubmissionCount = 'passedCount' in result;
+
     return (
-        <div className="space-y-3 text-sm">
-            <div className="flex flex-wrap items-center gap-3">
-                <span className={`text-base font-bold ${result.status === 'ACCEPTED' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {statusLabel[result.status] ?? result.status}
-                </span>
-                {result.time && <span className="text-gray-500">실행 시간: {result.time}</span>}
-                {result.memory !== null && <span className="text-gray-500">메모리: {result.memory}KB</span>}
+        <div className="grid h-full grid-cols-1 gap-4 text-sm md:grid-cols-[minmax(0,1fr)_13rem]">
+            <div className="min-w-0">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span
+                        className={`rounded px-2 py-1 text-xs font-bold ${
+                            isAccepted ? 'bg-emerald-500 text-white' : 'bg-red-100 text-red-700'
+                        }`}
+                    >
+                        {statusLabel[result.status] ?? result.status}
+                    </span>
+                    {result.message && <span className="text-xs font-semibold text-gray-500">{result.message}</span>}
+                </div>
+
+                <div className="space-y-3">
+                    {result.stdout && (
+                        <div>
+                            <div className="mb-1 text-xs font-bold text-gray-500">출력</div>
+                            <pre className="min-h-[64px] whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-50 p-3 font-mono text-sm text-gray-800">
+                                {result.stdout}
+                            </pre>
+                        </div>
+                    )}
+                    {result.stderr && (
+                        <div>
+                            <div className="mb-1 text-xs font-bold text-red-500">Stderr</div>
+                            <pre className="whitespace-pre-wrap rounded-md border border-red-100 bg-red-50 p-3 font-mono text-sm text-red-700">
+                                {result.stderr}
+                            </pre>
+                        </div>
+                    )}
+                    {result.compileOutput && (
+                        <div>
+                            <div className="mb-1 text-xs font-bold text-orange-500">Compile Output</div>
+                            <pre className="whitespace-pre-wrap rounded-md border border-orange-100 bg-orange-50 p-3 font-mono text-sm text-orange-700">
+                                {result.compileOutput}
+                            </pre>
+                        </div>
+                    )}
+                    {!result.stdout && !result.stderr && !result.compileOutput && (
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-8 text-center text-sm text-gray-400">
+                            표시할 출력이 없습니다.
+                        </div>
+                    )}
+                </div>
             </div>
-            {result.message && <p className="text-gray-700">{result.message}</p>}
-            {result.stdout && (
-                <div>
-                    <span className="text-xs font-bold text-gray-500 uppercase">Stdout</span>
-                    <pre className="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap">{result.stdout}</pre>
-                </div>
-            )}
-            {result.stderr && (
-                <div>
-                    <span className="text-xs font-bold text-red-500 uppercase">Stderr</span>
-                    <pre className="mt-1 bg-red-50 border border-red-100 rounded-lg p-3 whitespace-pre-wrap text-red-700">{result.stderr}</pre>
-                </div>
-            )}
-            {result.compileOutput && (
-                <div>
-                    <span className="text-xs font-bold text-orange-500 uppercase">Compile Output</span>
-                    <pre className="mt-1 bg-orange-50 border border-orange-100 rounded-lg p-3 whitespace-pre-wrap text-orange-700">{result.compileOutput}</pre>
-                </div>
-            )}
+
+            <div className="space-y-3 rounded-md border border-gray-200 bg-white p-3">
+                {hasSubmissionCount && (
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-bold text-gray-500">통과</span>
+                        <span className="text-sm font-bold text-gray-950">
+                            {result.passedCount} / {result.totalCount}
+                        </span>
+                    </div>
+                )}
+                {result.time && (
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-bold text-gray-500">실행 시간</span>
+                        <span className="text-sm font-bold text-emerald-600">{result.time}</span>
+                    </div>
+                )}
+                {result.memory !== null && (
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-bold text-gray-500">메모리 사용량</span>
+                        <span className="text-sm font-bold text-emerald-600">{result.memory}KB</span>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -61,68 +108,97 @@ export default function ConsolePanel({
     runResult,
     submissionResult,
     executionError,
+    defaultInput = '',
 }: ConsolePanelProps) {
-    const [activeTab, setActiveTab] = useState<'TESTCASE' | 'RUN_RESULT' | 'SUBMIT_RESULT'>('TESTCASE');
-    const [customInput, setCustomInput] = useState('');
+    const router = useRouter();
+    const [activeTab, setActiveTab] = useState<'TEST_RESULT' | 'SUBMIT_RESULT'>('TEST_RESULT');
+
+    const testCode = async () => {
+        setActiveTab('TEST_RESULT');
+        await handleRun(defaultInput);
+    };
+
+    const submitCode = async () => {
+        setActiveTab('SUBMIT_RESULT');
+        const result = await handleSubmit();
+        if (result?.status === 'ACCEPTED') {
+            window.alert('제출에 성공했습니다.');
+            router.push('/coding-test');
+        }
+    };
 
     return (
-        <div className="flex flex-col h-full bg-white border-t border-gray-200">
-            <div className="flex gap-6 px-4 pt-2 bg-gray-50 border-b border-gray-200">
-                <button onClick={() => setActiveTab('TESTCASE')} className={`pb-2 text-sm font-bold ${activeTab === 'TESTCASE' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'}`}>테스트 케이스</button>
-                <button onClick={() => setActiveTab('RUN_RESULT')} className={`pb-2 text-sm font-bold ${activeTab === 'RUN_RESULT' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'}`}>실행 결과</button>
-                <button onClick={() => setActiveTab('SUBMIT_RESULT')} className={`pb-2 text-sm font-bold ${activeTab === 'SUBMIT_RESULT' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700'}`}>제출 결과</button>
+        <div className="flex h-full flex-col border-t border-slate-800 bg-slate-950 text-white">
+            <div className="flex h-10 shrink-0 gap-6 border-b border-slate-800 px-4">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('TEST_RESULT')}
+                    className={`border-b-2 text-sm font-bold transition-colors ${
+                        activeTab === 'TEST_RESULT'
+                            ? 'border-violet-500 text-violet-300'
+                            : 'border-transparent text-slate-400 hover:text-white'
+                    }`}
+                >
+                    테스트 결과
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('SUBMIT_RESULT')}
+                    className={`border-b-2 text-sm font-bold transition-colors ${
+                        activeTab === 'SUBMIT_RESULT'
+                            ? 'border-violet-500 text-violet-300'
+                            : 'border-transparent text-slate-400 hover:text-white'
+                    }`}
+                >
+                    제출 결과
+                </button>
             </div>
 
-            <div className="flex-grow overflow-y-auto p-4">
+            <div className="min-h-0 flex-grow overflow-y-auto bg-white p-4 text-gray-800">
                 {executionError && (
-                    <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">
+                    <div className="mb-3 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">
                         {executionError}
                     </div>
                 )}
 
-                {activeTab === 'TESTCASE' && (
-                    <textarea
-                        value={customInput}
-                        onChange={(event) => setCustomInput(event.target.value)}
-                        className="w-full h-full min-h-[120px] resize-none rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
-                        placeholder="직접 입력값을 넣고 실행해보세요."
-                    />
-                )}
-
-                {activeTab === 'RUN_RESULT' && (
-                    runResult ? <ResultBlock result={runResult} /> : <span className="text-gray-400">실행 결과가 여기에 표시됩니다.</span>
+                {activeTab === 'TEST_RESULT' && (
+                    runResult ? (
+                        <ResultBlock result={runResult} />
+                    ) : (
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-8 text-center text-sm text-gray-400">
+                            테스트 결과가 여기에 표시됩니다.
+                        </div>
+                    )
                 )}
 
                 {activeTab === 'SUBMIT_RESULT' && (
-                    <div>
-                        {submissionResult ? (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <span className={`text-lg font-bold ${submissionResult.status === 'ACCEPTED' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                        {submissionResult.status === 'ACCEPTED' ? '정답입니다' : statusLabel[submissionResult.status]}
-                                    </span>
-                                    <span className="text-gray-600">통과: {submissionResult.passedCount} / {submissionResult.totalCount}</span>
-                                </div>
-                                <ResultBlock result={submissionResult} />
-                            </div>
-                        ) : <span className="text-gray-400">제출 결과가 여기에 표시됩니다.</span>}
-                    </div>
+                    submissionResult ? (
+                        <ResultBlock result={submissionResult} />
+                    ) : (
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-8 text-center text-sm text-gray-400">
+                            제출 결과가 여기에 표시됩니다.
+                        </div>
+                    )
                 )}
             </div>
 
-            <div className="flex justify-end gap-3 p-4 bg-white border-t border-gray-200">
+            <div className="flex shrink-0 justify-end gap-3 border-t border-slate-800 bg-slate-950 p-4">
                 <button
-                    onClick={() => { setActiveTab('RUN_RESULT'); handleRun(customInput); }}
+                    type="button"
+                    onClick={() => void testCode()}
                     disabled={isExecuting}
-                    className="px-6 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-6 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
                 >
-                    실행
+                    <Play size={16} />
+                    테스트
                 </button>
                 <button
-                    onClick={() => { setActiveTab('SUBMIT_RESULT'); handleSubmit(); }}
+                    type="button"
+                    onClick={() => void submitCode()}
                     disabled={isExecuting}
-                    className="px-6 py-2 bg-violet-600 text-white font-bold rounded-lg disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-md bg-violet-600 px-6 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
                 >
+                    <Upload size={16} />
                     제출
                 </button>
             </div>
