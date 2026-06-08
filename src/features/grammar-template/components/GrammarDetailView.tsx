@@ -3,7 +3,11 @@ import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
 import { AiChatPanel, type ChatMessage } from '@/components/ai/AiChatPanel';
-import type { GrammarTemplateDetail, GrammarTemplatePracticeFile } from '@/features/grammar-template/Constants';
+import type {
+  GrammarTemplateDetail,
+  GrammarTemplateMissionSubmissionResponse,
+  GrammarTemplatePracticeFile,
+} from '@/features/grammar-template/Constants';
 import { CodeRunner } from './CodeRunner';
 import { TiptapRenderer } from './TiptapRenderer';
 
@@ -135,6 +139,13 @@ type ChapterGroup = {
 
 type ChapterContentTab = 'theory' | 'problems' | 'missions';
 
+type ActiveSubmissionTarget = {
+  id: number;
+  type: 'problem' | 'mission';
+  typeLabel: '문제' | '미션';
+  title: string;
+};
+
 function buildChapterGroups(chapters: GrammarTemplateDetail['chapters'] = []): ChapterGroup[] {
   const groups: ChapterGroup[] = [];
   let currentGroup: ChapterGroup | null = null;
@@ -187,6 +198,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
   const [selectedProblemTitle, setSelectedProblemTitle] = useState('');
   const [selectedMissionId, setSelectedMissionId] = useState<number | null>(null);
   const [selectedMissionTitle, setSelectedMissionTitle] = useState('');
+  const [isSubmittingMission, setIsSubmittingMission] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState<GrammarTemplateMissionSubmissionResponse | null>(null);
+  const [submissionError, setSubmissionError] = useState('');
   const currentChapter = template?.chapters?.[currentChapterIndex] ?? null;
   const currentChapterId = currentChapter?.id ?? null;
   const chapterGroups = useMemo(() => buildChapterGroups(template?.chapters), [template?.chapters]);
@@ -198,9 +212,11 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     () => (currentChapter?.missions ?? []).filter((mission) => mission.missionType === 'MISSION'),
     [currentChapter?.missions],
   );
-  const activeSubmissionTarget = useMemo(() => {
+  const activeSubmissionTarget = useMemo<ActiveSubmissionTarget | null>(() => {
     if (selectedProblemId) {
       return {
+        id: selectedProblemId,
+        type: 'problem',
         typeLabel: '문제',
         title: selectedProblemTitle,
       };
@@ -208,6 +224,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
     if (selectedMissionId) {
       return {
+        id: selectedMissionId,
+        type: 'mission',
         typeLabel: '미션',
         title: selectedMissionTitle,
       };
@@ -279,6 +297,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setSelectedProblemTitle('');
     setSelectedMissionId(null);
     setSelectedMissionTitle('');
+    setSubmissionResult(null);
+    setSubmissionError('');
   }, [currentChapterId]);
 
   useEffect(() => {
@@ -449,6 +469,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setSelectedMissionId(null);
     setSelectedMissionTitle('');
     setActiveContentTab('problems');
+    setSubmissionResult(null);
+    setSubmissionError('');
     setIsRunnerOpen(true);
   }, []);
 
@@ -458,8 +480,113 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     setSelectedProblemId(null);
     setSelectedProblemTitle('');
     setActiveContentTab('missions');
+    setSubmissionResult(null);
+    setSubmissionError('');
     setIsRunnerOpen(true);
   }, []);
+
+  const handleSubmitMission = useCallback(async () => {
+    if (!template?.language || !currentChapterId || !activeSubmissionTarget || isSubmittingMission) {
+      return;
+    }
+
+    setIsSubmittingMission(true);
+    setSubmissionError('');
+
+    try {
+      const submittedCode = Object.entries(fileContents)
+        .sort(([leftPath], [rightPath]) => leftPath.localeCompare(rightPath))
+        .map(([filePath, content]) => ({ filePath, content }));
+
+      const result = await grammarTemplateService.submitMission(templateId, currentChapterId, activeSubmissionTarget.id, {
+        language: template.language,
+        submittedCode,
+      });
+
+      setSubmissionResult(result);
+    } catch (submitError) {
+      if (submitError && typeof submitError === 'object') {
+        const axiosError = submitError as {
+          response?: { data?: { message?: string } };
+          message?: string;
+        };
+        setSubmissionError(
+          axiosError.response?.data?.message ??
+            axiosError.message ??
+            '제출 결과를 확인하지 못했습니다.',
+        );
+      } else {
+        setSubmissionError('제출 결과를 확인하지 못했습니다.');
+      }
+      setSubmissionResult(null);
+    } finally {
+      setIsSubmittingMission(false);
+    }
+  }, [activeSubmissionTarget, currentChapterId, fileContents, isSubmittingMission, template?.language, templateId]);
+
+  const isSubmissionAccepted = submissionResult?.status === 'ACCEPTED';
+
+  const submissionFeedbackCard = useMemo(() => {
+    if (!activeSubmissionTarget) return null;
+    if (!submissionResult && !submissionError) return null;
+
+    return (
+      <div
+        className={`rounded-2xl border p-4 shadow-sm ${
+          submissionError
+            ? 'border-rose-200 bg-rose-50'
+            : isSubmissionAccepted
+              ? 'border-emerald-200 bg-emerald-50'
+              : 'border-amber-200 bg-amber-50'
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-slate-900">
+              {activeSubmissionTarget.typeLabel} 제출 결과
+            </p>
+            <p className="mt-1 text-xs text-slate-500">{activeSubmissionTarget.title}</p>
+          </div>
+          {!submissionError && submissionResult ? (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                isSubmissionAccepted
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              {submissionResult.status}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-3 space-y-2 text-sm">
+          {submissionError ? <p className="text-rose-700">{submissionError}</p> : null}
+          {submissionResult?.message ? <p className="text-slate-700">{submissionResult.message}</p> : null}
+          {submissionResult ? (
+            <p className="text-xs font-medium text-slate-500">
+              통과 개수 {submissionResult.passedCount} / {submissionResult.totalCount}
+            </p>
+          ) : null}
+          {submissionResult?.stdout ? (
+            <pre className="overflow-x-auto rounded-xl bg-white/80 p-3 text-xs text-slate-700">
+              {submissionResult.stdout}
+            </pre>
+          ) : null}
+          {submissionResult?.stderr ? (
+            <pre className="overflow-x-auto rounded-xl bg-white/80 p-3 text-xs text-rose-700">
+              {submissionResult.stderr}
+            </pre>
+          ) : null}
+          {submissionResult?.compileOutput ? (
+            <pre className="overflow-x-auto rounded-xl bg-white/80 p-3 text-xs text-amber-700">
+              {submissionResult.compileOutput}
+            </pre>
+          ) : null}
+        </div>
+      </div>
+    );
+  }, [activeSubmissionTarget, isSubmissionAccepted, submissionError, submissionResult]);
 
   // ===== Resize 핸들러 =====
   const handleRunnerResizeStart = useCallback((e: React.MouseEvent) => {
@@ -554,6 +681,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
             )}
             <button
               type="button"
+              onClick={() => void handleSubmitMission()}
               disabled={!activeSubmissionTarget}
               className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                 activeSubmissionTarget
@@ -561,7 +689,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                   : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
               }`}
             >
-              제출
+              {isSubmittingMission ? '제출 중' : '제출'}
             </button>
           </div>
           <button className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative">
@@ -685,6 +813,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'problems' ? (
                     <div className="space-y-4">
+                      {activeSubmissionTarget?.type === 'problem' ? submissionFeedbackCard : null}
                       <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
                         <div className="flex items-start gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
@@ -755,6 +884,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'missions' ? (
                     <div className="space-y-4">
+                      {activeSubmissionTarget?.type === 'mission' ? submissionFeedbackCard : null}
                       <div className="rounded-3xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-6 shadow-sm">
                         <div className="flex items-start gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-600 text-sm font-bold text-white">
