@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight } from 'lucide-react';
 import type { CodingWorkbookProblemSummaryResponse, CodingWorkbookSummaryResponse } from '@/types/CodingWorkbookTypes';
 
 interface ProblemCardProps {
@@ -52,6 +52,12 @@ export default function ProblemCard({ workbook, problems }: ProblemCardProps) {
                                 <span className="min-w-0 flex-grow truncate text-sm font-bold text-gray-800 group-hover/problem:text-violet-700">
                                     {problem.title}
                                 </span>
+                                {problem.solved && (
+                                    <span className="inline-flex shrink-0 items-center gap-1 rounded border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                                        <CheckCircle2 size={12} />
+                                        해결됨
+                                    </span>
+                                )}
                                 <ChevronRight size={15} className="shrink-0 text-gray-300 group-hover/problem:text-violet-600" />
                             </Link>
                         ))}
