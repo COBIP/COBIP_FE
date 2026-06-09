@@ -592,6 +592,7 @@ export default function AiFunctionalTemplatePage() {
   const [completedMissionIds, setCompletedMissionIds] = useState<string[]>([]);
   const [gradingQuestionId, setGradingQuestionId] = useState<string | null>(null);
   const [gradingMissionId, setGradingMissionId] = useState<string | null>(null);
+  const [codeWorkspaceState, setCodeWorkspaceState] = useState({ isOpen: false, width: 960 });
   const isDarkMode = themeMode === 'dark';
 
   useEffect(() => {
@@ -960,7 +961,14 @@ export default function AiFunctionalTemplatePage() {
       </div>
 
       <main className="flex min-h-0 flex-1 overflow-hidden">
-        <section className="min-w-0 flex-1 overflow-y-auto bg-white">
+        <section
+          style={
+            codeWorkspaceState.isOpen
+              ? { width: `max(420px, calc(100vw - ${codeWorkspaceState.width}px))` }
+              : undefined
+          }
+          className={`min-w-0 overflow-y-auto bg-white ${codeWorkspaceState.isOpen ? 'shrink-0 border-r border-[#F1F5F9]' : 'flex-1'}`}
+        >
           <div className="px-5 py-6 lg:px-6">
             <div className="mb-5 rounded-lg border border-[#EDE9FE] bg-white p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
@@ -1013,6 +1021,7 @@ export default function AiFunctionalTemplatePage() {
           </div>
         </section>
 
+        {!codeWorkspaceState.isOpen && (
         <aside className="w-[22rem] shrink-0 border-l border-[#F1F5F9] bg-[#FAFBFC] px-4 py-4">
           <div className="space-y-3">
             <section className="rounded-lg border border-[#E2E8F0] bg-white p-4">
@@ -1059,6 +1068,7 @@ export default function AiFunctionalTemplatePage() {
             </section>
           </div>
         </aside>
+        )}
       </main>
 
       <AiTemplateCodeWorkspace
@@ -1066,6 +1076,7 @@ export default function AiFunctionalTemplatePage() {
         templateTitle={template.overview.featureName}
         chatContext={aiChatContext}
         onCodeFilesChange={handleCodeFilesChange}
+        onWorkspaceStateChange={setCodeWorkspaceState}
       />
 
       {isMemoOpen && <MemoPanel isDarkMode={isDarkMode} onClose={() => setIsMemoOpen(false)} />}
