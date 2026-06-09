@@ -71,9 +71,9 @@ export default function CodingTestPage() {
         return Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'ko-KR'));
     }, [workbookDetails]);
 
-    const getPrimaryProblemId = (workbookId: number) => {
+    const getWorkbookProblems = (workbookId: number) => {
         const problems = workbookDetails[workbookId]?.problems ?? [];
-        return [...problems].sort((a, b) => a.orderIndex - b.orderIndex)[0]?.id;
+        return [...problems].sort((a, b) => a.orderIndex - b.orderIndex);
     };
 
     const filteredWorkbooks = useMemo(() => {
@@ -150,7 +150,7 @@ export default function CodingTestPage() {
                             선택하신 조건에 맞는 문제집이 없습니다.
                         </div>
                     ) : (
-                        <ProblemGrid workbooks={filteredWorkbooks} getPrimaryProblemId={getPrimaryProblemId} />
+                        <ProblemGrid workbooks={filteredWorkbooks} getWorkbookProblems={getWorkbookProblems} />
                     )}
 
                     {totalPages > 1 && !hasProblemFilter && !hasTitleSearch && (

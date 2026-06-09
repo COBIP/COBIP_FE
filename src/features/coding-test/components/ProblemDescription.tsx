@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight } from 'lucide-react';
 import type { CodingWorkbookProblemSummaryResponse } from '@/types/CodingWorkbookTypes';
 import type {
     CodingProblemContentBlock,
@@ -195,6 +195,12 @@ export default function ProblemDescription({ problem, relatedProblems }: Problem
                                                     {isCurrent && (
                                                         <span className="shrink-0 rounded bg-violet-600 px-2 py-0.5 text-[11px] font-bold text-white">
                                                             현재 풀이 중
+                                                        </span>
+                                                    )}
+                                                    {relatedProblem.solved && (
+                                                        <span className="inline-flex shrink-0 items-center gap-1 rounded border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                                                            <CheckCircle2 size={12} />
+                                                            해결됨
                                                         </span>
                                                     )}
                                                 </div>

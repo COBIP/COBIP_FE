@@ -41,6 +41,7 @@ export interface CodingWorkbookProblemSummaryResponse {
     category: string;
     difficulty: CodingDifficulty;
     orderIndex: number;
+    solved?: boolean;
 }
 
 export interface CodingWorkbookDetailResponse {
