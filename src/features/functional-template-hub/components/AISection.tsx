@@ -15,16 +15,21 @@ interface AISectionProps {
 }
 
 const difficultyOptions: Array<{ value: AiFeatureTemplateDifficulty; label: string }> = [
-  { value: 'beginner', label: '입문' },
+  { value: 'beginner', label: '초급' },
   { value: 'intermediate', label: '중급' },
   { value: 'advanced', label: '고급' },
 ];
+
+function buildTechStack(language: string, framework: string) {
+  return Array.from(
+    new Set([framework.trim(), language.trim()].filter(Boolean)),
+  );
+}
 
 export function AISection({ onGenerate }: AISectionProps) {
   const [featureName, setFeatureName] = useState('');
   const [language, setLanguage] = useState('java');
   const [framework, setFramework] = useState('Spring Boot');
-  const [techStack, setTechStack] = useState('Spring Boot, Spring Security, JWT');
   const [level, setLevel] = useState<AiFeatureTemplateDifficulty>('intermediate');
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingStep, setCurrentLoadingStep] = useState(0);
@@ -48,6 +53,9 @@ export function AISection({ onGenerate }: AISectionProps) {
       return;
     }
 
+    const nextLanguage = language.trim() || 'java';
+    const nextFramework = formatFeatureTemplateFramework(framework);
+
     try {
       setError(null);
       setIsLoading(true);
@@ -55,12 +63,9 @@ export function AISection({ onGenerate }: AISectionProps) {
 
       await onGenerate({
         featureName: nextFeatureName,
-        language: language.trim() || 'java',
-        framework: formatFeatureTemplateFramework(framework),
-        techStack: techStack
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean),
+        language: nextLanguage,
+        framework: nextFramework,
+        techStack: buildTechStack(nextLanguage, nextFramework),
         level,
         difficulty: level,
         includeCode: true,
@@ -89,15 +94,15 @@ export function AISection({ onGenerate }: AISectionProps) {
           <div>
             <h2 className="text-2xl font-bold text-[#1E293B]">원하는 학습 주제가 있나요?</h2>
             <p className="mt-1 text-sm text-[#64748B]">
-              구현하고 싶은 기능과 기술 스택을 입력하면 AI가 기능 템플릿을 생성합니다.
+              구현하고 싶은 기능과 기본 기술 정보를 입력하면 AI가 기능 템플릿 초안을 생성합니다.
             </p>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="grid gap-3 lg:grid-cols-[1fr_9rem_11rem_14rem_8rem_auto]">
+          <div className="grid gap-3 lg:grid-cols-[1fr_9rem_11rem_8rem_auto]">
             <div className="relative">
-              <Sparkles size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7C3AED]" />
+              <Sparkles size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-[#7C3AED]" />
               <input
                 type="text"
                 placeholder="예: JWT 로그인, Redis 기반 장바구니, OAuth 소셜 로그인"
@@ -106,7 +111,7 @@ export function AISection({ onGenerate }: AISectionProps) {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !isLoading) void handleGenerate();
                 }}
-                className="h-12 w-full rounded-lg border border-[#DDD6FE] bg-white pr-4 pl-10 text-sm text-[#1E293B] placeholder:text-[#94A3B8] transition focus:border-[#7C3AED] focus:ring-2 focus:ring-[#DDD6FE] focus:outline-none"
+                className="h-12 w-full rounded-lg border border-[#DDD6FE] bg-white pr-4 pl-10 text-sm text-[#1E293B] transition placeholder:text-[#94A3B8] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#DDD6FE] focus:outline-none"
                 disabled={isLoading}
               />
             </div>
@@ -126,15 +131,6 @@ export function AISection({ onGenerate }: AISectionProps) {
               onChange={(e) => setFramework(e.target.value)}
               className="h-12 rounded-lg border border-[#E2E8F0] bg-white px-3 text-sm text-[#1E293B] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#DDD6FE] focus:outline-none"
               placeholder="Spring Boot"
-              disabled={isLoading}
-            />
-
-            <input
-              type="text"
-              value={techStack}
-              onChange={(e) => setTechStack(e.target.value)}
-              className="h-12 rounded-lg border border-[#E2E8F0] bg-white px-3 text-sm text-[#1E293B] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#DDD6FE] focus:outline-none"
-              placeholder="Spring Boot, JWT"
               disabled={isLoading}
             />
 
