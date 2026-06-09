@@ -12,6 +12,12 @@ const difficultyLabel: Record<CodingWorkbookSummaryResponse['difficulty'], strin
     HARD: '고급',
 };
 
+const difficultyBadgeClass: Record<CodingWorkbookSummaryResponse['difficulty'], string> = {
+    EASY: 'border-amber-100 bg-amber-50 text-amber-700',
+    MEDIUM: 'border-violet-100 bg-violet-50 text-violet-700',
+    HARD: 'border-rose-100 bg-rose-50 text-rose-700',
+};
+
 export default function ProblemCard({ workbook, onSelect }: ProblemCardProps) {
     return (
         <button
@@ -24,7 +30,7 @@ export default function ProblemCard({ workbook, onSelect }: ProblemCardProps) {
                     <span className="rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
                         {workbook.category}
                     </span>
-                    <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                    <span className={`rounded border px-2 py-0.5 text-[10px] font-bold ${difficultyBadgeClass[workbook.difficulty]}`}>
                         {difficultyLabel[workbook.difficulty]}
                     </span>
                 </div>

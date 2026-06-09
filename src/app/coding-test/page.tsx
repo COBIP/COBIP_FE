@@ -29,6 +29,12 @@ const difficultyLabel: Record<CodingDifficulty, string> = {
     HARD: '고급',
 };
 
+const difficultyBadgeClass: Record<CodingDifficulty, string> = {
+    EASY: 'border-amber-100 bg-amber-50 text-amber-700',
+    MEDIUM: 'border-violet-100 bg-violet-50 text-violet-700',
+    HARD: 'border-rose-100 bg-rose-50 text-rose-700',
+};
+
 export default function CodingTestPage() {
     const [filters, setFilters] = useState<CodingTestFilterState>(DEFAULT_FILTERS);
     const [selectedWorkbook, setSelectedWorkbook] = useState<CodingWorkbookDetailResponse | null>(null);
@@ -126,7 +132,7 @@ export default function CodingTestPage() {
                                     <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
                                         {selectedWorkbook.category}
                                     </span>
-                                    <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                                    <span className={`rounded border px-2 py-1 text-xs font-bold ${difficultyBadgeClass[selectedWorkbook.difficulty]}`}>
                                         {difficultyLabel[selectedWorkbook.difficulty]}
                                     </span>
                                 </div>
@@ -142,12 +148,20 @@ export default function CodingTestPage() {
                                         <Link
                                             key={problem.id}
                                             href={`/coding-test/problem/${problem.id}`}
-                                            className="group flex items-center gap-4 rounded-md border border-gray-200 bg-white px-5 py-4 shadow-sm transition-all hover:border-violet-300 hover:bg-violet-50/40"
+                                            className={`group flex items-center gap-4 rounded-md border px-5 py-4 shadow-sm transition-all ${
+                                                problem.solved
+                                                    ? 'border-emerald-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/60'
+                                                    : 'border-gray-200 bg-white hover:border-violet-300 hover:bg-violet-50/40'
+                                            }`}
                                         >
-                                            <span className="w-8 shrink-0 text-sm font-bold text-gray-400">{problem.orderIndex}</span>
+                                            <span className={`w-8 shrink-0 text-sm font-bold ${problem.solved ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                {problem.orderIndex}
+                                            </span>
                                             <div className="min-w-0 flex-grow">
                                                 <div className="flex min-w-0 items-center gap-2">
-                                                    <p className="truncate text-base font-bold text-gray-950">{problem.title}</p>
+                                                    <p className={`truncate text-base font-bold ${problem.solved ? 'text-emerald-950' : 'text-gray-950'}`}>
+                                                        {problem.title}
+                                                    </p>
                                                     {problem.solved && (
                                                         <span className="inline-flex shrink-0 items-center gap-1 rounded border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
                                                             <CheckCircle2 size={12} />
@@ -159,7 +173,7 @@ export default function CodingTestPage() {
                                                     <span className="rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-blue-700">
                                                         {problem.category}
                                                     </span>
-                                                    <span className="rounded border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-emerald-700">
+                                                    <span className={`rounded border px-1.5 py-0.5 ${difficultyBadgeClass[problem.difficulty]}`}>
                                                         {difficultyLabel[problem.difficulty]}
                                                     </span>
                                                 </div>
