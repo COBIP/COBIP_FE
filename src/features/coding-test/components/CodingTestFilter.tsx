@@ -72,7 +72,7 @@ export default function CodingTestFilter({
         <>
             <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
-                    <h1 className="mb-2 text-3xl font-bold text-gray-950">문제집 목록</h1>
+                    <h1 className="mb-2 text-3xl font-bold text-gray-950">문제 목록</h1>
                     <p className="text-sm text-gray-500">
                         문제집 조건과 문제 조건을 함께 골라 코딩테스트 문제를 찾아보세요.
                     </p>
@@ -85,7 +85,7 @@ export default function CodingTestFilter({
                             if (event.key === 'Enter') applyTitleSearch();
                         }}
                         className="h-10 min-w-0 flex-grow rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                        placeholder="문제집 제목 검색"
+                        placeholder="문제 제목 검색"
                         type="text"
                     />
                     <button

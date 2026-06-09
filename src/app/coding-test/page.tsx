@@ -75,17 +75,9 @@ export default function CodingTestPage() {
     }, [workbookDetails]);
 
     const filteredWorkbooks = useMemo(() => {
-        const titleKeyword = filters.titleKeyword?.trim().toLowerCase();
-        const titleFilteredWorkbooks = workbooks.filter((workbook) => {
-            const title = workbook.title.toLowerCase();
-            const hasTitleKeyword = !titleKeyword || title.includes(titleKeyword);
+        if (!hasProblemFilter) return workbooks;
 
-            return hasTitleKeyword;
-        });
-
-        if (!hasProblemFilter) return titleFilteredWorkbooks;
-
-        return titleFilteredWorkbooks.filter((workbook) => {
+        return workbooks.filter((workbook) => {
             const detail = workbookDetails[workbook.id];
             if (!detail) return false;
 
@@ -95,23 +87,26 @@ export default function CodingTestPage() {
                 return hasCategory && hasDifficulty;
             });
         });
-    }, [filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, hasProblemFilter, workbookDetails, workbooks]);
+    }, [filters.problemCategory, filters.problemDifficulty, hasProblemFilter, workbookDetails, workbooks]);
 
     const filteredProblems = useMemo<CodingProblemListItem[]>(() => (
         filteredWorkbooks.flatMap((workbook) => {
             const detail = workbookDetails[workbook.id];
             if (!detail) return [];
 
+            const titleKeyword = filters.titleKeyword?.trim().toLowerCase();
+
             return [...detail.problems]
                 .sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id)
                 .filter((problem) => {
+                    const hasTitleKeyword = !titleKeyword || problem.title.toLowerCase().includes(titleKeyword);
                     const hasCategory = !filters.problemCategory || problem.category === filters.problemCategory;
                     const hasDifficulty = !filters.problemDifficulty || problem.difficulty === filters.problemDifficulty;
-                    return hasCategory && hasDifficulty;
+                    return hasTitleKeyword && hasCategory && hasDifficulty;
                 })
                 .map((problem) => ({ workbook, problem }));
         })
-    ), [filteredWorkbooks, filters.problemCategory, filters.problemDifficulty, workbookDetails]);
+    ), [filteredWorkbooks, filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, workbookDetails]);
 
     const problemTotalPages = Math.ceil(filteredProblems.length / PROBLEMS_PER_PAGE);
     const currentProblemPage = problemTotalPages > 0 ? Math.min(problemPage, problemTotalPages) : 1;
@@ -128,7 +123,7 @@ export default function CodingTestPage() {
         setFilters(nextFilters);
         setProblemPage(1);
         updateParams({
-            keyword: nextFilters.titleKeyword || undefined,
+            keyword: undefined,
             category: nextFilters.workbookCategory,
             difficulty: nextFilters.workbookDifficulty,
             page: 0,
