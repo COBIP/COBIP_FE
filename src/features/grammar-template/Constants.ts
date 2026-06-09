@@ -37,8 +37,46 @@ export interface GrammarTemplateChapter {
   orderIndex: number;
   contentJson: Record<string, unknown>;
   practiceFiles: GrammarTemplatePracticeFile[];
+  missions?: GrammarTemplateChapterMission[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type GrammarTemplateMissionType = 'PROBLEM' | 'MISSION';
+
+export interface GrammarTemplateChapterMission {
+  id: number;
+  templateId: number;
+  chapterId: number;
+  title: string;
+  description?: string | null;
+  missionType: GrammarTemplateMissionType;
+  orderIndex: number;
+  guideContent?: string | null;
+  validationJson?: Record<string, unknown> | null;
+}
+
+export interface GrammarTemplateMissionSubmissionFile {
+  filePath: string;
+  content: string;
+}
+
+export interface GrammarTemplateMissionSubmissionRequest {
+  language: 'JAVA' | 'PYTHON' | 'JAVASCRIPT';
+  submittedCode: GrammarTemplateMissionSubmissionFile[];
+}
+
+export interface GrammarTemplateMissionSubmissionResponse {
+  templateId: number;
+  chapterId: number;
+  missionId: number;
+  status: 'ACCEPTED' | 'WRONG_ANSWER' | 'COMPILE_ERROR' | 'RUNTIME_ERROR' | 'TIME_LIMIT_EXCEEDED' | 'INTERNAL_ERROR' | string;
+  stdout?: string | null;
+  stderr?: string | null;
+  compileOutput?: string | null;
+  message?: string | null;
+  passedCount: number;
+  totalCount: number;
 }
 
 /** 문법 템플릿 실습 파일 */
