@@ -256,6 +256,10 @@ function getPracticeCompletedStorageKey(templateId?: number | null) {
   return templateId ? `cobip:template:${templateId}:completed-missions` : null;
 }
 
+function getPracticeQuizAnswerStorageKey(templateId?: number | null) {
+  return templateId ? `cobip:template:${templateId}:quiz-answers` : null;
+}
+
 function checkProjectConfigFile(filePath: string) {
   const normalizedPath = filePath.replace(/\\/g, '/');
   return (
@@ -786,6 +790,7 @@ export function FunctionalTemplateLayout({
             isDarkMode={isDarkMode}
             activeMissionId={activeMissionId}
             completedMissionIds={completedMissionIds}
+            answerStorageKey={getPracticeQuizAnswerStorageKey(templateId)}
             onOpenEditor={openEditor}
             onSubmitQuizAnswer={handleSubmitQuizAnswer}
             missions={problemItems.map((mission, index) => ({
