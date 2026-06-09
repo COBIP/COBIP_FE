@@ -76,6 +76,9 @@ const renderContent = (content: CodingProblemJson) => {
 
 export default function ProblemDescription({ problem, relatedProblems }: ProblemDescriptionProps) {
     const [activeTab, setActiveTab] = useState<'description' | 'related'>('description');
+    const isCurrentProblemSolved = relatedProblems.some((relatedProblem) => (
+        relatedProblem.id === problem.id && relatedProblem.solved
+    ));
 
     return (
         <div className="flex h-full flex-col border-r border-gray-200 bg-white">
@@ -115,6 +118,12 @@ export default function ProblemDescription({ problem, relatedProblems }: Problem
                                 <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
                                     {difficultyLabel[problem.difficulty]}
                                 </span>
+                                {isCurrentProblemSolved && (
+                                    <span className="inline-flex items-center gap-1 rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                                        <CheckCircle2 size={13} />
+                                        해결됨
+                                    </span>
+                                )}
                             </div>
                             <h1 className="mb-4 text-3xl font-bold text-gray-950">
                                 {problem.orderIndex}. {problem.title}
