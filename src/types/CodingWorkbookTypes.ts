@@ -56,3 +56,8 @@ export interface CodingWorkbookDetailResponse {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface CodingProblemListItem {
+    workbook: CodingWorkbookSummaryResponse;
+    problem: CodingWorkbookProblemSummaryResponse;
+}

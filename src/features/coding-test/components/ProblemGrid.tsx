@@ -1,19 +1,18 @@
-import type { CodingWorkbookProblemSummaryResponse, CodingWorkbookSummaryResponse } from '@/types/CodingWorkbookTypes';
+import type { CodingProblemListItem } from '@/types/CodingWorkbookTypes';
 import ProblemCard from '@/features/coding-test/components/ProblemCard';
 
 interface ProblemGridProps {
-  workbooks: CodingWorkbookSummaryResponse[];
-  getWorkbookProblems?: (workbookId: number) => CodingWorkbookProblemSummaryResponse[];
+  problems: CodingProblemListItem[];
 }
 
-export default function ProblemGrid({ workbooks, getWorkbookProblems }: ProblemGridProps) {
+export default function ProblemGrid({ problems }: ProblemGridProps) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {workbooks.map((workbook) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {problems.map(({ workbook, problem }) => (
                 <ProblemCard
-                    key={workbook.id}
+                    key={problem.id}
                     workbook={workbook}
-                    problems={getWorkbookProblems?.(workbook.id) ?? []}
+                    problem={problem}
                 />
             ))}
         </div>
