@@ -20,6 +20,7 @@ interface AiTemplateCodeWorkspaceProps {
   templateTitle: string;
   chatContext: string;
   onCodeFilesChange: (files: AiFeatureTemplateCodeFile[]) => void;
+  onWorkspaceStateChange?: (state: { isOpen: boolean; width: number }) => void;
 }
 
 type ResizeMode = 'workspace' | 'explorer' | 'chat';
@@ -66,6 +67,7 @@ export function AiTemplateCodeWorkspace({
   templateTitle,
   chatContext,
   onCodeFilesChange,
+  onWorkspaceStateChange,
 }: AiTemplateCodeWorkspaceProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -83,6 +85,10 @@ export function AiTemplateCodeWorkspace({
   const fileTree = useMemo(() => buildFileTree(codeFiles), [codeFiles]);
   const currentFile = codeFiles.find((file) => getFileKey(file) === activeFile) ?? codeFiles[0];
   const resolvedActiveFile = currentFile ? getFileKey(currentFile) : '';
+
+  useEffect(() => {
+    onWorkspaceStateChange?.({ isOpen, width: workspaceWidth });
+  }, [isOpen, onWorkspaceStateChange, workspaceWidth]);
 
   useEffect(() => {
     const handleOpenChat = () => {
