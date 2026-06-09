@@ -11,7 +11,6 @@ import type { CodingWorkbookDetailResponse, CodingWorkbookSummaryResponse } from
 const DEFAULT_FILTERS: CodingTestFilterState = {};
 const DEFAULT_PARAMS = { page: 0, size: 16, sort: 'createdAt,desc' };
 const EMPTY_WORKBOOKS: CodingWorkbookSummaryResponse[] = [];
-const DIFFICULTY_ORDER = ['EASY', 'MEDIUM', 'HARD'] as const;
 
 export default function CodingTestPage() {
     const [filters, setFilters] = useState<CodingTestFilterState>(DEFAULT_FILTERS);
@@ -28,12 +27,6 @@ export default function CodingTestPage() {
     const workbookCategoryOptions = useMemo(() => {
         const categories = workbooks.map((workbook) => workbook.category);
         return Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    }, [workbooks]);
-
-    const workbookDifficultyOptions = useMemo(() => {
-        const difficulties = workbooks.map((workbook) => workbook.difficulty);
-        const uniqueDifficulties = new Set(difficulties);
-        return DIFFICULTY_ORDER.filter((difficulty) => uniqueDifficulties.has(difficulty));
     }, [workbooks]);
 
     useEffect(() => {
@@ -137,7 +130,6 @@ export default function CodingTestPage() {
                         key={JSON.stringify(filters)} 
                         value={filters}
                         workbookCategoryOptions={workbookCategoryOptions}
-                        workbookDifficultyOptions={workbookDifficultyOptions}
                         problemCategoryOptions={problemCategoryOptions}
                         onApply={applyFilters}
                         onReset={resetFilters}

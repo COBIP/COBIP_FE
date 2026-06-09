@@ -9,6 +9,8 @@ const DIFFICULTY_LABELS: Record<CodingDifficulty, string> = {
     HARD: '고급',
 };
 
+const DIFFICULTY_OPTIONS: CodingDifficulty[] = ['EASY', 'MEDIUM', 'HARD'];
+
 const toDifficultyOptions = (
     difficulties: CodingDifficulty[]
 ): Array<{ label: string; value: CodingDifficulty | undefined }> => [
@@ -30,7 +32,6 @@ export interface CodingTestFilterState {
 interface CodingTestFilterProps {
     value: CodingTestFilterState;
     workbookCategoryOptions: string[];
-    workbookDifficultyOptions: CodingDifficulty[];
     problemCategoryOptions: string[];
     onApply: (filters: CodingTestFilterState) => void;
     onReset: () => void;
@@ -39,7 +40,6 @@ interface CodingTestFilterProps {
 export default function CodingTestFilter({
     value,
     workbookCategoryOptions,
-    workbookDifficultyOptions,
     problemCategoryOptions,
     onApply,
     onReset,
@@ -113,7 +113,7 @@ export default function CodingTestFilter({
                         />
                         <FilterButtonGroup
                             label="난이도"
-                            options={toDifficultyOptions(workbookDifficultyOptions)}
+                            options={toDifficultyOptions(DIFFICULTY_OPTIONS)}
                             value={draft.workbookDifficulty}
                             onChange={(workbookDifficulty) => updateAndApply({ workbookDifficulty })}
                         />
@@ -141,7 +141,7 @@ export default function CodingTestFilter({
                         />
                         <FilterButtonGroup
                             label="난이도"
-                            options={toDifficultyOptions(['EASY', 'MEDIUM', 'HARD'])}
+                            options={toDifficultyOptions(DIFFICULTY_OPTIONS)}
                             value={draft.problemDifficulty}
                             onChange={(problemDifficulty) => updateAndApply({ problemDifficulty })}
                         />
