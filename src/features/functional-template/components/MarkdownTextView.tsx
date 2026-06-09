@@ -28,7 +28,7 @@ function parseBlocks(content: string): Block[] {
   const normalizedContent = content
     .replace(/(#{1,6}\s+)/g, '\n$1')
     .replace(/\s+([-*+]\s+)/g, '\n$1')
-    .replace(/\s+(\d+\.\s+)/g, '\n$1');
+    .replace(/(?<!#)\s+(\d+\.\s+)/g, '\n$1');
   const lines = normalizedContent.split(/\r?\n/);
   const blocks: Block[] = [];
 
