@@ -1,12 +1,18 @@
 'use client';
 
-import { use, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { use, useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent } from 'react';
 import { useCodingSolving } from '@/hooks/useCodingSolving';
 import ProblemDescription from '@/features/coding-test/components/ProblemDescription';
 import CodeEditor from '@/features/coding-test/components/CodeEditor';
 import ConsolePanel from '@/features/coding-test/components/ConsolePanel';
 import { Header } from '@/features/main-home/components/Header';
 import { getWorkbookDetail } from '@/api/services/CodingWorkbookService';
+import {
+    checkCodingProblemStoredSolved,
+    getCodingSolvedProblemIdsSnapshot,
+    setCodingSolvedProblemId,
+    syncCodingSolvedProblemIds,
+} from '@/features/coding-test/utils/CodingSolvedProblemStorage';
 import type { CodingWorkbookProblemSummaryResponse } from '@/types/CodingWorkbookTypes';
 
 export default function CodingProblemDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,6 +38,11 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
     } = useCodingSolving(problemId);
     const [relatedProblems, setRelatedProblems] = useState<CodingWorkbookProblemSummaryResponse[]>([]);
     const [consoleHeightPercent, setConsoleHeightPercent] = useState(35);
+    const solvedProblemIdsSnapshot = useSyncExternalStore(
+        syncCodingSolvedProblemIds,
+        getCodingSolvedProblemIdsSnapshot,
+        () => '',
+    );
 
     const handleConsoleResizeStart = (event: PointerEvent<HTMLDivElement>) => {
         const workspace = workspaceRef.current;
@@ -85,6 +96,17 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
         () => [...relatedProblems].sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id),
         [relatedProblems]
     );
+    const isCurrentProblemSolved = Boolean(problem?.solved) || relatedProblems.some((relatedProblem) => (
+        relatedProblem.id === problemId && relatedProblem.solved
+    )) || checkCodingProblemStoredSolved(problemId, solvedProblemIdsSnapshot);
+    const handleSubmissionSolved = () => {
+        setCodingSolvedProblemId(problemId);
+        setRelatedProblems((current) => current.map((relatedProblem) => (
+            relatedProblem.id === problemId
+                ? { ...relatedProblem, solved: true }
+                : relatedProblem
+        )));
+    };
 
     if (isLoading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -99,7 +121,11 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
             <Header />
             <main className="flex-grow flex w-full overflow-hidden">
                 <div className="w-[40%] min-w-[450px] h-full shadow-inner">
-                    <ProblemDescription problem={problem} relatedProblems={sortedRelatedProblems} />
+                    <ProblemDescription
+                        problem={problem}
+                        relatedProblems={sortedRelatedProblems}
+                        isProblemSolved={isCurrentProblemSolved}
+                    />
                 </div>
                 <div ref={workspaceRef} className="w-[60%] flex flex-col h-full bg-[#1E1E1E]">
                     <div className="min-h-[220px] overflow-hidden" style={{ height: `${100 - consoleHeightPercent}%` }}>
@@ -127,6 +153,7 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
                             isExecuting={isExecuting}
                             handleRun={handleRun}
                             handleSubmit={handleSubmit}
+                            onSubmissionSolved={handleSubmissionSolved}
                             runResult={runResult}
                             submissionResult={submissionResult}
                             executionError={executionError}

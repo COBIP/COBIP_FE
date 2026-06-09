@@ -239,6 +239,32 @@ function checkProjectValidationMission(mission?: TemplatePracticeMissionApiRespo
   );
 }
 
+function checkSubmissionSolved(result: TemplatePracticeSubmissionResponse) {
+  return Boolean(result.solved) || result.status === 'ACCEPTED' || (
+    result.totalCount > 0 && result.passedCount >= result.totalCount
+  );
+}
+
+function buildProgressWithCompletedMissions(
+  progress: TemplatePracticeProgressApiResponse | null,
+  completedMissionCount: number,
+  totalMissionCount: number,
+) {
+  if (!progress || totalMissionCount <= 0) return progress;
+
+  const nextCompletedMissionCount = Math.min(totalMissionCount, Math.max(progress.completedMissionCount, completedMissionCount));
+  const nextProgressPercent = Math.min(100, Math.max(progress.progressPercent, Math.round((nextCompletedMissionCount / totalMissionCount) * 100)));
+  const isCompleted = nextCompletedMissionCount >= totalMissionCount;
+
+  return {
+    ...progress,
+    completedMissionCount: nextCompletedMissionCount,
+    progressPercent: nextProgressPercent,
+    status: isCompleted ? 'COMPLETED' as const : progress.status,
+    completedAt: isCompleted ? progress.completedAt ?? new Date().toISOString() : progress.completedAt,
+  };
+}
+
 function getCodingLanguageByFilePath(filePath: string) {
   const extension = filePath.split('.').pop()?.toLowerCase();
 
@@ -312,7 +338,7 @@ function getCompletedMissionIdSet(
   const completedIds = new Set<number>();
 
   missions.forEach((mission) => {
-    if (mission.progressStatus === 'COMPLETED') {
+    if (mission.progressStatus === 'COMPLETED' || mission.solved) {
       completedIds.add(mission.id);
     }
   });
@@ -546,16 +572,27 @@ export function FunctionalTemplateLayout({
     if (practiceMissions[0]) setActiveMissionId(practiceMissions[0].id);
 
     const storedCompletedIds = getJsonFromStorage<number[]>(getPracticeCompletedStorageKey(templateId), []);
-    setCompletedMissionIds(getCompletedMissionIdSet(practiceMissions, storedCompletedIds));
+    const nextCompletedMissionIds = getCompletedMissionIdSet(practiceMissions, storedCompletedIds);
+    setCompletedMissionIds(nextCompletedMissionIds);
+    setPracticeProgress((current) => buildProgressWithCompletedMissions(
+      current,
+      nextCompletedMissionIds.size,
+      practiceMissions.length,
+    ));
   }, [practiceFiles, practiceMissions, templateId]);
 
   const refreshPractice = async () => {
     if (!templateId) return;
     const nextPractice = await getTemplatePractice(templateId);
     setLocalPractice(nextPractice);
-    setPracticeProgress(nextPractice.progress ?? null);
     const storedCompletedIds = getJsonFromStorage<number[]>(getPracticeCompletedStorageKey(templateId), []);
-    setCompletedMissionIds(getCompletedMissionIdSet(nextPractice.missions ?? [], storedCompletedIds));
+    const nextCompletedMissionIds = getCompletedMissionIdSet(nextPractice.missions ?? [], storedCompletedIds);
+    setCompletedMissionIds(nextCompletedMissionIds);
+    setPracticeProgress(buildProgressWithCompletedMissions(
+      nextPractice.progress ?? null,
+      nextCompletedMissionIds.size,
+      nextPractice.missions?.length ?? 0,
+    ));
     if (nextPractice.progress?.currentMissionId) {
       setActiveMissionId(nextPractice.progress.currentMissionId);
     }
@@ -616,6 +653,11 @@ export function FunctionalTemplateLayout({
       const nextCompletedMissionIds = new Set(current);
       nextCompletedMissionIds.add(missionId);
       persistCompletedMissionIds(nextCompletedMissionIds);
+      setPracticeProgress((currentProgress) => buildProgressWithCompletedMissions(
+        currentProgress,
+        nextCompletedMissionIds.size,
+        practiceMissions.length,
+      ));
       return nextCompletedMissionIds;
     });
   };
@@ -691,7 +733,7 @@ export function FunctionalTemplateLayout({
         : await submitTemplatePracticeProject(templateId, missionId, buildProjectFiles());
       setSubmissionResult(result);
       persistFileContents(fileContents);
-      if (result.status === 'ACCEPTED') {
+      if (checkSubmissionSolved(result)) {
         markMissionCompleted(missionId);
       }
       setRunOutput(

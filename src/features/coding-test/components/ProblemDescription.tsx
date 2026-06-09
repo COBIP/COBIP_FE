@@ -13,12 +13,19 @@ import { useState } from 'react';
 interface ProblemDescriptionProps {
     problem: CodingProblemDetailResponse;
     relatedProblems: CodingWorkbookProblemSummaryResponse[];
+    isProblemSolved?: boolean;
 }
 
 const difficultyLabel: Record<CodingProblemDetailResponse['difficulty'], string> = {
     EASY: '초급',
     MEDIUM: '중급',
     HARD: '고급',
+};
+
+const difficultyBadgeClass: Record<CodingProblemDetailResponse['difficulty'], string> = {
+    EASY: 'border-amber-100 bg-amber-50 text-amber-700',
+    MEDIUM: 'border-violet-100 bg-violet-50 text-violet-700',
+    HARD: 'border-rose-100 bg-rose-50 text-rose-700',
 };
 
 const normalizeProblemText = (text: string) => (
@@ -74,9 +81,9 @@ const renderContent = (content: CodingProblemJson) => {
     });
 };
 
-export default function ProblemDescription({ problem, relatedProblems }: ProblemDescriptionProps) {
+export default function ProblemDescription({ problem, relatedProblems, isProblemSolved = false }: ProblemDescriptionProps) {
     const [activeTab, setActiveTab] = useState<'description' | 'related'>('description');
-    const isCurrentProblemSolved = relatedProblems.some((relatedProblem) => (
+    const isCurrentProblemSolved = isProblemSolved || relatedProblems.some((relatedProblem) => (
         relatedProblem.id === problem.id && relatedProblem.solved
     ));
 
@@ -115,7 +122,7 @@ export default function ProblemDescription({ problem, relatedProblems }: Problem
                                 <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
                                     {problem.category}
                                 </span>
-                                <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                                <span className={`rounded border px-2 py-1 text-xs font-bold ${difficultyBadgeClass[problem.difficulty]}`}>
                                     {difficultyLabel[problem.difficulty]}
                                 </span>
                                 {isCurrentProblemSolved && (
@@ -190,17 +197,21 @@ export default function ProblemDescription({ problem, relatedProblems }: Problem
                                     const row = (
                                         <div
                                             className={`flex items-center gap-3 rounded-md border px-4 py-3 transition-colors ${
-                                                isCurrent
+                                                relatedProblem.solved
+                                                    ? 'border-emerald-300 bg-white hover:border-emerald-400 hover:bg-emerald-50/60'
+                                                    : isCurrent
                                                     ? 'border-violet-200 bg-violet-50'
                                                     : 'border-gray-200 bg-white hover:border-violet-200 hover:bg-violet-50/60'
                                             }`}
                                         >
-                                            <span className="w-7 shrink-0 text-sm font-bold text-gray-600">
+                                            <span className={`w-7 shrink-0 text-sm font-bold ${relatedProblem.solved ? 'text-emerald-600' : 'text-gray-600'}`}>
                                                 {relatedProblem.orderIndex}
                                             </span>
                                             <div className="min-w-0 flex-grow">
                                                 <div className="flex min-w-0 items-center gap-2">
-                                                    <p className="truncate text-sm font-bold text-gray-950">{relatedProblem.title}</p>
+                                                    <p className={`truncate text-sm font-bold ${relatedProblem.solved ? 'text-emerald-950' : 'text-gray-950'}`}>
+                                                        {relatedProblem.title}
+                                                    </p>
                                                     {isCurrent && (
                                                         <span className="shrink-0 rounded bg-violet-600 px-2 py-0.5 text-[11px] font-bold text-white">
                                                             현재 풀이 중
@@ -217,7 +228,7 @@ export default function ProblemDescription({ problem, relatedProblems }: Problem
                                                     <span className="rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-blue-700">
                                                         {relatedProblem.category}
                                                     </span>
-                                                    <span className="rounded border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-emerald-700">
+                                                    <span className={`rounded border px-1.5 py-0.5 ${difficultyBadgeClass[relatedProblem.difficulty]}`}>
                                                         {difficultyLabel[relatedProblem.difficulty]}
                                                     </span>
                                                 </div>

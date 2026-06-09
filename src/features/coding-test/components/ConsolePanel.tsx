@@ -6,6 +6,7 @@ interface ConsolePanelProps {
     isExecuting: boolean;
     handleRun: (customInput?: string) => Promise<CodingCodeRunResponse | null> | CodingCodeRunResponse | null | void;
     handleSubmit: () => Promise<CodingSubmissionResponse | null> | CodingSubmissionResponse | null | void;
+    onSubmissionSolved?: (result: CodingSubmissionResponse) => void;
     runResult: CodingCodeRunResponse | null;
     submissionResult: CodingSubmissionResponse | null;
     executionError: string | null;
@@ -23,8 +24,23 @@ const statusLabel: Record<string, string> = {
     INTERNAL_ERROR: '채점 오류',
 };
 
+function checkCodingSubmissionSolved(
+    result: CodingSubmissionResponse | null | void,
+): result is CodingSubmissionResponse {
+    return Boolean(
+        result
+        && (
+            result.status === 'ACCEPTED'
+            || result.solved
+            || (result.totalCount > 0 && result.passedCount >= result.totalCount)
+        ),
+    );
+}
+
 function ResultBlock({ result }: { result: CodingCodeRunResponse | CodingSubmissionResponse }) {
-    const isAccepted = result.status === 'ACCEPTED';
+    const isAccepted = result.status === 'ACCEPTED'
+        || ('solved' in result && Boolean(result.solved))
+        || ('passedCount' in result && result.totalCount > 0 && result.passedCount >= result.totalCount);
     const hasSubmissionCount = 'passedCount' in result;
 
     return (
@@ -104,6 +120,7 @@ export default function ConsolePanel({
     isExecuting,
     handleRun,
     handleSubmit,
+    onSubmissionSolved,
     runResult,
     submissionResult,
     executionError,
@@ -119,7 +136,8 @@ export default function ConsolePanel({
     const submitCode = async () => {
         setActiveTab('SUBMIT_RESULT');
         const result = await handleSubmit();
-        if (result?.status === 'ACCEPTED') {
+        if (checkCodingSubmissionSolved(result)) {
+            onSubmissionSolved?.(result);
             window.alert('제출에 성공했습니다.');
             window.location.href = '/coding-test';
         }
