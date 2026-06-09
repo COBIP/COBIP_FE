@@ -1,5 +1,6 @@
-import type { CodingWorkbookSummaryResponse } from '@/types/CodingWorkbookTypes';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
+import type { CodingWorkbookSummaryResponse } from '@/types/CodingWorkbookTypes';
 
 interface ProblemCardProps {
     workbook: CodingWorkbookSummaryResponse;
@@ -13,42 +14,46 @@ const difficultyLabel: Record<CodingWorkbookSummaryResponse['difficulty'], strin
 };
 
 export default function ProblemCard({ workbook, primaryProblemId }: ProblemCardProps) {
-    const { title, summary, category, difficulty, createdAt } = workbook;
-
-    return (
-        <div className="bg-white rounded-xl p-5 border border-gray-200 flex flex-col transition-all duration-300 relative group min-h-[200px] hover:border-violet-600 hover:ring-1 hover:ring-violet-600 shadow-sm">
-            <div className="flex flex-wrap gap-1.5 mb-3">
-                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-[10px] font-bold">
-                    {category}
+    const cardContent = (
+        <article
+            className={`flex min-h-[180px] flex-col rounded-md border bg-white p-5 shadow-sm transition-all ${
+                primaryProblemId
+                    ? 'border-gray-200 hover:border-violet-500 hover:shadow-md'
+                    : 'cursor-not-allowed border-gray-100 opacity-60'
+            }`}
+        >
+            <div className="mb-3 flex flex-wrap gap-1.5">
+                <span className="rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                    {workbook.category}
                 </span>
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-[10px] font-bold">
-                    {difficultyLabel[difficulty]}
+                <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                    {difficultyLabel[workbook.difficulty]}
                 </span>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">{title}</h3>
-            <p className="text-sm text-gray-600 mb-4 flex-grow line-clamp-2">{summary}</p>
+            <h3 className="mb-2 line-clamp-2 text-lg font-bold text-gray-950">{workbook.title}</h3>
+            <p className="line-clamp-3 flex-grow text-sm leading-6 text-gray-600">{workbook.summary}</p>
 
-            <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-100">
+            <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
                 <span className="text-xs text-gray-400">
-                    {new Date(createdAt).toLocaleDateString('ko-KR')}
+                    {new Date(workbook.createdAt).toLocaleDateString('ko-KR')} 업데이트
                 </span>
-
                 {primaryProblemId ? (
-                    <Link href={`/coding-test/problem/${primaryProblemId}`}>
-                        <button className="px-4 py-2 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold hover:bg-violet-600 hover:text-white transition-colors w-full">
-                            문제 풀기
-                        </button>
-                    </Link>
+                    <ChevronRight size={18} className="text-gray-400 transition-colors group-hover:text-violet-600" />
                 ) : (
-                    <button
-                        disabled
-                        className="px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-xs font-bold cursor-not-allowed w-full"
-                    >
-                        문제 없음
-                    </button>
+                    <span className="text-xs font-bold text-gray-400">문제 없음</span>
                 )}
             </div>
-        </div>
+        </article>
+    );
+
+    if (!primaryProblemId) {
+        return cardContent;
+    }
+
+    return (
+        <Link href={`/coding-test/problem/${primaryProblemId}`} className="group block focus:outline-none focus:ring-2 focus:ring-violet-200">
+            {cardContent}
+        </Link>
     );
 }

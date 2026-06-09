@@ -24,6 +24,11 @@ export default function CodingTestPage() {
     const hasProblemFilter = Boolean(filters.problemCategory || filters.problemDifficulty);
     const hasTitleSearch = Boolean(filters.titleKeyword);
 
+    const workbookCategoryOptions = useMemo(() => {
+        const categories = workbooks.map((workbook) => workbook.category);
+        return Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+    }, [workbooks]);
+
     useEffect(() => {
         if (workbooks.length === 0) {
             setWorkbookDetails({});
@@ -73,13 +78,11 @@ export default function CodingTestPage() {
 
     const filteredWorkbooks = useMemo(() => {
         const titleKeyword = filters.titleKeyword?.trim().toLowerCase();
-        const workbookName = filters.workbookName?.trim().toLowerCase();
         const titleFilteredWorkbooks = workbooks.filter((workbook) => {
             const title = workbook.title.toLowerCase();
             const hasTitleKeyword = !titleKeyword || title.includes(titleKeyword);
-            const hasWorkbookName = !workbookName || title.includes(workbookName);
 
-            return hasTitleKeyword && hasWorkbookName;
+            return hasTitleKeyword;
         });
 
         if (!hasProblemFilter) return titleFilteredWorkbooks;
@@ -94,12 +97,12 @@ export default function CodingTestPage() {
                 return hasCategory && hasDifficulty;
             });
         });
-    }, [filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, filters.workbookName, hasProblemFilter, workbookDetails, workbooks]);
+    }, [filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, hasProblemFilter, workbookDetails, workbooks]);
 
     const applyFilters = (nextFilters: CodingTestFilterState) => {
         setFilters(nextFilters);
         updateParams({
-            keyword: nextFilters.titleKeyword || nextFilters.workbookName || undefined,
+            keyword: nextFilters.titleKeyword || undefined,
             category: nextFilters.workbookCategory,
             difficulty: nextFilters.workbookDifficulty,
             page: 0,
@@ -126,6 +129,7 @@ export default function CodingTestPage() {
                     <CodingTestFilter
                         key={JSON.stringify(filters)} 
                         value={filters}
+                        workbookCategoryOptions={workbookCategoryOptions}
                         problemCategoryOptions={problemCategoryOptions}
                         onApply={applyFilters}
                         onReset={resetFilters}
@@ -149,7 +153,7 @@ export default function CodingTestPage() {
                         <ProblemGrid workbooks={filteredWorkbooks} getPrimaryProblemId={getPrimaryProblemId} />
                     )}
 
-                    {totalPages > 1 && !hasProblemFilter && !hasTitleSearch && !filters.workbookName && (
+                    {totalPages > 1 && !hasProblemFilter && !hasTitleSearch && (
                         <div className="flex justify-center items-center gap-2 mt-12">
                             <button
                                 disabled={currentPage === 1}

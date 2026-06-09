@@ -8,12 +8,14 @@ import type {
 } from '@/types/CodingProblemTypes';
 
 const DEFAULT_LANGUAGE: CodingLanguage = 'JAVA';
+const EMPTY_SOURCE_CODES: Partial<Record<CodingLanguage, string>> = {};
 
 export const useCodingSolving = (problemId: number) => {
     const [problem, setProblem] = useState<CodingProblemDetailResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedLanguage, setSelectedLanguage] = useState<CodingLanguage>(DEFAULT_LANGUAGE);
+    const [sourceCodesByLanguage, setSourceCodesByLanguage] = useState<Partial<Record<CodingLanguage, string>>>(EMPTY_SOURCE_CODES);
     const [sourceCode, setSourceCode] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
     const [runResult, setRunResult] = useState<CodingCodeRunResponse | null>(null);
@@ -38,10 +40,14 @@ export const useCodingSolving = (problemId: number) => {
                 const initialLanguage = data.starterCodes.some((starter) => starter.language === DEFAULT_LANGUAGE)
                     ? DEFAULT_LANGUAGE
                     : data.starterCodes[0]?.language ?? DEFAULT_LANGUAGE;
+                const starterCodeMap = Object.fromEntries(
+                    data.starterCodes.map((starter) => [starter.language, starter.code])
+                ) as Partial<Record<CodingLanguage, string>>;
 
                 setProblem(data);
                 setSelectedLanguage(initialLanguage);
-                setSourceCode(data.starterCodes.find((starter) => starter.language === initialLanguage)?.code ?? '');
+                setSourceCodesByLanguage(starterCodeMap);
+                setSourceCode(starterCodeMap[initialLanguage] ?? '');
                 setError(null);
             } catch (err) {
                 console.error('Failed to fetch coding problem:', err);
@@ -59,26 +65,45 @@ export const useCodingSolving = (problemId: number) => {
         };
     }, [problemId]);
 
+    const updateSourceCode = (code: string) => {
+        setSourceCode(code);
+        setSourceCodesByLanguage((current) => ({
+            ...current,
+            [selectedLanguage]: code,
+        }));
+    };
+
     const changeLanguage = (lang: CodingLanguage) => {
         setSelectedLanguage(lang);
-        setSourceCode(problem?.starterCodes.find((starter) => starter.language === lang)?.code ?? '');
+        setSourceCode(
+            sourceCodesByLanguage[lang]
+            ?? problem?.starterCodes.find((starter) => starter.language === lang)?.code
+            ?? ''
+        );
         setRunResult(null);
         setSubmissionResult(null);
         setExecutionError(null);
     };
 
     const resetCode = () => {
-        setSourceCode(problem?.starterCodes.find((starter) => starter.language === selectedLanguage)?.code ?? '');
+        const starterCode = problem?.starterCodes.find((starter) => starter.language === selectedLanguage)?.code ?? '';
+        setSourceCode(starterCode);
+        setSourceCodesByLanguage((current) => ({
+            ...current,
+            [selectedLanguage]: starterCode,
+        }));
     };
 
     const handleRun = async (customInput?: string) => {
         setIsExecuting(true);
         setExecutionError(null);
         try {
+            const sampleInput = problem?.sampleTestCases.find((testCase) => testCase.input.trim())?.input ?? '';
+            const executionInput = customInput?.trim() ? customInput : sampleInput;
             const result = await runCode(problemId, {
                 language: selectedLanguage,
                 sourceCode,
-                input: customInput,
+                input: executionInput,
             });
             setRunResult(result);
             return result;
@@ -114,7 +139,7 @@ export const useCodingSolving = (problemId: number) => {
         selectedLanguage,
         changeLanguage,
         sourceCode,
-        setSourceCode,
+        setSourceCode: updateSourceCode,
         isExecuting,
         handleRun,
         handleSubmit,
