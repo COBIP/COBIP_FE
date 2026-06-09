@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { useCodingSolving } from '@/hooks/useCodingSolving';
 import ProblemDescription from '@/features/coding-test/components/ProblemDescription';
 import CodeEditor from '@/features/coding-test/components/CodeEditor';
@@ -12,6 +12,7 @@ import type { CodingWorkbookProblemSummaryResponse } from '@/types/CodingWorkboo
 export default function CodingProblemDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const problemId = Number(resolvedParams.id);
+    const workspaceRef = useRef<HTMLDivElement>(null);
 
     const {
         problem,
@@ -30,6 +31,30 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
         executionError,
     } = useCodingSolving(problemId);
     const [relatedProblems, setRelatedProblems] = useState<CodingWorkbookProblemSummaryResponse[]>([]);
+    const [consoleHeightPercent, setConsoleHeightPercent] = useState(35);
+
+    const handleConsoleResizeStart = (event: PointerEvent<HTMLDivElement>) => {
+        const workspace = workspaceRef.current;
+        if (!workspace) return;
+
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+
+        const workspaceRect = workspace.getBoundingClientRect();
+        const updateConsoleHeight = (clientY: number) => {
+            const nextHeight = ((workspaceRect.bottom - clientY) / workspaceRect.height) * 100;
+            setConsoleHeightPercent(Math.min(60, Math.max(25, nextHeight)));
+        };
+        const handlePointerMove = (pointerEvent: globalThis.PointerEvent) => updateConsoleHeight(pointerEvent.clientY);
+        const handlePointerUp = () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+        };
+
+        updateConsoleHeight(event.clientY);
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+    };
 
     useEffect(() => {
         if (!problem?.workbookId) {
@@ -76,8 +101,8 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
                 <div className="w-[40%] min-w-[450px] h-full shadow-inner">
                     <ProblemDescription problem={problem} relatedProblems={sortedRelatedProblems} />
                 </div>
-                <div className="w-[60%] flex flex-col h-full bg-[#1E1E1E]">
-                    <div className="flex-grow overflow-hidden">
+                <div ref={workspaceRef} className="w-[60%] flex flex-col h-full bg-[#1E1E1E]">
+                    <div className="min-h-[220px] overflow-hidden" style={{ height: `${100 - consoleHeightPercent}%` }}>
                         <CodeEditor
                             selectedLanguage={selectedLanguage}
                             changeLanguage={changeLanguage}
@@ -86,7 +111,17 @@ export default function CodingProblemDetailPage({ params }: { params: Promise<{ 
                             resetCode={resetCode}
                         />
                     </div>
-                    <div className="h-[35%] min-h-[250px]">
+                    <div
+                        role="separator"
+                        aria-orientation="horizontal"
+                        aria-label="코드 편집기와 실행 결과 영역 크기 조절"
+                        tabIndex={0}
+                        onPointerDown={handleConsoleResizeStart}
+                        className="group flex h-3 shrink-0 cursor-row-resize items-center justify-center border-y border-slate-800 bg-slate-950"
+                    >
+                        <span className="h-1 w-12 rounded-full bg-slate-700 transition-colors group-hover:bg-violet-500" />
+                    </div>
+                    <div className="min-h-[220px]" style={{ height: `${consoleHeightPercent}%` }}>
                         <ConsolePanel
                             key={problem.id}
                             isExecuting={isExecuting}
