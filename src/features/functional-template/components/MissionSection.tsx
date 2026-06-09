@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type {
   TemplatePracticeMissionApiResponse,
   TemplatePracticeQuizSubmissionResponse,
@@ -16,6 +16,7 @@ interface MissionSectionProps {
   learningType?: 'mission' | 'problem';
   activeMissionId?: number | null;
   completedMissionIds?: Set<number>;
+  answerStorageKey?: string | null;
   onOpenEditor?: (fileName: string, missionId: number) => void;
   onSubmitQuizAnswer?: (missionId: number, answer: string) => Promise<TemplatePracticeQuizSubmissionResponse>;
   missions?: Array<TemplatePracticeMissionApiResponse & { fileName?: string }>;
@@ -89,6 +90,7 @@ export function MissionSection({
   learningType = 'mission',
   activeMissionId,
   completedMissionIds,
+  answerStorageKey,
   onOpenEditor,
   onSubmitQuizAnswer,
   missions,
@@ -97,6 +99,7 @@ export function MissionSection({
   const [problemAnswers, setProblemAnswers] = useState<Record<number, string>>({});
   const [quizFeedbacks, setQuizFeedbacks] = useState<Record<number, QuizFeedback>>({});
   const [checkingQuizIds, setCheckingQuizIds] = useState<Set<number>>(new Set());
+  const [isAnswerStorageLoaded, setIsAnswerStorageLoaded] = useState(false);
   const steps = missions && missions.length > 0
     ? missions.map((mission, index) => {
         const meta = getMissionMeta(mission.validationJson);
@@ -130,6 +133,47 @@ export function MissionSection({
       return next;
     });
   };
+
+  useEffect(() => {
+    if (!answerStorageKey || learningType !== 'problem' || typeof window === 'undefined') {
+      setIsAnswerStorageLoaded(true);
+      return;
+    }
+
+    try {
+      const rawValue = window.localStorage.getItem(answerStorageKey);
+      const storedAnswers = rawValue ? JSON.parse(rawValue) as Record<string, string> : {};
+      const missionIds = new Set((missions ?? []).map((mission) => String(mission.id)));
+      const nextAnswers = Object.fromEntries(
+        Object.entries(storedAnswers)
+          .filter(([missionId, answer]) => missionIds.has(missionId) && typeof answer === 'string')
+          .map(([missionId, answer]) => [Number(missionId), answer]),
+      ) as Record<number, string>;
+
+      setProblemAnswers(nextAnswers);
+    } catch {
+      setProblemAnswers({});
+    } finally {
+      setIsAnswerStorageLoaded(true);
+    }
+  }, [answerStorageKey, learningType, missions]);
+
+  useEffect(() => {
+    if (!isAnswerStorageLoaded || !answerStorageKey || learningType !== 'problem' || typeof window === 'undefined') {
+      return;
+    }
+
+    const storedAnswers = Object.fromEntries(
+      Object.entries(problemAnswers).filter(([, answer]) => answer.trim().length > 0),
+    );
+
+    if (Object.keys(storedAnswers).length === 0) {
+      window.localStorage.removeItem(answerStorageKey);
+      return;
+    }
+
+    window.localStorage.setItem(answerStorageKey, JSON.stringify(storedAnswers));
+  }, [answerStorageKey, isAnswerStorageLoaded, learningType, problemAnswers]);
 
   const checkAnswer = async (missionId: number, answer?: string) => {
     const rawUserAnswer = problemAnswers[missionId] ?? '';
