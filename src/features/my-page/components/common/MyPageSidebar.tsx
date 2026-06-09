@@ -8,9 +8,6 @@ import { getSafeProfileImageUrl } from '@/features/my-page/components/profile-ed
 import { 
     LayoutDashboard, 
     BookOpen, 
-    FileEdit, 
-    Archive, 
-    FileText, 
     CreditCard, 
     UserCog, 
     Settings
@@ -49,9 +46,6 @@ export default function MyPageSidebar() {
                 <SidebarLink href="/my-page/dashboard" icon={<LayoutDashboard size={20} />} title="대시보드" />
                 <SidebarLink href="/my-page/study" icon={<BookOpen size={20} />} title="내 학습" />
                 <SidebarLink href="/my-page/subscription" icon={<CreditCard size={20} />} title="구독관리" />
-                <SidebarLink href="/my-page/review-note" icon={<FileEdit size={20} />} title="오답노트" />
-                <SidebarLink href="/my-page/archive" icon={<Archive size={20} />} title="보관함" />
-                <SidebarLink href="/my-page/posts" icon={<FileText size={20} />} title="작성한 게시글" />
                 <SidebarLink href="/my-page/account-management" icon={<Settings size={20} />} title="계정관리" />
             </nav>
             

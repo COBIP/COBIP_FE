@@ -1,5 +1,5 @@
 import ProfileHeader from '@/features/my-page/components/profile/ProfileHeader';
-import ProfileTabs  from '@/features/my-page/components/profile/ProfileTabs';
+import ProfileIntro from '@/features/my-page/components/profile/ProfileIntro';
 
 export default function MyPage() {
 
@@ -9,8 +9,8 @@ export default function MyPage() {
                 <ProfileHeader />
                 
             
-                <div className="flex flex-col flex-1 min-h-0">
-                    <ProfileTabs />
+                <div className="flex flex-col flex-1 min-h-0 bg-white border border-[#cbc3d7] rounded-[16px] shadow-[0px_4px_20px_rgba(18,18,18,0.04)] overflow-hidden">
+                    <ProfileIntro />
                 </div> 
             </div>
         </>
