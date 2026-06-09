@@ -2,12 +2,17 @@
 
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, ChevronRight } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import ProblemGrid from '@/features/coding-test/components/ProblemGrid';
 import CodingTestFilter, { type CodingTestFilterState } from '@/features/coding-test/components/CodingTestFilter';
 import { getWorkbookDetail } from '@/api/services/CodingWorkbookService';
 import { useCodingWorkbooks } from '@/hooks/useCodingWorkbooks';
 import { Header } from '@/features/main-home/components/Header';
+import {
+    checkCodingProblemStoredSolved,
+    getCodingSolvedProblemIdsSnapshot,
+    syncCodingSolvedProblemIds,
+} from '@/features/coding-test/utils/CodingSolvedProblemStorage';
 import type {
     CodingDifficulty,
     CodingWorkbookDetailResponse,
@@ -30,6 +35,11 @@ export default function CodingTestPage() {
     const [isWorkbookDetailLoading, setIsWorkbookDetailLoading] = useState(false);
     const [workbookDetailError, setWorkbookDetailError] = useState('');
     const { data, isLoading, error, updateParams } = useCodingWorkbooks(DEFAULT_PARAMS);
+    const solvedProblemIdsSnapshot = useSyncExternalStore(
+        syncCodingSolvedProblemIds,
+        getCodingSolvedProblemIdsSnapshot,
+        () => '',
+    );
 
     const workbooks = data?.content ?? EMPTY_WORKBOOKS;
     const totalPages = data?.totalPages ?? 1;
@@ -41,8 +51,13 @@ export default function CodingTestPage() {
     }, [workbooks]);
 
     const sortedProblems = useMemo(
-        () => [...(selectedWorkbook?.problems ?? [])].sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id),
-        [selectedWorkbook?.problems]
+        () => [...(selectedWorkbook?.problems ?? [])]
+            .map((problem) => ({
+                ...problem,
+                solved: Boolean(problem.solved) || checkCodingProblemStoredSolved(problem.id, solvedProblemIdsSnapshot),
+            }))
+            .sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id),
+        [selectedWorkbook?.problems, solvedProblemIdsSnapshot]
     );
 
     const handleSelectWorkbook = async (workbookId: number) => {

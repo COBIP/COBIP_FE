@@ -13,6 +13,7 @@ import { useState } from 'react';
 interface ProblemDescriptionProps {
     problem: CodingProblemDetailResponse;
     relatedProblems: CodingWorkbookProblemSummaryResponse[];
+    isProblemSolved?: boolean;
 }
 
 const difficultyLabel: Record<CodingProblemDetailResponse['difficulty'], string> = {
@@ -74,9 +75,9 @@ const renderContent = (content: CodingProblemJson) => {
     });
 };
 
-export default function ProblemDescription({ problem, relatedProblems }: ProblemDescriptionProps) {
+export default function ProblemDescription({ problem, relatedProblems, isProblemSolved = false }: ProblemDescriptionProps) {
     const [activeTab, setActiveTab] = useState<'description' | 'related'>('description');
-    const isCurrentProblemSolved = relatedProblems.some((relatedProblem) => (
+    const isCurrentProblemSolved = isProblemSolved || relatedProblems.some((relatedProblem) => (
         relatedProblem.id === problem.id && relatedProblem.solved
     ));
 

@@ -46,6 +46,7 @@ export interface CodingProblemDetailResponse {
     memoryLimitMb: number;
     sampleTestCases: CodingProblemSampleTestCaseResponse[];
     starterCodes: CodingProblemStarterCodeResponse[];
+    solved?: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -76,6 +77,7 @@ export interface CodingSubmissionResponse {
     problemId: number;
     language: CodingLanguage;
     status: CodingSubmissionStatus;
+    solved?: boolean;
     passedCount: number;
     totalCount: number;
     stdout: string | null;

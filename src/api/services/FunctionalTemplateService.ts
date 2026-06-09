@@ -98,6 +98,7 @@ export type TemplatePracticeMissionApiResponse = {
   guideContent: string;
   validationJson: Record<string, unknown> | null;
   progressStatus?: TemplatePracticeProgressStatus | null;
+  solved?: boolean;
 };
 
 export type TemplatePracticeProgressApiResponse = {
@@ -144,6 +145,7 @@ export type TemplatePracticeSubmissionResponse = {
   missionId?: number;
   language?: string;
   status: string;
+  solved?: boolean;
   passedCount: number;
   totalCount: number;
   stdout: string | null;
