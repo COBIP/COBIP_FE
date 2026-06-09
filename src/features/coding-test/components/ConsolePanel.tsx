@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Play, Upload } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import type { CodingCodeRunResponse, CodingSubmissionResponse } from '@/types/CodingProblemTypes';
 
 interface ConsolePanelProps {
@@ -110,7 +109,6 @@ export default function ConsolePanel({
     executionError,
     defaultInput = '',
 }: ConsolePanelProps) {
-    const router = useRouter();
     const [activeTab, setActiveTab] = useState<'TEST_RESULT' | 'SUBMIT_RESULT'>('TEST_RESULT');
 
     const testCode = async () => {
@@ -123,7 +121,7 @@ export default function ConsolePanel({
         const result = await handleSubmit();
         if (result?.status === 'ACCEPTED') {
             window.alert('제출에 성공했습니다.');
-            router.push('/coding-test');
+            window.location.href = '/coding-test';
         }
     };
 
