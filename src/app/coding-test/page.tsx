@@ -6,23 +6,26 @@ import CodingTestFilter, { type CodingTestFilterState } from '@/features/coding-
 import { getWorkbookDetail } from '@/api/services/CodingWorkbookService';
 import { useCodingWorkbooks } from '@/hooks/useCodingWorkbooks';
 import { Header } from '@/features/main-home/components/Header';
-import type { CodingWorkbookDetailResponse, CodingWorkbookSummaryResponse } from '@/types/CodingWorkbookTypes';
+import type {
+    CodingWorkbookDetailResponse,
+    CodingProblemListItem,
+    CodingWorkbookSummaryResponse,
+} from '@/types/CodingWorkbookTypes';
 
 const DEFAULT_FILTERS: CodingTestFilterState = {};
 const DEFAULT_PARAMS = { page: 0, size: 16, sort: 'createdAt,desc' };
 const EMPTY_WORKBOOKS: CodingWorkbookSummaryResponse[] = [];
+const PROBLEMS_PER_PAGE = 16;
 
 export default function CodingTestPage() {
     const [filters, setFilters] = useState<CodingTestFilterState>(DEFAULT_FILTERS);
     const [workbookDetails, setWorkbookDetails] = useState<Record<number, CodingWorkbookDetailResponse>>({});
     const [isProblemFilterLoading, setIsProblemFilterLoading] = useState(false);
+    const [problemPage, setProblemPage] = useState(1);
     const { data, isLoading, error, updateParams } = useCodingWorkbooks(DEFAULT_PARAMS);
 
     const workbooks = data?.content ?? EMPTY_WORKBOOKS;
-    const totalPages = data?.totalPages ?? 1;
-    const currentPage = (data?.page ?? 0) + 1;
     const hasProblemFilter = Boolean(filters.problemCategory || filters.problemDifficulty);
-    const hasTitleSearch = Boolean(filters.titleKeyword);
 
     const workbookCategoryOptions = useMemo(() => {
         const categories = workbooks.map((workbook) => workbook.category);
@@ -71,23 +74,10 @@ export default function CodingTestPage() {
         return Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'ko-KR'));
     }, [workbookDetails]);
 
-    const getWorkbookProblems = (workbookId: number) => {
-        const problems = workbookDetails[workbookId]?.problems ?? [];
-        return [...problems].sort((a, b) => a.orderIndex - b.orderIndex);
-    };
-
     const filteredWorkbooks = useMemo(() => {
-        const titleKeyword = filters.titleKeyword?.trim().toLowerCase();
-        const titleFilteredWorkbooks = workbooks.filter((workbook) => {
-            const title = workbook.title.toLowerCase();
-            const hasTitleKeyword = !titleKeyword || title.includes(titleKeyword);
+        if (!hasProblemFilter) return workbooks;
 
-            return hasTitleKeyword;
-        });
-
-        if (!hasProblemFilter) return titleFilteredWorkbooks;
-
-        return titleFilteredWorkbooks.filter((workbook) => {
+        return workbooks.filter((workbook) => {
             const detail = workbookDetails[workbook.id];
             if (!detail) return false;
 
@@ -97,12 +87,43 @@ export default function CodingTestPage() {
                 return hasCategory && hasDifficulty;
             });
         });
-    }, [filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, hasProblemFilter, workbookDetails, workbooks]);
+    }, [filters.problemCategory, filters.problemDifficulty, hasProblemFilter, workbookDetails, workbooks]);
+
+    const filteredProblems = useMemo<CodingProblemListItem[]>(() => (
+        filteredWorkbooks.flatMap((workbook) => {
+            const detail = workbookDetails[workbook.id];
+            if (!detail) return [];
+
+            const titleKeyword = filters.titleKeyword?.trim().toLowerCase();
+
+            return [...detail.problems]
+                .sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id)
+                .filter((problem) => {
+                    const hasTitleKeyword = !titleKeyword || problem.title.toLowerCase().includes(titleKeyword);
+                    const hasCategory = !filters.problemCategory || problem.category === filters.problemCategory;
+                    const hasDifficulty = !filters.problemDifficulty || problem.difficulty === filters.problemDifficulty;
+                    return hasTitleKeyword && hasCategory && hasDifficulty;
+                })
+                .map((problem) => ({ workbook, problem }));
+        })
+    ), [filteredWorkbooks, filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, workbookDetails]);
+
+    const problemTotalPages = Math.ceil(filteredProblems.length / PROBLEMS_PER_PAGE);
+    const currentProblemPage = problemTotalPages > 0 ? Math.min(problemPage, problemTotalPages) : 1;
+    const paginatedProblems = filteredProblems.slice(
+        (currentProblemPage - 1) * PROBLEMS_PER_PAGE,
+        currentProblemPage * PROBLEMS_PER_PAGE
+    );
+
+    useEffect(() => {
+        setProblemPage(1);
+    }, [filters, workbookDetails]);
 
     const applyFilters = (nextFilters: CodingTestFilterState) => {
         setFilters(nextFilters);
+        setProblemPage(1);
         updateParams({
-            keyword: nextFilters.titleKeyword || undefined,
+            keyword: undefined,
             category: nextFilters.workbookCategory,
             difficulty: nextFilters.workbookDifficulty,
             page: 0,
@@ -112,6 +133,7 @@ export default function CodingTestPage() {
 
     const resetFilters = () => {
         setFilters(DEFAULT_FILTERS);
+        setProblemPage(1);
         updateParams({
             keyword: undefined,
             category: undefined,
@@ -143,32 +165,37 @@ export default function CodingTestPage() {
 
                     {isLoading && !data ? (
                         <div className="text-center py-20 text-gray-500 font-bold">데이터를 불러오는 중입니다...</div>
-                    ) : hasProblemFilter && isProblemFilterLoading ? (
-                        <div className="text-center py-20 text-gray-500 font-bold">문제 필터를 적용하는 중입니다...</div>
-                    ) : filteredWorkbooks.length === 0 ? (
+                    ) : isProblemFilterLoading ? (
+                        <div className="text-center py-20 text-gray-500 font-bold">문제 목록을 불러오는 중입니다...</div>
+                    ) : paginatedProblems.length === 0 ? (
                         <div className="text-center py-20 text-gray-500 font-bold">
-                            선택하신 조건에 맞는 문제집이 없습니다.
+                            선택하신 조건에 맞는 문제가 없습니다.
                         </div>
                     ) : (
-                        <ProblemGrid workbooks={filteredWorkbooks} getWorkbookProblems={getWorkbookProblems} />
+                        <ProblemGrid problems={paginatedProblems} />
                     )}
 
-                    {totalPages > 1 && !hasProblemFilter && !hasTitleSearch && (
+                    {problemTotalPages > 1 && paginatedProblems.length > 0 && (
                         <div className="flex justify-center items-center gap-2 mt-12">
-                            <button
-                                disabled={currentPage === 1}
-                                onClick={() => updateParams({ page: currentPage - 2, sort: 'createdAt,desc' })}
-                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-all"
-                            >
-                                이전
-                            </button>
+                            {currentProblemPage > 1 && (
+                                <button
+                                    type="button"
+                                    aria-label="이전 페이지"
+                                    onClick={() => setProblemPage(currentProblemPage - 1)}
+                                    className="w-10 h-10 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                                >
+                                    &lt;
+                                </button>
+                            )}
 
-                            {Array.from({ length: totalPages }).map((_, index) => (
+                            {Array.from({ length: problemTotalPages }).map((_, index) => (
                                 <button
                                     key={index}
-                                    onClick={() => updateParams({ page: index, sort: 'createdAt,desc' })}
+                                    type="button"
+                                    disabled={currentProblemPage === index + 1}
+                                    onClick={() => setProblemPage(index + 1)}
                                     className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
-                                        currentPage === index + 1
+                                        currentProblemPage === index + 1
                                             ? 'bg-violet-600 text-white shadow-sm'
                                             : 'text-gray-600 hover:bg-gray-100'
                                     }`}
@@ -177,13 +204,16 @@ export default function CodingTestPage() {
                                 </button>
                             ))}
 
-                            <button
-                                disabled={currentPage === totalPages}
-                                onClick={() => updateParams({ page: currentPage, sort: 'createdAt,desc' })}
-                                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-all"
-                            >
-                                다음
-                            </button>
+                            {currentProblemPage < problemTotalPages && (
+                                <button
+                                    type="button"
+                                    aria-label="다음 페이지"
+                                    onClick={() => setProblemPage(currentProblemPage + 1)}
+                                    className="w-10 h-10 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                                >
+                                    &gt;
+                                </button>
+                            )}
                         </div>
                     )}
                 </main>
