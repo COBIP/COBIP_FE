@@ -1,129 +1,71 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, CheckCircle2, ChevronRight } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import ProblemGrid from '@/features/coding-test/components/ProblemGrid';
 import CodingTestFilter, { type CodingTestFilterState } from '@/features/coding-test/components/CodingTestFilter';
 import { getWorkbookDetail } from '@/api/services/CodingWorkbookService';
 import { useCodingWorkbooks } from '@/hooks/useCodingWorkbooks';
 import { Header } from '@/features/main-home/components/Header';
 import type {
+    CodingDifficulty,
     CodingWorkbookDetailResponse,
-    CodingProblemListItem,
     CodingWorkbookSummaryResponse,
 } from '@/types/CodingWorkbookTypes';
 
 const DEFAULT_FILTERS: CodingTestFilterState = {};
 const DEFAULT_PARAMS = { page: 0, size: 16, sort: 'createdAt,desc' };
 const EMPTY_WORKBOOKS: CodingWorkbookSummaryResponse[] = [];
-const PROBLEMS_PER_PAGE = 16;
+
+const difficultyLabel: Record<CodingDifficulty, string> = {
+    EASY: '초급',
+    MEDIUM: '중급',
+    HARD: '고급',
+};
 
 export default function CodingTestPage() {
     const [filters, setFilters] = useState<CodingTestFilterState>(DEFAULT_FILTERS);
-    const [workbookDetails, setWorkbookDetails] = useState<Record<number, CodingWorkbookDetailResponse>>({});
-    const [isProblemFilterLoading, setIsProblemFilterLoading] = useState(false);
-    const [problemPage, setProblemPage] = useState(1);
+    const [selectedWorkbook, setSelectedWorkbook] = useState<CodingWorkbookDetailResponse | null>(null);
+    const [isWorkbookDetailLoading, setIsWorkbookDetailLoading] = useState(false);
+    const [workbookDetailError, setWorkbookDetailError] = useState('');
     const { data, isLoading, error, updateParams } = useCodingWorkbooks(DEFAULT_PARAMS);
 
     const workbooks = data?.content ?? EMPTY_WORKBOOKS;
-    const hasProblemFilter = Boolean(filters.problemCategory || filters.problemDifficulty);
+    const totalPages = data?.totalPages ?? 1;
+    const currentPage = (data?.page ?? 0) + 1;
 
     const workbookCategoryOptions = useMemo(() => {
         const categories = workbooks.map((workbook) => workbook.category);
         return Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'ko-KR'));
     }, [workbooks]);
 
-    useEffect(() => {
-        if (workbooks.length === 0) {
-            setWorkbookDetails({});
-            return;
-        }
-
-        let isMounted = true;
-
-        const fetchDetails = async () => {
-            setIsProblemFilterLoading(true);
-            try {
-                const entries = await Promise.all(
-                    workbooks.map(async (workbook) => {
-                        const detail = await getWorkbookDetail(workbook.id);
-                        return [workbook.id, detail] as const;
-                    })
-                );
-
-                if (!isMounted) return;
-                setWorkbookDetails(Object.fromEntries(entries));
-            } catch (err) {
-                console.error('Failed to fetch coding workbook details for problem filters:', err);
-                if (!isMounted) return;
-                setWorkbookDetails({});
-            } finally {
-                if (isMounted) setIsProblemFilterLoading(false);
-            }
-        };
-
-        fetchDetails();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [data?.content, workbooks]);
-
-    const problemCategoryOptions = useMemo(() => {
-        const categories = Object.values(workbookDetails)
-            .flatMap((detail) => detail.problems.map((problem) => problem.category));
-        return Array.from(new Set(categories)).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    }, [workbookDetails]);
-
-    const filteredWorkbooks = useMemo(() => {
-        if (!hasProblemFilter) return workbooks;
-
-        return workbooks.filter((workbook) => {
-            const detail = workbookDetails[workbook.id];
-            if (!detail) return false;
-
-            return detail.problems.some((problem) => {
-                const hasCategory = !filters.problemCategory || problem.category === filters.problemCategory;
-                const hasDifficulty = !filters.problemDifficulty || problem.difficulty === filters.problemDifficulty;
-                return hasCategory && hasDifficulty;
-            });
-        });
-    }, [filters.problemCategory, filters.problemDifficulty, hasProblemFilter, workbookDetails, workbooks]);
-
-    const filteredProblems = useMemo<CodingProblemListItem[]>(() => (
-        filteredWorkbooks.flatMap((workbook) => {
-            const detail = workbookDetails[workbook.id];
-            if (!detail) return [];
-
-            const titleKeyword = filters.titleKeyword?.trim().toLowerCase();
-
-            return [...detail.problems]
-                .sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id)
-                .filter((problem) => {
-                    const hasTitleKeyword = !titleKeyword || problem.title.toLowerCase().includes(titleKeyword);
-                    const hasCategory = !filters.problemCategory || problem.category === filters.problemCategory;
-                    const hasDifficulty = !filters.problemDifficulty || problem.difficulty === filters.problemDifficulty;
-                    return hasTitleKeyword && hasCategory && hasDifficulty;
-                })
-                .map((problem) => ({ workbook, problem }));
-        })
-    ), [filteredWorkbooks, filters.problemCategory, filters.problemDifficulty, filters.titleKeyword, workbookDetails]);
-
-    const problemTotalPages = Math.ceil(filteredProblems.length / PROBLEMS_PER_PAGE);
-    const currentProblemPage = problemTotalPages > 0 ? Math.min(problemPage, problemTotalPages) : 1;
-    const paginatedProblems = filteredProblems.slice(
-        (currentProblemPage - 1) * PROBLEMS_PER_PAGE,
-        currentProblemPage * PROBLEMS_PER_PAGE
+    const sortedProblems = useMemo(
+        () => [...(selectedWorkbook?.problems ?? [])].sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id),
+        [selectedWorkbook?.problems]
     );
 
-    useEffect(() => {
-        setProblemPage(1);
-    }, [filters, workbookDetails]);
+    const handleSelectWorkbook = async (workbookId: number) => {
+        setIsWorkbookDetailLoading(true);
+        setWorkbookDetailError('');
+
+        try {
+            const detail = await getWorkbookDetail(workbookId);
+            setSelectedWorkbook(detail);
+        } catch (err) {
+            console.error('Failed to fetch coding workbook detail:', err);
+            setWorkbookDetailError('문제집 정보를 불러오지 못했습니다.');
+            setSelectedWorkbook(null);
+        } finally {
+            setIsWorkbookDetailLoading(false);
+        }
+    };
 
     const applyFilters = (nextFilters: CodingTestFilterState) => {
         setFilters(nextFilters);
-        setProblemPage(1);
+        setSelectedWorkbook(null);
         updateParams({
-            keyword: undefined,
+            keyword: nextFilters.titleKeyword || undefined,
             category: nextFilters.workbookCategory,
             difficulty: nextFilters.workbookDifficulty,
             page: 0,
@@ -133,7 +75,7 @@ export default function CodingTestPage() {
 
     const resetFilters = () => {
         setFilters(DEFAULT_FILTERS);
-        setProblemPage(1);
+        setSelectedWorkbook(null);
         updateParams({
             keyword: undefined,
             category: undefined,
@@ -143,78 +85,151 @@ export default function CodingTestPage() {
         });
     };
 
+    const goBackToWorkbooks = () => {
+        setSelectedWorkbook(null);
+        setWorkbookDetailError('');
+    };
+
     return (
         <>
             <Header />
             <div className="bg-white min-h-screen pb-20">
                 <main className="flex-grow max-w-[1440px] mx-auto w-full px-8 py-10">
-                    <CodingTestFilter
-                        key={JSON.stringify(filters)} 
-                        value={filters}
-                        workbookCategoryOptions={workbookCategoryOptions}
-                        problemCategoryOptions={problemCategoryOptions}
-                        onApply={applyFilters}
-                        onReset={resetFilters}
-                    />
+                    {selectedWorkbook ? (
+                        <section>
+                            <button
+                                type="button"
+                                onClick={goBackToWorkbooks}
+                                className="mb-6 inline-flex items-center gap-2 rounded-md border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50"
+                            >
+                                <ArrowLeft size={16} />
+                                뒤로가기
+                            </button>
 
-                    {error && (
-                        <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-                            {error}
-                        </div>
-                    )}
+                            <div className="mb-8">
+                                <div className="mb-3 flex flex-wrap gap-1.5">
+                                    <span className="rounded border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                                        {selectedWorkbook.category}
+                                    </span>
+                                    <span className="rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                                        {difficultyLabel[selectedWorkbook.difficulty]}
+                                    </span>
+                                </div>
+                                <h1 className="mb-3 text-3xl font-bold text-gray-950">{selectedWorkbook.title}</h1>
+                                <p className="max-w-3xl text-sm leading-6 text-gray-600">{selectedWorkbook.summary}</p>
+                            </div>
 
-                    {isLoading && !data ? (
-                        <div className="text-center py-20 text-gray-500 font-bold">데이터를 불러오는 중입니다...</div>
-                    ) : isProblemFilterLoading ? (
-                        <div className="text-center py-20 text-gray-500 font-bold">문제 목록을 불러오는 중입니다...</div>
-                    ) : paginatedProblems.length === 0 ? (
-                        <div className="text-center py-20 text-gray-500 font-bold">
-                            선택하신 조건에 맞는 문제가 없습니다.
-                        </div>
+                            {sortedProblems.length === 0 ? (
+                                <div className="text-center py-20 text-gray-500 font-bold">아직 등록된 문제가 없습니다.</div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-3">
+                                    {sortedProblems.map((problem) => (
+                                        <Link
+                                            key={problem.id}
+                                            href={`/coding-test/problem/${problem.id}`}
+                                            className="group flex items-center gap-4 rounded-md border border-gray-200 bg-white px-5 py-4 shadow-sm transition-all hover:border-violet-300 hover:bg-violet-50/40"
+                                        >
+                                            <span className="w-8 shrink-0 text-sm font-bold text-gray-400">{problem.orderIndex}</span>
+                                            <div className="min-w-0 flex-grow">
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                    <p className="truncate text-base font-bold text-gray-950">{problem.title}</p>
+                                                    {problem.solved && (
+                                                        <span className="inline-flex shrink-0 items-center gap-1 rounded border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                                                            <CheckCircle2 size={12} />
+                                                            해결됨
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="mt-1 flex gap-1.5 text-[11px] font-bold">
+                                                    <span className="rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-blue-700">
+                                                        {problem.category}
+                                                    </span>
+                                                    <span className="rounded border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-emerald-700">
+                                                        {difficultyLabel[problem.difficulty]}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <ChevronRight size={18} className="shrink-0 text-gray-400 transition-colors group-hover:text-violet-600" />
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
                     ) : (
-                        <ProblemGrid problems={paginatedProblems} />
-                    )}
+                        <>
+                            <CodingTestFilter
+                                key={JSON.stringify(filters)}
+                                value={filters}
+                                workbookCategoryOptions={workbookCategoryOptions}
+                                onApply={applyFilters}
+                                onReset={resetFilters}
+                            />
 
-                    {problemTotalPages > 1 && paginatedProblems.length > 0 && (
-                        <div className="flex justify-center items-center gap-2 mt-12">
-                            {currentProblemPage > 1 && (
-                                <button
-                                    type="button"
-                                    aria-label="이전 페이지"
-                                    onClick={() => setProblemPage(currentProblemPage - 1)}
-                                    className="w-10 h-10 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
-                                >
-                                    &lt;
-                                </button>
+                            {error && (
+                                <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                                    {error}
+                                </div>
+                            )}
+                            {workbookDetailError && (
+                                <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                                    {workbookDetailError}
+                                </div>
                             )}
 
-                            {Array.from({ length: problemTotalPages }).map((_, index) => (
-                                <button
-                                    key={index}
-                                    type="button"
-                                    disabled={currentProblemPage === index + 1}
-                                    onClick={() => setProblemPage(index + 1)}
-                                    className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
-                                        currentProblemPage === index + 1
-                                            ? 'bg-violet-600 text-white shadow-sm'
-                                            : 'text-gray-600 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    {index + 1}
-                                </button>
-                            ))}
-
-                            {currentProblemPage < problemTotalPages && (
-                                <button
-                                    type="button"
-                                    aria-label="다음 페이지"
-                                    onClick={() => setProblemPage(currentProblemPage + 1)}
-                                    className="w-10 h-10 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
-                                >
-                                    &gt;
-                                </button>
+                            {isLoading && !data ? (
+                                <div className="text-center py-20 text-gray-500 font-bold">데이터를 불러오는 중입니다...</div>
+                            ) : isWorkbookDetailLoading ? (
+                                <div className="text-center py-20 text-gray-500 font-bold">문제집 정보를 불러오는 중입니다...</div>
+                            ) : workbooks.length === 0 ? (
+                                <div className="text-center py-20 text-gray-500 font-bold">
+                                    선택하신 조건에 맞는 문제집이 없습니다.
+                                </div>
+                            ) : (
+                                <ProblemGrid workbooks={workbooks} onSelectWorkbook={(workbookId) => void handleSelectWorkbook(workbookId)} />
                             )}
-                        </div>
+
+                            {totalPages > 1 && workbooks.length > 0 && (
+                                <div className="flex justify-center items-center gap-2 mt-12">
+                                    {currentPage > 1 && (
+                                        <button
+                                            type="button"
+                                            aria-label="이전 페이지"
+                                            onClick={() => updateParams({ page: currentPage - 2, sort: 'createdAt,desc' })}
+                                            className="w-10 h-10 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                                        >
+                                            &lt;
+                                        </button>
+                                    )}
+
+                                    {Array.from({ length: totalPages }).map((_, index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            disabled={currentPage === index + 1}
+                                            onClick={() => updateParams({ page: index, sort: 'createdAt,desc' })}
+                                            className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
+                                                currentPage === index + 1
+                                                    ? 'bg-violet-600 text-white shadow-sm'
+                                                    : 'text-gray-600 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            {index + 1}
+                                        </button>
+                                    ))}
+
+                                    {currentPage < totalPages && (
+                                        <button
+                                            type="button"
+                                            aria-label="다음 페이지"
+                                            onClick={() => updateParams({ page: currentPage, sort: 'createdAt,desc' })}
+                                            className="w-10 h-10 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                                        >
+                                            &gt;
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
                 </main>
             </div>
