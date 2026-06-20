@@ -38,6 +38,7 @@ import {
 } from '@/api/services/FunctionalTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
 import { AiChatPanel, type ChatMessage } from '@/components/ai/AiChatPanel';
+import { fetchAiCodeAnalyze } from '@/api/services/AiService';
 
 const TEXT = {
   headerTitle: '기능 템플릿 학습',
@@ -381,6 +382,7 @@ export function FunctionalTemplateLayout({
   const [runOutput, setRunOutput] = useState('');
   const [submissionResult, setSubmissionResult] = useState<TemplatePracticeSubmissionResponse | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isAnalyzingCode, setIsAnalyzingCode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [practiceProgress, setPracticeProgress] = useState<TemplatePracticeProgressApiResponse | null>(
     practice?.progress ?? null,
@@ -621,8 +623,6 @@ export function FunctionalTemplateLayout({
     setIsAiChatOpen(true);
   };
 
-  const handleOpenEditorAiChat = () => setIsAiChatOpen(true);
-
   const buildProjectFiles = () =>
     practiceFiles.map((file) => ({
       filePath: file.filePath,
@@ -708,6 +708,38 @@ export function FunctionalTemplateLayout({
       setRunOutput(error instanceof Error ? error.message : '실행에 실패했습니다.');
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const handleAnalyzeEditorCode = async () => {
+    if (!editorCode.trim() || isAnalyzingCode) return;
+
+    setIsAnalyzingCode(true);
+    setRunOutput('AI가 현재 코드를 분석하고 있습니다...');
+
+    try {
+      const result = await fetchAiCodeAnalyze({
+        code: editorCode,
+        language: getCodingLanguageByFilePath(resolvedActiveFile),
+        context: aiChatContext,
+      });
+      setRunOutput(
+        [
+          `AI 피드백`,
+          `요약\n${result.summary}`,
+          `설명\n${result.explanation}`,
+          result.potentialIssues.length > 0
+            ? `잠재 이슈\n${result.potentialIssues.map((issue) => `- ${issue}`).join('\n')}`
+            : '잠재 이슈\n- 발견된 이슈가 없습니다.',
+          result.improvementSuggestions.length > 0
+            ? `개선 제안\n${result.improvementSuggestions.map((suggestion) => `- ${suggestion}`).join('\n')}`
+            : '개선 제안\n- 추가 제안이 없습니다.',
+        ].join('\n\n'),
+      );
+    } catch (error) {
+      setRunOutput(error instanceof Error ? error.message : 'AI 코드 피드백 생성에 실패했습니다.');
+    } finally {
+      setIsAnalyzingCode(false);
     }
   };
 
@@ -1121,8 +1153,9 @@ export function FunctionalTemplateLayout({
                       hasContent={hasPracticeFiles}
                       onRun={() => void handleRunProject()}
                       onSubmit={() => void handleSubmitProject()}
-                      onAiChatOpen={handleOpenEditorAiChat}
+                      onCodeAnalyze={() => void handleAnalyzeEditorCode()}
                       isRunning={isRunning}
+                      isAnalyzing={isAnalyzingCode}
                       isSubmitting={isSubmitting}
                       runOutput={runOutput}
                       submissionResult={submissionResult}
