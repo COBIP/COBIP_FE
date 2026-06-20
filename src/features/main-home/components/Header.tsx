@@ -48,15 +48,9 @@ export function Header() {
     <header className="border-b border-gray-100 bg-white/90 backdrop-blur-xl sticky top-0 z-30">
       <div className="relative">
         {/* 로고 - 화면 좌측 끝에 가깝게 */}
-        <div className="absolute left-2 top-0 h-16 flex items-center">
-          <Link href="/main-home" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition shrink-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white shadow-md shadow-purple-200 group-hover:shadow-lg group-hover:shadow-purple-300 transition-shadow">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <rect fill="currentColor" height="16" rx="3" width="16" x="4" y="4"></rect>
-                <circle cx="12" cy="12" fill="#f6f6f8" r="3"></circle>
-              </svg>
-            </div>
-            <span className="text-slate-900 text-lg font-semibold tracking-tight">COBIP</span>
+        <div className="absolute left-6 top-0 h-16 flex items-center">
+          <Link href="/main-home" className="flex items-center cursor-pointer transition hover:opacity-80">
+            <span className="text-xl font-bold tracking-tight text-slate-950">COBIP</span>
           </Link>
         </div>
 
@@ -137,7 +131,6 @@ export function Header() {
                   {[
                     { href: "/grammar-template", label: "문법 템플릿" },
                     { href: "/functional-template-hub", label: "기능 템플릿" },
-                    { href: "/playground", label: "실습환경" },
                     { href: "/coding-test", label: "코테집" },
                   ].map((item) => (
                     <Link
@@ -184,13 +177,12 @@ export function Header() {
         </div>
 
         {/* 중앙: max-width 컨테이너에 네비게이션 */}
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="h-16 flex items-center justify-center">
+        <div className="ml-32 mr-28 px-6">
+          <div className="h-16 flex items-center">
             <nav className="hidden md:flex items-center gap-1">
               {[
                 { href: "/grammar-template", label: "문법 템플릿" },
                 { href: "/functional-template-hub", label: "기능 템플릿" },
-                { href: "/playground", label: "실습환경" },
                 { href: "/coding-test", label: "코테집" },
               ].map((item) => (
                 <Link
