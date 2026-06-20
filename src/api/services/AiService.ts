@@ -262,6 +262,21 @@ export type AiMissionFeedbackResponse = {
   nextAction: string;
 };
 
+export type AiCodeAnalyzeResponse = {
+  summary: string;
+  explanation: string;
+  potentialIssues: string[];
+  improvementSuggestions: string[];
+};
+
+export type AiInterviewFeedbackResponse = {
+  score: number;
+  includedKeyPoints: string[];
+  missingKeyPoints: string[];
+  feedback: string;
+  improvedAnswer: string;
+};
+
 type AiApiResponse<T> = {
   success: boolean;
   message: string;
@@ -849,5 +864,43 @@ export async function fetchAiMissionFeedback(request: {
     body: JSON.stringify(payload),
   });
   const result = await parseAiResponse<AiApiResponse<AiMissionFeedbackResponse>>(response);
+  return result.data;
+}
+
+export async function fetchAiCodeAnalyze(request: {
+  code: string;
+  language: string;
+  context?: string | null;
+}): Promise<AiCodeAnalyzeResponse> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/code/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code: request.code,
+      language: request.language,
+      context: request.context ?? null,
+    }),
+  });
+
+  const result = await parseAiResponse<AiApiResponse<AiCodeAnalyzeResponse>>(response);
+  return result.data;
+}
+
+export async function fetchAiInterviewFeedback(request: {
+  question: string;
+  keyPoints: string[];
+  userAnswer: string;
+}): Promise<AiInterviewFeedbackResponse> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/interview/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      question: request.question,
+      keyPoints: request.keyPoints,
+      userAnswer: request.userAnswer,
+    }),
+  });
+
+  const result = await parseAiResponse<AiApiResponse<AiInterviewFeedbackResponse>>(response);
   return result.data;
 }

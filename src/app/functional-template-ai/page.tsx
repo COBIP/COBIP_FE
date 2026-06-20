@@ -28,8 +28,10 @@ import {
 import { useUserStore } from '@/store/UseUserStore';
 import {
   fetchAiFeatureTemplateSection,
+  fetchAiInterviewFeedback,
   fetchAiMissionFeedback,
   fetchAiQuizGrade,
+  type AiInterviewFeedbackResponse,
   type AiFeatureTemplateApiSpec,
   type AiFeatureTemplateBasicQuestion,
   type AiFeatureTemplateCodeFile,
@@ -445,7 +447,14 @@ function renderMissions(
   );
 }
 
-function renderInterviewQuestions(questions: AiFeatureTemplateInterviewQuestion[]) {
+function renderInterviewQuestions(
+  questions: AiFeatureTemplateInterviewQuestion[],
+  answers: Record<string, string>,
+  results: Record<string, AiInterviewFeedbackResponse>,
+  gradingId: string | null,
+  onAnswerChange: (questionId: string, value: string) => void,
+  onFeedback: (question: AiFeatureTemplateInterviewQuestion) => void,
+) {
   if (questions.length === 0) return renderEmpty('생성된 핵심 질문이 없습니다.');
 
   return (
@@ -455,7 +464,51 @@ function renderInterviewQuestions(questions: AiFeatureTemplateInterviewQuestion[
         <ContentPanel key={question.questionId || index}>
           <p className="text-sm font-semibold text-[#7C3AED]">Q{index + 1}</p>
           <h3 className="mt-2 text-lg font-bold text-[#1E293B]">{question.question}</h3>
-          <p className="mt-3 text-[15px] leading-7 text-[#334155]">{question.sampleAnswer}</p>
+          <textarea
+            value={answers[question.questionId] ?? ''}
+            onChange={(event) => onAnswerChange(question.questionId, event.target.value)}
+            placeholder="내 답안을 작성한 뒤 AI 피드백을 받아보세요."
+            className="mt-4 min-h-28 w-full resize-y rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:border-[#7C3AED] focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => onFeedback(question)}
+            disabled={!answers[question.questionId]?.trim() || gradingId === question.questionId}
+            className="mt-3 inline-flex h-9 items-center rounded-lg bg-[#7C3AED] px-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {gradingId === question.questionId ? '피드백 생성 중' : 'AI 피드백 받기'}
+          </button>
+          {results[question.questionId] && (
+            <div className="mt-4 rounded-lg border border-[#DDD6FE] bg-white px-4 py-3 text-sm text-[#334155]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-bold text-[#1E293B]">AI 피드백</p>
+                <span className="rounded-md bg-[#EDE9FE] px-2 py-0.5 text-xs font-semibold text-[#6D28D9]">
+                  {results[question.questionId].score}점
+                </span>
+              </div>
+              <p className="mt-2 leading-6">{results[question.questionId].feedback}</p>
+              {results[question.questionId].missingKeyPoints.length > 0 && (
+                <div className="mt-3">
+                  <p className="font-semibold text-[#1E293B]">보완할 포인트</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5">
+                    {results[question.questionId].missingKeyPoints.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {results[question.questionId].improvedAnswer && (
+                <div className="mt-3 rounded-md bg-[#F8FAFC] p-3">
+                  <p className="font-semibold text-[#1E293B]">개선 답안</p>
+                  <p className="mt-1 leading-6">{results[question.questionId].improvedAnswer}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-4 rounded-lg border border-[#E2E8F0] bg-white p-4">
+            <p className="text-sm font-semibold text-[#1E293B]">모범 답안</p>
+            <p className="mt-2 text-[15px] leading-7 text-[#334155]">{question.sampleAnswer}</p>
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {question.keyPoints.map((point) => (
               <span key={point} className="rounded-md bg-[#F1F5F9] px-2.5 py-1 text-xs font-medium text-[#475569]">
@@ -505,6 +558,14 @@ type MissionRenderProps = [
   (mission: AiFeatureTemplateMission) => void,
 ];
 
+type InterviewRenderProps = [
+  Record<string, string>,
+  Record<string, AiInterviewFeedbackResponse>,
+  string | null,
+  (questionId: string, value: string) => void,
+  (question: AiFeatureTemplateInterviewQuestion) => void,
+];
+
 function renderSection(
   section: AiFeatureTemplateSection,
   template: AiFeatureTemplateData,
@@ -512,6 +573,7 @@ function renderSection(
   onOpenMissionCode: (mission: AiFeatureTemplateMission, index: number) => void,
   questionProps: QuestionRenderProps,
   missionProps: MissionRenderProps,
+  interviewProps: InterviewRenderProps,
 ) {
   if (section === 'overview') return renderOverview(template);
   if (section === 'requirements') return renderRequirements(template.requirements);
@@ -522,7 +584,7 @@ function renderSection(
     return renderBasicQuestions(template.basicQuestions, onOpenQuestionCode, ...questionProps);
   }
   if (section === 'missions') return renderMissions(template.missions, onOpenMissionCode, ...missionProps);
-  if (section === 'interviewQuestions') return renderInterviewQuestions(template.interviewQuestions);
+  if (section === 'interviewQuestions') return renderInterviewQuestions(template.interviewQuestions, ...interviewProps);
   return renderNextRecommendations(template.nextRecommendations);
 }
 
@@ -587,10 +649,13 @@ export default function AiFunctionalTemplatePage() {
   const [isAiGuruHintMode, setIsAiGuruHintMode] = useState(true);
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
   const [questionResults, setQuestionResults] = useState<Record<string, AiQuizGradeResponse>>({});
+  const [interviewAnswers, setInterviewAnswers] = useState<Record<string, string>>({});
+  const [interviewResults, setInterviewResults] = useState<Record<string, AiInterviewFeedbackResponse>>({});
   const [missionResults, setMissionResults] = useState<Record<string, AiMissionFeedbackResponse>>({});
   const [completedQuestionIds, setCompletedQuestionIds] = useState<string[]>([]);
   const [completedMissionIds, setCompletedMissionIds] = useState<string[]>([]);
   const [gradingQuestionId, setGradingQuestionId] = useState<string | null>(null);
+  const [gradingInterviewId, setGradingInterviewId] = useState<string | null>(null);
   const [gradingMissionId, setGradingMissionId] = useState<string | null>(null);
   const [codeWorkspaceState, setCodeWorkspaceState] = useState({ isOpen: false, width: 960 });
   const isDarkMode = themeMode === 'dark';
@@ -819,6 +884,25 @@ export default function AiFunctionalTemplatePage() {
     }
   };
 
+  const handleInterviewFeedback = async (question: AiFeatureTemplateInterviewQuestion) => {
+    const userAnswer = interviewAnswers[question.questionId]?.trim();
+    if (!userAnswer) return;
+
+    try {
+      setGradingInterviewId(question.questionId);
+      const result = await fetchAiInterviewFeedback({
+        question: question.question,
+        keyPoints: question.keyPoints,
+        userAnswer,
+      });
+      setInterviewResults((current) => ({ ...current, [question.questionId]: result }));
+    } catch (feedbackError) {
+      setError(feedbackError instanceof Error ? feedbackError.message : '핵심 질문 AI 피드백에 실패했습니다.');
+    } finally {
+      setGradingInterviewId(null);
+    }
+  };
+
   const handleSubmitMission = async (mission: AiFeatureTemplateMission) => {
     if (!template) return;
 
@@ -926,13 +1010,15 @@ export default function AiFunctionalTemplatePage() {
                 <div className="h-full rounded-full bg-[#7C3AED] transition-all" style={{ width: `${progressPercent}%` }} />
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => void handleSaveTemplate()}
-              className="h-10 rounded-lg bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
-            >
-              내 학습에 저장
-            </button>
+            {!savedTemplateId && (
+              <button
+                type="button"
+                onClick={() => void handleSaveTemplate()}
+                className="h-10 rounded-lg bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
+              >
+                내 학습에 저장
+              </button>
+            )}
             {saveMessage && (
               <p className="mt-2 max-w-56 text-right text-xs text-[#047857]">{saveMessage}</p>
             )}
@@ -1016,6 +1102,13 @@ export default function AiFunctionalTemplatePage() {
                 completedMissionIds,
                 gradingMissionId,
                 (mission) => void handleSubmitMission(mission),
+              ],
+              [
+                interviewAnswers,
+                interviewResults,
+                gradingInterviewId,
+                (questionId, value) => setInterviewAnswers((current) => ({ ...current, [questionId]: value })),
+                (question) => void handleInterviewFeedback(question),
               ],
             )}
           </div>

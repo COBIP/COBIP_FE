@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
-import type { AiFeatureTemplateCodeFile } from '@/api/services/AiService';
+import { fetchAiCodeAnalyze, type AiFeatureTemplateCodeFile } from '@/api/services/AiService';
 import { AiChatPanel, type ChatMessage } from '@/components/ai/AiChatPanel';
 import { CodeEditor } from '@/features/functional-template/components/CodeEditor';
 import { FileExplorer } from '@/features/functional-template/components/FileExplorer';
@@ -74,6 +74,7 @@ export function AiTemplateCodeWorkspace({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [activeFile, setActiveFile] = useState(getFileKey(codeFiles[0] ?? { fileName: '' }));
   const [runOutput, setRunOutput] = useState('');
+  const [isAnalyzingCode, setIsAnalyzingCode] = useState(false);
   const [workspaceWidth, setWorkspaceWidth] = useState(960);
   const [explorerWidth, setExplorerWidth] = useState(260);
   const [chatPanelWidth, setChatPanelWidth] = useState(416);
@@ -155,11 +156,34 @@ export function AiTemplateCodeWorkspace({
     )));
   };
 
-  const handleRun = () => {
-    setRunOutput(
-      'AI 생성 템플릿은 아직 실행 가능한 백엔드 리소스와 연결되지 않았습니다.\n' +
-      '코드 편집과 AI 질문은 사용할 수 있으며, 실제 실행은 AI 템플릿 실행 API가 추가되면 연결됩니다.',
-    );
+  const handleRun = async () => {
+    if (!currentFile) return;
+
+    try {
+      setIsAnalyzingCode(true);
+      setRunOutput('AI가 현재 파일을 분석하고 있습니다...');
+      const result = await fetchAiCodeAnalyze({
+        code: currentFile.content,
+        language: currentFile.language || 'text',
+        context: `${chatContext}\n\n현재 파일: ${getFileKey(currentFile)}\n역할: ${currentFile.role || '-'}`,
+      });
+      const sections = [
+        `요약\n${result.summary}`,
+        `설명\n${result.explanation}`,
+        result.potentialIssues.length > 0
+          ? `잠재 이슈\n${result.potentialIssues.map((issue) => `- ${issue}`).join('\n')}`
+          : '잠재 이슈\n- 발견된 이슈가 없습니다.',
+        result.improvementSuggestions.length > 0
+          ? `개선 제안\n${result.improvementSuggestions.map((suggestion) => `- ${suggestion}`).join('\n')}`
+          : '개선 제안\n- 추가 제안이 없습니다.',
+      ];
+
+      setRunOutput(sections.join('\n\n'));
+    } catch (error) {
+      setRunOutput(error instanceof Error ? error.message : 'AI 코드 분석에 실패했습니다.');
+    } finally {
+      setIsAnalyzingCode(false);
+    }
   };
 
   return (
@@ -225,7 +249,9 @@ export function AiTemplateCodeWorkspace({
                   onFileSelect={setActiveFile}
                   hasContent={codeFiles.length > 0}
                   onRun={handleRun}
-                  onAiChatOpen={() => setIsChatOpen(true)}
+                  isRunning={isAnalyzingCode}
+                  runLabel="코드 분석"
+                  runningLabel="분석 중"
                   runOutput={runOutput}
                 />
               </div>

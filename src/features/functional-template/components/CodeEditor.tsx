@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, History, MessageCircle, Play, Save } from 'lucide-react';
+import { FileText, History, MessageCircle, Play, Save, Sparkles } from 'lucide-react';
 
 interface SubmissionResultView {
   status: string;
@@ -21,7 +21,13 @@ interface CodeEditorProps {
   onRun?: () => void;
   onSubmit?: () => void;
   onAiChatOpen?: () => void;
+  onCodeAnalyze?: () => void;
+  runLabel?: string;
+  runningLabel?: string;
+  aiChatLabel?: string;
+  codeAnalyzeLabel?: string;
   isRunning?: boolean;
+  isAnalyzing?: boolean;
   isSubmitting?: boolean;
   runOutput?: string;
   submissionResult?: SubmissionResultView | null;
@@ -40,7 +46,13 @@ export function CodeEditor({
   onRun,
   onSubmit,
   onAiChatOpen,
+  onCodeAnalyze,
+  runLabel = '실행',
+  runningLabel = '실행 중',
+  aiChatLabel = 'AI 채팅',
+  codeAnalyzeLabel = 'AI 피드백',
   isRunning = false,
+  isAnalyzing = false,
   isSubmitting = false,
   runOutput,
   submissionResult,
@@ -130,7 +142,7 @@ export function CodeEditor({
               className="inline-flex items-center gap-2 rounded-lg bg-[#7C3AED] px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-[#6D28D9] disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
-              {isRunning ? '실행 중' : '실행'}
+              {isRunning ? runningLabel : runLabel}
             </button>
 
             <div className="flex items-center gap-2">
@@ -149,6 +161,19 @@ export function CodeEditor({
                   {isSubmitting ? '제출 중' : '제출'}
                 </button>
               )}
+              {onCodeAnalyze && (
+                <button
+                  type="button"
+                  onClick={onCodeAnalyze}
+                  disabled={isEmpty || isRunning || isSubmitting || isAnalyzing}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium disabled:opacity-50 ${
+                    isDarkMode ? 'border-[#A78BFA] text-[#A78BFA] hover:bg-[#2D1B69]' : 'border-[#A855F7] text-[#7C3AED] hover:bg-purple-50'
+                  }`}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {isAnalyzing ? '분석 중' : codeAnalyzeLabel}
+                </button>
+              )}
               {onAiChatOpen && (
                 <button
                   type="button"
@@ -158,7 +183,7 @@ export function CodeEditor({
                   }`}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  AI 채팅
+                  {aiChatLabel}
                 </button>
               )}
               <button type="button" className={`rounded-lg p-2 ${isDarkMode ? 'text-[#94A3B8] hover:bg-[#334155]' : 'text-[#64748B] hover:bg-[#F8FAFC]'}`}>
