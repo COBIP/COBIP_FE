@@ -75,6 +75,20 @@ function buildMarkdownList(items: string[], fallback = '생성된 내용이 없�
   return items.map((item) => `- ${item}`).join('\n');
 }
 
+function formatInterviewAnswerForComparison(value?: string | null) {
+  return (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function buildExactSampleInterviewFeedback(sampleAnswer: string): AiInterviewFeedbackResponse {
+  return {
+    score: 100,
+    includedKeyPoints: [sampleAnswer],
+    missingKeyPoints: [],
+    feedback: '모범 답안의 핵심 내용을 정확히 포함했습니다.',
+    improvedAnswer: sampleAnswer,
+  };
+}
+
 function renderEmpty(message: string) {
   return (
     <div className="rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-6 py-10 text-center text-sm text-[#64748B]">
@@ -331,13 +345,21 @@ function renderBasicQuestions(
                 className="mt-4 min-h-24 w-full resize-y rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm focus:border-[#7C3AED] focus:outline-none"
               />
               {results[question.questionId] && (
-                <div className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
+                <div className={`mt-3 rounded-lg border px-3 py-3 text-sm ${
                   results[question.questionId].isCorrect
                     ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                     : 'border-rose-200 bg-rose-50 text-rose-800'
                 }`}>
                   <p className="font-bold">{results[question.questionId].isCorrect ? '정답입니다.' : '다시 확인해보세요.'}</p>
                   <p className="mt-1">{results[question.questionId].feedback}</p>
+                  <div className="mt-3 rounded-md bg-white/70 p-3 text-[#334155]">
+                    <p className="text-xs font-bold text-[#7C3AED]">정답</p>
+                    <p className="mt-1 leading-6">{results[question.questionId].correctAnswer || question.answer || '-'}</p>
+                  </div>
+                  <div className="mt-2 rounded-md bg-white/70 p-3 text-[#334155]">
+                    <p className="text-xs font-bold text-[#7C3AED]">해설</p>
+                    <p className="mt-1 leading-6">{results[question.questionId].explanation || question.explanation || '등록된 해설이 없습니다.'}</p>
+                  </div>
                 </div>
               )}
               <button
@@ -890,6 +912,14 @@ export default function AiFunctionalTemplatePage() {
 
     try {
       setGradingInterviewId(question.questionId);
+      if (formatInterviewAnswerForComparison(userAnswer) === formatInterviewAnswerForComparison(question.sampleAnswer)) {
+        setInterviewResults((current) => ({
+          ...current,
+          [question.questionId]: buildExactSampleInterviewFeedback(question.sampleAnswer),
+        }));
+        return;
+      }
+
       const result = await fetchAiInterviewFeedback({
         question: question.question,
         keyPoints: question.keyPoints,

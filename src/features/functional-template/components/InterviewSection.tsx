@@ -48,6 +48,16 @@ export function InterviewSection({ isDarkMode = false, questions }: InterviewSec
     return points.length > 0 ? points : [question];
   };
 
+  const normalizeAnswer = (value?: string | null) => (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  const buildExactSampleFeedback = (answerHint: string): AiInterviewFeedbackResponse => ({
+    score: 100,
+    includedKeyPoints: [answerHint],
+    missingKeyPoints: [],
+    feedback: '모범 답안의 핵심 내용을 정확히 포함했습니다.',
+    improvedAnswer: answerHint,
+  });
+
   const handleFeedback = async (question: string, answerHint: string | null | undefined, index: number) => {
     const questionKey = buildQuestionKey(question, index);
     const userAnswer = answers[questionKey]?.trim();
@@ -57,6 +67,11 @@ export function InterviewSection({ isDarkMode = false, questions }: InterviewSec
     try {
       setFeedbackError(null);
       setFeedbackLoadingKey(questionKey);
+      if (answerHint && normalizeAnswer(userAnswer) === normalizeAnswer(answerHint)) {
+        setFeedbackResults((current) => ({ ...current, [questionKey]: buildExactSampleFeedback(answerHint) }));
+        return;
+      }
+
       const result = await fetchAiInterviewFeedback({
         question,
         keyPoints: buildKeyPoints(question, answerHint),
