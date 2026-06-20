@@ -159,6 +159,7 @@ export type TemplatePracticeQuizSubmissionResponse = {
   correct: boolean;
   status: string;
   message: string;
+  correctAnswer?: string | null;
   explanation: string | null;
   progressPercent: number;
 };

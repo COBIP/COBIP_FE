@@ -37,6 +37,7 @@ type AnswerResult = 'correct' | 'incorrect' | 'empty';
 type QuizFeedback = {
   result: AnswerResult;
   message: string;
+  correctAnswer?: string | null;
   explanation?: string | null;
   status?: string;
 };
@@ -202,6 +203,7 @@ export function MissionSection({
           [missionId]: {
             result: response.correct ? 'correct' : 'incorrect',
             message: response.message,
+            correctAnswer: response.correctAnswer ?? null,
             explanation: response.explanation,
             status: response.status,
           },
@@ -213,6 +215,7 @@ export function MissionSection({
           [missionId]: {
             result,
             message: result === 'correct' ? '정답입니다.' : '오답입니다.',
+            correctAnswer: answer ?? null,
           },
         }));
       }
@@ -311,6 +314,8 @@ export function MissionSection({
               const isAnswerRevealed = revealedAnswerIds.has(step.id);
               const quizFeedback = quizFeedbacks[step.id];
               const answerResult = quizFeedback?.result;
+              const revealedAnswer = quizFeedback?.correctAnswer ?? step.meta.answer;
+              const revealedExplanation = quizFeedback?.explanation ?? step.meta.explanation;
               const currentAnswer = problemAnswers[step.id] ?? '';
               const hasMissionMeta = step.meta.requirements.length > 0 || step.meta.successCriteria.length > 0;
               const isCheckingQuiz = checkingQuizIds.has(step.id);
@@ -401,7 +406,7 @@ export function MissionSection({
                         </button>
                       </div>
 
-                      {isAnswerRevealed && (step.meta.answer || step.meta.explanation || answerResult) ? (
+                      {isAnswerRevealed && (revealedAnswer || revealedExplanation || answerResult) ? (
                         <div className={`space-y-3 rounded-md border p-4 text-sm leading-6 ${
                           answerResult === 'correct'
                             ? isDarkMode ? 'border-emerald-500/50 bg-emerald-950/20 text-emerald-100' : 'border-emerald-200 bg-emerald-50 text-emerald-900'
@@ -417,16 +422,16 @@ export function MissionSection({
                           {quizFeedback?.status ? (
                             <p className="text-xs font-semibold opacity-80">status: {quizFeedback.status}</p>
                           ) : null}
-                          {step.meta.answer ? (
+                          {revealedAnswer ? (
                             <div>
                               <p className="font-bold text-[#7C3AED]">정답</p>
-                              <p className="mt-1 break-words">{step.meta.answer}</p>
+                              <p className="mt-1 break-words">{revealedAnswer}</p>
                             </div>
                           ) : null}
-                          {(quizFeedback?.explanation || step.meta.explanation) ? (
+                          {revealedExplanation ? (
                             <div>
                               <p className="font-bold text-[#7C3AED]">해설</p>
-                              <p className="mt-1 break-words">{quizFeedback?.explanation ?? step.meta.explanation}</p>
+                              <p className="mt-1 break-words">{revealedExplanation}</p>
                             </div>
                           ) : null}
                         </div>
