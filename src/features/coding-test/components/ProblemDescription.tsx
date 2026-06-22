@@ -47,7 +47,7 @@ const renderMarkdown = (text: string, key?: string | number) => (
     <MarkdownTextView
         key={key}
         content={text}
-        className="text-base leading-7 text-gray-800 [&_code]:border [&_code]:border-gray-100 [&_pre]:border [&_pre]:border-gray-200 [&_pre]:bg-gray-50"
+        className="text-base leading-7 text-gray-800 [&_code]:border [&_code]:border-gray-100 [&_pre]:border [&_pre]:border-gray-200 [&_pre]:bg-gray-50 [&_h3]:mb-3 [&_h3]:mt-8 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:text-gray-950 [&_h4]:mb-2 [&_h4]:mt-6 [&_h4]:text-xl [&_h4]:font-bold [&_h4]:text-gray-900 [&_h5]:mb-2 [&_h5]:mt-5 [&_h5]:text-lg [&_h5]:font-bold [&_h5]:text-gray-900"
     />
 );
 
