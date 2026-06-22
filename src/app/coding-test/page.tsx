@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import ProblemGrid from '@/features/coding-test/components/ProblemGrid';
@@ -36,6 +37,7 @@ const difficultyBadgeClass: Record<CodingDifficulty, string> = {
 };
 
 export default function CodingTestPage() {
+    const router = useRouter();
     const [filters, setFilters] = useState<CodingTestFilterState>(DEFAULT_FILTERS);
     const [selectedWorkbook, setSelectedWorkbook] = useState<CodingWorkbookDetailResponse | null>(null);
     const [isWorkbookDetailLoading, setIsWorkbookDetailLoading] = useState(false);
@@ -72,6 +74,13 @@ export default function CodingTestPage() {
 
         try {
             const detail = await getWorkbookDetail(workbookId);
+            const firstProblem = [...detail.problems].sort((left, right) => left.orderIndex - right.orderIndex || left.id - right.id)[0];
+
+            if (firstProblem) {
+                router.push(`/coding-test/problem/${firstProblem.id}`);
+                return;
+            }
+
             setSelectedWorkbook(detail);
         } catch (err) {
             console.error('Failed to fetch coding workbook detail:', err);
