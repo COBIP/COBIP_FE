@@ -1,8 +1,10 @@
 ﻿import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Menu, Bookmark, Bot, Settings, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Menu, Bot, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import { syncLearningActivityHeartbeat } from '@/api/services/DashboardService';
 import { AiChatPanel, type ChatMessage } from '@/components/ai/AiChatPanel';
+import { useUserStore } from '@/store/UseUserStore';
 import type {
   GrammarTemplateDetail,
   GrammarTemplateMissionSubmissionResponse,
@@ -226,6 +228,7 @@ function buildChapterGroups(chapters: GrammarTemplateDetail['chapters'] = []): C
 }
 
 export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps) {
+  const { nickname, profileImage } = useUserStore();
   const [template, setTemplate] = useState<GrammarTemplateDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -280,6 +283,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
     return null;
   }, [selectedMissionId, selectedMissionTitle, selectedProblemId, selectedProblemTitle]);
+  const profileLabel = nickname?.trim().slice(0, 1) || 'U';
   const aiChatContext = useMemo(() => {
     const activeCode = fileContents[activeFilePath] ?? '';
     const parts = [
@@ -633,7 +637,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     return (
       <div className="h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-3" />
+          <Loader2 className="w-8 h-8 text-[#7C3AED] animate-spin mx-auto mb-3" />
           <p className="text-sm text-gray-500">템플릿을 불러오는 중...</p>
         </div>
       </div>
@@ -649,7 +653,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
                     <div className="flex items-center gap-1.5 text-sm">
-            <span className="text-purple-700 font-semibold">{template?.title || '문법 템플릿'}</span>
+            <span className="text-[#6D28D9] font-semibold">{template?.title || '문법 템플릿'}</span>
             {template?.category && (
               <>
                 <span className="text-gray-300">·</span>
@@ -669,7 +673,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         <div className="flex items-center gap-2">
           <div className="mr-2 flex items-center gap-2">
             {activeSubmissionTarget ? (
-              <span className="hidden h-10 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-semibold text-purple-700 lg:inline-flex items-center">
+              <span className="hidden h-10 rounded-lg border border-[#DDD6FE] bg-[#F5F3FF] px-3 text-xs font-semibold text-[#6D28D9] lg:inline-flex items-center">
                 현재 {activeSubmissionTarget.typeLabel}: {activeSubmissionTarget.title}
               </span>
             ) : (
@@ -677,36 +681,30 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                 문제 또는 미션 선택 후 제출 가능
               </span>
             )}
-            <button
-              type="button"
-              onClick={() => void handleSubmitMission()}
-              disabled={!activeSubmissionTarget}
-              className={`inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold transition ${
-                activeSubmissionTarget
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                  : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
-              }`}
-            >
-              {isSubmittingMission ? '제출 중' : '제출'}
-            </button>
           </div>
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative">
-            <Bookmark className="w-4 h-4 text-gray-500 group-hover:text-purple-600" />
-          </button>
           <button
             type="button"
             onClick={handleOpenAiChat}
-            className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#F5F3FF] px-4 text-sm font-semibold text-[#7C3AED] transition hover:bg-[#EDE9FE]"
             title="AI 채팅"
             aria-label="AI 채팅"
           >
-            <Bot className="w-4 h-4 text-gray-500 group-hover:text-purple-600" />
+            <Bot className="w-4 h-4" />
+            <span>AI 채팅</span>
           </button>
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer group relative">
-            <Settings className="w-4 h-4 text-gray-500 group-hover:text-purple-600" />
-          </button>
-          <div className="w-7 h-7 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">U</div>
-          <button onClick={onBack} className="ml-2 inline-flex h-10 items-center gap-1 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white transition hover:bg-purple-700 cursor-pointer">
+          <Link
+            href="/my-page/profile"
+            aria-label="프로필로 이동"
+            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#CBD5E1] text-sm font-semibold text-white transition hover:ring-2 hover:ring-[#DDD6FE]"
+            style={profileImage ? { backgroundImage: `url(${profileImage})`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined}
+          >
+            {profileImage ? (
+              <span className="sr-only">{nickname ?? 'User'}</span>
+            ) : (
+              profileLabel
+            )}
+          </Link>
+          <button onClick={onBack} className="ml-2 inline-flex h-10 items-center gap-1 rounded-lg bg-[#7C3AED] px-4 text-sm font-semibold text-white transition hover:bg-[#6D28D9] cursor-pointer">
             <Check className="w-3.5 h-3.5" /> 레슨완료
           </button>
         </div>
@@ -730,7 +728,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                         onClick={() => setCurrentChapterIndex(group.main.index)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition cursor-pointer ${
                           group.main.index === currentChapterIndex
-                            ? 'bg-purple-100 text-purple-700 font-semibold'
+                            ? 'bg-[#EDE9FE] text-[#6D28D9] font-semibold'
                             : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
@@ -745,7 +743,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                 onClick={() => setCurrentChapterIndex(item.index)}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition cursor-pointer ${
                                   item.index === currentChapterIndex
-                                    ? 'bg-purple-100 text-purple-700 font-semibold'
+                                    ? 'bg-[#EDE9FE] text-[#6D28D9] font-semibold'
                                     : 'text-gray-500 hover:bg-gray-100'
                                 }`}
                               >
@@ -769,10 +767,10 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
             {!isRunnerOpen && (
               <button
                 onClick={handleToggleRunner}
-                className="absolute right-0 top-14 z-20 flex w-10 items-center justify-center rounded-l-lg border border-t-2 border-b-2 border-l-2 border-r-0 border-purple-200 bg-purple-50 px-2 py-3 text-purple-500 shadow-sm transition hover:border-purple-300 hover:bg-purple-100 hover:text-purple-700 cursor-pointer group"
+                className="absolute right-0 top-14 z-20 flex w-10 items-center justify-center rounded-l-lg border border-t-2 border-b-2 border-l-2 border-r-0 border-[#DDD6FE] bg-[#F5F3FF] px-2 py-3 text-[#8B5CF6] shadow-sm transition hover:border-[#C4B5FD] hover:bg-[#EDE9FE] hover:text-[#6D28D9] cursor-pointer group"
               >
                 <ChevronLeft className="w-5 h-5 transition-transform duration-200" />
-                <span className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-purple-200 bg-white px-2 py-1 text-[11px] font-medium text-purple-600 opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:opacity-100">
+                <span className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-[#DDD6FE] bg-white px-2 py-1 text-[11px] font-medium text-[#7C3AED] opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:opacity-100">
                   실행기 열기
                 </span>
               </button>
@@ -796,7 +794,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                         onClick={() => setActiveContentTab(tab)}
                         className={`border-b-2 px-4 py-3 text-sm font-semibold transition ${
                           activeContentTab === tab
-                            ? 'border-purple-500 text-purple-600'
+                            ? 'border-[#7C3AED] text-[#7C3AED]'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
                         }`}
                       >
@@ -811,13 +809,13 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'problems' ? (
                     <div className="space-y-4">
-                      <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-5 shadow-sm">
+                      <div className="rounded-xl border border-[#EDE9FE] bg-gradient-to-br from-[#F5F3FF] via-white to-[#F5F3FF] p-5 shadow-sm">
                         <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-600 text-sm font-bold text-white">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-bold text-white">
                             Q
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-purple-700">문제 안내</h3>
+                            <h3 className="text-lg font-bold text-[#6D28D9]">문제 안내</h3>
                             <p className="mt-2 text-sm leading-6 text-gray-700">
                               이 챕터의 문제 목록입니다. 문제를 선택하거나 풀이하는 인터랙션은 다음 단계에서 더 확장할 수 있습니다.
                             </p>
@@ -841,17 +839,17 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                   : hasFailed
                                     ? 'border-amber-200 bg-amber-50/60 shadow-amber-100'
                                     : isSelected
-                                      ? 'border-purple-200 bg-purple-50/50 shadow-purple-100 hover:border-purple-300'
-                                      : 'border-gray-200 hover:border-purple-200'
+                                      ? 'border-[#DDD6FE] bg-[#F5F3FF]/50 shadow-[#EDE9FE] hover:border-[#C4B5FD]'
+                                      : 'border-gray-200 hover:border-[#DDD6FE]'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-600 text-sm font-bold text-white shadow-sm">
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-bold text-white shadow-sm">
                                       {index + 1}
                                     </span>
-                                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                    <span className="rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-semibold text-[#6D28D9]">
                                       문제
                                     </span>
                                     <p className="text-base font-bold text-gray-900">{mission.title}</p>
@@ -860,9 +858,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-4">
-                                      <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">가이드</p>
-                                      <p className="mt-2 text-sm leading-6 text-purple-700">{mission.guideContent}</p>
+                                    <div className="mt-4 rounded-lg border border-[#EDE9FE] bg-[#F5F3FF] px-4 py-4">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-[#8B5CF6]">가이드</p>
+                                      <p className="mt-2 text-sm leading-6 text-[#6D28D9]">{mission.guideContent}</p>
                                     </div>
                                   ) : null}
                                 </div>
@@ -884,7 +882,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       <button
                                         type="button"
                                         onClick={handleRetrySubmission}
-                                        className="inline-flex h-10 items-center rounded-lg border border-purple-200 bg-white px-4 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
+                                        className="inline-flex h-10 items-center rounded-lg border border-[#DDD6FE] bg-white px-4 text-sm font-semibold text-[#7C3AED] transition hover:bg-[#F5F3FF]"
                                       >
                                         다시풀기
                                       </button>
@@ -895,8 +893,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       onClick={() => handleStartProblemSolving(mission.id, mission.title)}
                                       className={`inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold transition ${
                                         isSelected
-                                          ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
-                                          : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
+                                          ? 'border-[#DDD6FE] bg-[#7C3AED] text-white hover:bg-[#6D28D9]'
+                                          : 'border-[#DDD6FE] bg-white text-[#7C3AED] hover:bg-[#F5F3FF]'
                                       }`}
                                     >
                                       {isSelected ? '풀이 중' : '문제 풀기'}
@@ -963,13 +961,13 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'missions' ? (
                     <div className="space-y-4">
-                      <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 via-white to-purple-50 p-5 shadow-sm">
+                      <div className="rounded-xl border border-[#EDE9FE] bg-gradient-to-br from-[#F5F3FF] via-white to-[#F5F3FF] p-5 shadow-sm">
                         <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-600 text-sm font-bold text-white">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-bold text-white">
                             M
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-purple-700">미션 안내</h3>
+                            <h3 className="text-lg font-bold text-[#6D28D9]">미션 안내</h3>
                             <p className="mt-2 text-sm leading-6 text-gray-700">
                               이 챕터의 미션 목록입니다. 현재는 콘텐츠 확인 중심으로 연결했고, 추후 진행 상태/제출 흐름을 확장할 수 있습니다.
                             </p>
@@ -985,11 +983,11 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                 <p className="text-sm font-bold text-slate-900">미션 진행 현황</p>
                                 <p className="mt-1 text-xs text-slate-500">0 / {missionItems.length} 완료</p>
                               </div>
-                              <span className="shrink-0 text-sm font-bold text-purple-600">0%</span>
+                              <span className="shrink-0 text-sm font-bold text-[#7C3AED]">0%</span>
                             </div>
                             <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
                               <div
-                                className="h-full rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-500"
+                                className="h-full rounded-full bg-gradient-to-r from-[#F5F3FF]0 to-[#8B5CF6]"
                                 style={{ width: '0%' }}
                               />
                             </div>
@@ -1013,17 +1011,17 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                   : hasFailed
                                     ? 'border-amber-200 bg-amber-50/60 shadow-amber-100'
                                     : isSelected
-                                      ? 'border-purple-200 bg-purple-50/50 shadow-purple-100 hover:border-purple-300'
-                                      : 'border-gray-200 hover:border-purple-200'
+                                      ? 'border-[#DDD6FE] bg-[#F5F3FF]/50 shadow-[#EDE9FE] hover:border-[#C4B5FD]'
+                                      : 'border-gray-200 hover:border-[#DDD6FE]'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="rounded-full bg-purple-600 px-3 py-1 text-xs font-bold text-white">
+                                    <span className="rounded-full bg-[#7C3AED] px-3 py-1 text-xs font-bold text-white">
                                       미션 {index + 1}
                                     </span>
-                                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                    <span className="rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-semibold text-[#6D28D9]">
                                       실습
                                     </span>
                                     <p className="text-base font-bold text-gray-900">{mission.title}</p>
@@ -1032,9 +1030,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-4 rounded-lg border border-purple-100 bg-purple-50 px-4 py-4">
-                                      <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">가이드</p>
-                                      <p className="mt-2 text-sm leading-6 text-purple-700">{mission.guideContent}</p>
+                                    <div className="mt-4 rounded-lg border border-[#EDE9FE] bg-[#F5F3FF] px-4 py-4">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-[#8B5CF6]">가이드</p>
+                                      <p className="mt-2 text-sm leading-6 text-[#6D28D9]">{mission.guideContent}</p>
                                     </div>
                                   ) : null}
                                 </div>
@@ -1056,7 +1054,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       <button
                                         type="button"
                                         onClick={handleRetrySubmission}
-                                        className="inline-flex h-10 items-center rounded-lg border border-purple-200 bg-white px-4 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
+                                        className="inline-flex h-10 items-center rounded-lg border border-[#DDD6FE] bg-white px-4 text-sm font-semibold text-[#7C3AED] transition hover:bg-[#F5F3FF]"
                                       >
                                         다시풀기
                                       </button>
@@ -1067,8 +1065,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       onClick={() => handleStartMission(mission.id, mission.title)}
                                       className={`inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold transition ${
                                         isSelected
-                                          ? 'border-purple-200 bg-purple-600 text-white hover:bg-purple-700'
-                                          : 'border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
+                                          ? 'border-[#DDD6FE] bg-[#7C3AED] text-white hover:bg-[#6D28D9]'
+                                          : 'border-[#DDD6FE] bg-white text-[#7C3AED] hover:bg-[#F5F3FF]'
                                       }`}
                                     >
                                       {isSelected ? '진행 중' : '미션 시작하기'}
@@ -1145,10 +1143,10 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                       <div className="relative flex shrink-0 overflow-visible">
                         <button
                           onClick={handleToggleRunner}
-                          className="absolute left-0 top-14 z-40 flex w-10 -translate-x-full items-center justify-center rounded-l-lg border border-l-2 border-t-2 border-b-2 border-r-0 border-purple-200 bg-purple-50 px-2 py-3 text-purple-500 shadow-sm transition hover:border-purple-300 hover:bg-purple-100 hover:text-purple-700 cursor-pointer group"
+                          className="absolute left-0 top-14 z-40 flex w-10 -translate-x-full items-center justify-center rounded-l-lg border border-l-2 border-t-2 border-b-2 border-r-0 border-[#DDD6FE] bg-[#F5F3FF] px-2 py-3 text-[#8B5CF6] shadow-sm transition hover:border-[#C4B5FD] hover:bg-[#EDE9FE] hover:text-[#6D28D9] cursor-pointer group"
                         >
                           <ChevronLeft className="w-5 h-5 rotate-180 transition-transform duration-200" />
-                          <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-purple-200 bg-white px-2 py-1 text-[11px] font-medium text-purple-600 opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:opacity-100">
+                          <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-[#DDD6FE] bg-white px-2 py-1 text-[11px] font-medium text-[#7C3AED] opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:opacity-100">
                             실행기 닫기
                           </span>
                         </button>
@@ -1170,6 +1168,12 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           onAddSubFolder={handleAddSubFolder}
                           onAddRootFolder={handleAddRootFolder}
                           onOpenFile={openFile}
+                          onSubmit={() => void handleSubmitMission()}
+                          canSubmit={Boolean(activeSubmissionTarget)}
+                          isSubmitting={isSubmittingMission}
+                          activeSubmissionLabel={activeSubmissionTarget ? `${activeSubmissionTarget.typeLabel}: ${activeSubmissionTarget.title}` : null}
+                          submissionResult={submissionResult}
+                          submissionError={submissionError}
                           setFileContents={setFileContents}
                         />
                         {isAiChatOpen && (
@@ -1201,7 +1205,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           {template?.chapters && currentChapterIndex > 0 && (
             <button
               onClick={() => setCurrentChapterIndex(currentChapterIndex - 1)}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#6D28D9] transition cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4 shrink-0" />
               <span className="truncate">{template.chapters[currentChapterIndex - 1].title}</span>
@@ -1212,7 +1216,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
         <div className="flex items-center shrink-0">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-[#7C3AED] hover:text-[#5B21B6] hover:bg-[#F5F3FF] rounded-lg transition cursor-pointer"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -1226,7 +1230,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
           {template?.chapters && currentChapterIndex < template.chapters.length - 1 && (
             <button
               onClick={() => setCurrentChapterIndex(currentChapterIndex + 1)}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-purple-700 transition cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#6D28D9] transition cursor-pointer"
             >
               <span className="truncate">{template.chapters[currentChapterIndex + 1].title}</span>
               <ChevronRight className="w-4 h-4 shrink-0" />
@@ -1237,4 +1241,5 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
     </div>
   );
 }
+
 
