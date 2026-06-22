@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { Play, Loader2 } from 'lucide-react';
+﻿import { useState, useCallback, useEffect, useRef } from 'react';
+import { Loader2, Play, Save, Sparkles } from 'lucide-react';
+import { fetchAiCodeAnalyze } from '@/api/services/AiService';
 import { grammarTemplateService } from '@/api/services/GrammarTemplateService';
 import type { ExplorerNode, ExplorerFolder } from './GrammarDetailView';
-import type { ExecutionFlowStep } from '@/features/grammar-template/Constants';
+import type { ExecutionFlowStep, GrammarTemplateMissionSubmissionResponse } from '@/features/grammar-template/Constants';
 import { ExecutionFlowPanel } from './ExecutionFlowPanel';
 
 const CODE_EDITOR_LINE_HEIGHT = 24;
@@ -178,7 +179,7 @@ function CodeHighlightOverlay({
         }}
       >
         <span>{sourceCode.slice(0, highlightRange.start)}</span>
-        <span className="rounded bg-purple-200/90 text-transparent ring-1 ring-purple-300">
+        <span className="rounded bg-[#DDD6FE]/90 text-transparent ring-1 ring-[#C4B5FD]">
           {sourceCode.slice(highlightRange.start, highlightRange.end)}
         </span>
         <span>{sourceCode.slice(highlightRange.end)}</span>
@@ -208,6 +209,40 @@ function formatErrorText(err: unknown) {
     }
   }
   return '알 수 없는 오류';
+}
+
+function formatCodeAnalyzeText(result: {
+  summary: string;
+  explanation: string;
+  potentialIssues: string[];
+  improvementSuggestions: string[];
+}) {
+  return [
+    'AI 피드백',
+    `요약\n${result.summary}`,
+    `설명\n${result.explanation}`,
+    result.potentialIssues.length > 0
+      ? `잠재 이슈\n${result.potentialIssues.map((issue) => `- ${issue}`).join('\n')}`
+      : '잠재 이슈\n- 발견된 이슈가 없습니다.',
+    result.improvementSuggestions.length > 0
+      ? `개선 제안\n${result.improvementSuggestions.map((suggestion) => `- ${suggestion}`).join('\n')}`
+      : '개선 제안\n- 추가 제안이 없습니다.',
+  ].join('\n\n');
+}
+
+function formatSubmissionResultText(result?: GrammarTemplateMissionSubmissionResponse | null, error?: string) {
+  if (error) return `// 제출 실패\n${error}`;
+  if (!result) return '';
+
+  return [
+    result.status === 'ACCEPTED' ? '정답입니다' : '오답입니다',
+    `status: ${result.status}`,
+    `통과 ${result.passedCount}/${result.totalCount}`,
+    result.message ? `message:\n${result.message}` : '',
+    result.stdout ? `stdout:\n${result.stdout}` : '',
+    result.stderr ? `stderr:\n${result.stderr}` : '',
+    result.compileOutput ? `compile output:\n${result.compileOutput}` : '',
+  ].filter(Boolean).join('\n\n');
 }
 
 // ===== 탐색기 노드 컴포넌트 (재귀) =====
@@ -291,17 +326,17 @@ function ExplorerFolderNode({
         <div className="relative">
           <button
             onClick={(e) => { e.stopPropagation(); setIsMenuOpen((prev) => !prev); }}
-            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-purple-600 text-xs px-1 rounded hover:bg-purple-50 transition cursor-pointer"
+            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-[#7C3AED] text-xs px-1 rounded hover:bg-[#F5F3FF] transition cursor-pointer"
           >+</button>
           {isMenuOpen && (
             <div className="absolute right-0 top-5 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[100px]">
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddClick('file'); }}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer"
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-[#F5F3FF] hover:text-[#6D28D9] transition cursor-pointer"
               >📄 새 파일</button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddClick('folder'); }}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition cursor-pointer"
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-[#F5F3FF] hover:text-[#6D28D9] transition cursor-pointer"
               >📁 새 폴더</button>
             </div>
           )}
@@ -322,7 +357,7 @@ function ExplorerFolderNode({
                 path={`${path}/${child.name}`}
               />
             ) : (
-              <div key={child.name} onClick={() => onOpenFile(`${path}/${child.name}`)} className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${`${path}/${child.name}` === activeFilePath ? 'bg-purple-100 text-purple-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <div key={child.name} onClick={() => onOpenFile(`${path}/${child.name}`)} className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${`${path}/${child.name}` === activeFilePath ? 'bg-[#EDE9FE] text-[#6D28D9] font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
                 <span className="text-[10px]">📄</span>
                 <span>{child.name}</span>
               </div>
@@ -337,7 +372,7 @@ function ExplorerFolderNode({
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') handleCancel(); }}
                 onBlur={handleConfirm}
-                className="flex-1 text-xs bg-white border border-purple-300 rounded px-1.5 py-0.5 outline-none text-gray-700"
+                className="flex-1 text-xs bg-white border border-[#C4B5FD] rounded px-1.5 py-0.5 outline-none text-gray-700"
                 placeholder={inputMode === 'file' ? '파일명.py' : '폴더명'}
               />
             </div>
@@ -367,6 +402,12 @@ interface CodeRunnerProps {
   onAddSubFolder: (parentFolder: string, folderName: string) => void;
   onAddRootFolder: (folderName: string) => void;
   onOpenFile: (filePath: string) => void;
+  onSubmit?: () => void;
+  canSubmit?: boolean;
+  isSubmitting?: boolean;
+  activeSubmissionLabel?: string | null;
+  submissionResult?: GrammarTemplateMissionSubmissionResponse | null;
+  submissionError?: string;
   setFileContents: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }
 
@@ -389,6 +430,12 @@ export function CodeRunner({
   onAddSubFolder,
   onAddRootFolder,
   onOpenFile,
+  onSubmit,
+  canSubmit = false,
+  isSubmitting = false,
+  activeSubmissionLabel,
+  submissionResult,
+  submissionError,
   setFileContents,
 }: CodeRunnerProps) {
     const [isRootInputOpen, setIsRootInputOpen] = useState(false);
@@ -397,6 +444,7 @@ export function CodeRunner({
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [isFlowLoading, setIsFlowLoading] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [outputText, setOutputText] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [editorScrollTop, setEditorScrollTop] = useState(0);
@@ -405,6 +453,7 @@ export function CodeRunner({
     const activeExecutionStep = executionSteps?.[currentStepIndex];
     const activeExecutionLine = activeExecutionStep?.lineNumber;
     const activeCodeHighlightRange = findCodeHighlightRange(activeExecutionStep, activeCode);
+    const submissionOutputText = formatSubmissionResultText(submissionResult, submissionError);
 
     const handleEditorScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
       setEditorScrollTop(e.currentTarget.scrollTop);
@@ -464,6 +513,33 @@ export function CodeRunner({
       }
     }, [templateId, chapterId, activeFilePath, fileContents, language, isFlowLoading]);
 
+    const handleAnalyzeCode = useCallback(async () => {
+      if (!activeFilePath || !fileContents[activeFilePath] || isAnalyzing) {
+        return;
+      }
+
+      setIsAnalyzing(true);
+      setErrorMessage('');
+      setOutputText('// AI가 현재 코드를 분석하고 있습니다...');
+
+      try {
+        const result = await fetchAiCodeAnalyze({
+          code: fileContents[activeFilePath],
+          language: language ?? 'PYTHON',
+          context: [
+            activeFilePath ? `현재 파일: ${activeFilePath}` : '',
+            chapterId ? `현재 챕터 ID: ${chapterId}` : '',
+          ].filter(Boolean).join('\n'),
+        });
+        setOutputText(formatCodeAnalyzeText(result));
+      } catch (err) {
+        setOutputText('');
+        setErrorMessage(`// AI 피드백 실패: ${formatErrorText(err)}`);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }, [activeFilePath, chapterId, fileContents, isAnalyzing, language]);
+
   const handleRootConfirm = useCallback(() => {
     const val = rootInputValue.trim();
     if (!val) { setIsRootInputOpen(false); return; }
@@ -476,7 +552,7 @@ export function CodeRunner({
     return (
       <aside className="border-l border-gray-200 bg-white overflow-hidden shrink-0 relative" style={{ width: `${runnerWidth}px` }}>
         <div className="absolute -left-1 top-0 bottom-0 w-3 z-50 cursor-col-resize flex items-center justify-center group" onMouseDown={onRunnerResizeStart}>
-          <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-purple-400 transition-colors" />
+          <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-[#A78BFA] transition-colors" />
         </div>
 
         <div className="flex h-full min-w-0" style={{ width: `${runnerWidth}px` }}>
@@ -498,7 +574,7 @@ export function CodeRunner({
                 <p className="text-sm font-semibold text-gray-900">코드 하이라이트</p>
                 <p className="truncate text-[11px] text-gray-500">{activeFilePath}</p>
               </div>
-              <span className="rounded-md bg-purple-50 px-2 py-1 text-[11px] font-semibold text-purple-700">
+              <span className="rounded-md bg-[#F5F3FF] px-2 py-1 text-[11px] font-semibold text-[#6D28D9]">
                 line {activeExecutionLine}
               </span>
             </div>
@@ -536,14 +612,14 @@ export function CodeRunner({
     <aside className="border-l border-gray-200 bg-gray-50 overflow-hidden shrink-0 relative" style={{ width: `${runnerWidth}px` }}>
       {/* 리사이즈 핸들 */}
       <div className="absolute -left-1 top-0 bottom-0 w-3 z-30 cursor-col-resize flex items-center justify-center group" onMouseDown={onRunnerResizeStart}>
-        <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-purple-400 transition-colors" />
+        <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-[#A78BFA] transition-colors" />
       </div>
 
       <div className="h-full flex flex-col" style={{ width: `${runnerWidth}px` }}>
         {/* 실행 환경 헤더 */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-white shrink-0">
           <div className="flex items-center gap-2">
-            <Play className="w-4 h-4 text-purple-600" />
+            <Play className="w-4 h-4 text-[#7C3AED]" />
             <span className="text-sm font-semibold text-gray-800">코드 실행기</span>
           </div>
         </div>
@@ -567,7 +643,7 @@ export function CodeRunner({
                     path={node.name}
                   />
                 ) : (
-                  <div key={node.name} onClick={() => onOpenFile(node.name)} className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${node.name === activeFilePath ? 'bg-purple-100 text-purple-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <div key={node.name} onClick={() => onOpenFile(node.name)} className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${node.name === activeFilePath ? 'bg-[#EDE9FE] text-[#6D28D9] font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
                     <span className="text-[10px]">📄</span>
                     <span>{node.name}</span>
                   </div>
@@ -576,10 +652,10 @@ export function CodeRunner({
               {isRootInputOpen ? (
                 <div className="flex items-center gap-1.5 px-2 py-1 mt-1">
                   <span className="text-xs">📁</span>
-                  <input autoFocus value={rootInputValue} onChange={(e) => setRootInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleRootConfirm(); if (e.key === 'Escape') { setIsRootInputOpen(false); setRootInputValue(''); } }} onBlur={handleRootConfirm} className="flex-1 text-xs bg-white border border-purple-300 rounded px-1.5 py-0.5 outline-none text-gray-700" placeholder="폴더명" />
+                  <input autoFocus value={rootInputValue} onChange={(e) => setRootInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleRootConfirm(); if (e.key === 'Escape') { setIsRootInputOpen(false); setRootInputValue(''); } }} onBlur={handleRootConfirm} className="flex-1 text-xs bg-white border border-[#C4B5FD] rounded px-1.5 py-0.5 outline-none text-gray-700" placeholder="폴더명" />
                 </div>
               ) : (
-                <button onClick={() => { setIsRootInputOpen(true); setRootInputValue(''); }} className="w-full flex items-center gap-1.5 px-2 py-1 text-xs text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition cursor-pointer mt-1">
+                <button onClick={() => { setIsRootInputOpen(true); setRootInputValue(''); }} className="w-full flex items-center gap-1.5 px-2 py-1 text-xs text-gray-400 hover:text-[#7C3AED] hover:bg-gray-100 rounded-md transition cursor-pointer mt-1">
                   <span>+</span><span>폴더 추가</span>
                 </button>
               )}
@@ -589,7 +665,7 @@ export function CodeRunner({
           {/* 리사이즈 핸들 (파일트리 ↔ 코드) */}
           <div className="w-0.5 cursor-col-resize shrink-0 relative group" onMouseDown={onExplorerResizeStart}>
             <div className="absolute inset-0 -left-1 -right-1" />
-            <div className="w-full h-full bg-gray-200 group-hover:bg-purple-400 transition-colors" />
+            <div className="w-full h-full bg-gray-200 group-hover:bg-[#A78BFA] transition-colors" />
           </div>
 
           {/* 오른쪽: 코드 편집 + 실행 */}
@@ -624,38 +700,66 @@ export function CodeRunner({
             {/* 가로 리사이즈 핸들 */}
             <div className="h-0.5 cursor-row-resize shrink-0 relative group" onMouseDown={onOutputResizeStart}>
               <div className="absolute inset-0 -top-1 -bottom-1" />
-              <div className="w-full h-full bg-gray-200 group-hover:bg-purple-500 transition-colors" />
+              <div className="w-full h-full bg-gray-200 group-hover:bg-[#F5F3FF]0 transition-colors" />
             </div>
 
-                        {/* 하단 도구 모음 */}
-                        <div className="flex items-center gap-2 px-4 py-2 bg-white shrink-0">
-                                                    <button
-                            onClick={handleRun}
-                            disabled={isRunning}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white text-[11px] font-medium rounded-md hover:bg-purple-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isRunning ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Play className="w-3 h-3 fill-white" />
-                            )}
-                            실행
-                          </button>
-                          <button
-                            onClick={handleExecutionFlow}
-                            disabled={isFlowLoading}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-[11px] font-medium rounded-md border border-gray-200 hover:bg-gray-50 hover:border-purple-200 hover:text-purple-600 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isFlowLoading ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <span>▶</span>
-                            )}
-                            실행흐름
-                          </button>
-                          <div className="flex-1" />
-                          <span className="text-[10px] text-gray-400">{'// 실행 결과'}</span>
-                        </div>
+            {/* 하단 도구 모음 */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-white shrink-0">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRun}
+                  disabled={isRunning}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7C3AED] text-white text-[11px] font-medium rounded-md hover:bg-[#6D28D9] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isRunning ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Play className="w-3 h-3 fill-white" />
+                  )}
+                  실행
+                </button>
+                <button
+                  onClick={handleExecutionFlow}
+                  disabled={isFlowLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-[11px] font-medium rounded-md border border-gray-200 hover:bg-gray-50 hover:border-[#DDD6FE] hover:text-[#7C3AED] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isFlowLoading ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <span>▶</span>
+                  )}
+                  실행흐름
+                </button>
+              </div>
+              <div className="flex-1" />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onSubmit}
+                  disabled={!canSubmit || isSubmitting || isRunning || !onSubmit}
+                  title={activeSubmissionLabel ?? '문제 또는 미션 선택 후 제출 가능'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-700 text-[11px] font-medium rounded-md border border-emerald-300 hover:bg-emerald-50 transition cursor-pointer disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Save className="w-3 h-3" />
+                  )}
+                  {isSubmitting ? '제출 중' : '제출'}
+                </button>
+                <button
+                  onClick={handleAnalyzeCode}
+                  disabled={isAnalyzing || isRunning}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#7C3AED] text-[11px] font-medium rounded-md border border-[#DDD6FE] hover:bg-[#F5F3FF] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  {isAnalyzing ? '분석 중' : 'AI 피드백'}
+                </button>
+              </div>
+            </div>
 
                         {/* 출력 영역 */}
                         <div className="border-t border-gray-200 bg-gray-50 overflow-y-auto shrink-0" style={{ height: `${outputHeight}px` }}>
@@ -665,6 +769,8 @@ export function CodeRunner({
                                                     <div className="p-3">
                             {errorMessage ? (
                               <pre className="text-xs text-red-500 font-mono whitespace-pre-wrap">{errorMessage}</pre>
+                            ) : submissionOutputText ? (
+                              <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{submissionOutputText}</pre>
                             ) : outputText ? (
                               <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{outputText}</pre>
                             ) : (
@@ -678,5 +784,6 @@ export function CodeRunner({
     </aside>
   );
 }
+
 
 
