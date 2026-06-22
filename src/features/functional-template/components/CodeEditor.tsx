@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileText, History, MessageCircle, Play, Save, Sparkles } from 'lucide-react';
 
 interface SubmissionResultView {
@@ -58,10 +59,50 @@ export function CodeEditor({
   submissionResult,
   showRunner = true,
 }: CodeEditorProps) {
+  const [outputHeight, setOutputHeight] = useState(128);
+  const isOutputResizingRef = useRef(false);
+  const startYRef = useRef(0);
+  const startOutputHeightRef = useRef(128);
   const editorCode = code ?? '';
   const canEdit = Boolean(onCodeChange);
   const lineNumbers = Array.from({ length: Math.max(editorCode.split('\n').length, 1) }, (_, index) => index + 1);
   const isEmpty = !hasContent || (!canEdit && editorCode.length === 0);
+
+  const handleOutputResizeStart = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    isOutputResizingRef.current = true;
+    startYRef.current = event.clientY;
+    startOutputHeightRef.current = outputHeight;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  }, [outputHeight]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isOutputResizingRef.current) return;
+      const nextHeight = startOutputHeightRef.current - (event.clientY - startYRef.current);
+      setOutputHeight(Math.min(Math.max(nextHeight, 96), 360));
+    };
+
+    const handleMouseUp = () => {
+      if (!isOutputResizingRef.current) return;
+      isOutputResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (isOutputResizingRef.current) {
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+  }, []);
 
   return (
     <div className={`flex h-full min-w-0 flex-col overflow-hidden ${isDarkMode ? 'bg-[#0B1220]' : 'bg-white'}`}>
@@ -195,7 +236,21 @@ export function CodeEditor({
             </div>
           </div>
 
-          <div className={`flex h-32 shrink-0 flex-col border-t ${isDarkMode ? 'border-[#334155] bg-[#111827]' : 'border-[#E2E8F0] bg-[#FAFBFF]'}`}>
+          <div
+            onMouseDown={handleOutputResizeStart}
+            aria-label="코드 영역과 실행 결과 영역 크기 조절"
+            title="코드 영역과 실행 결과 영역 크기 조절"
+            className={`group flex h-2 shrink-0 cursor-row-resize items-center justify-center border-t ${
+              isDarkMode ? 'border-[#334155] bg-[#0F172A]' : 'border-[#E2E8F0] bg-white'
+            }`}
+          >
+            <div className={`h-0.5 w-10 rounded-full transition-colors ${isDarkMode ? 'bg-[#334155] group-hover:bg-[#A78BFA]' : 'bg-[#CBD5E1] group-hover:bg-[#7C3AED]'}`} />
+          </div>
+
+          <div
+            className={`flex shrink-0 flex-col border-t ${isDarkMode ? 'border-[#334155] bg-[#111827]' : 'border-[#E2E8F0] bg-[#FAFBFF]'}`}
+            style={{ height: `${outputHeight}px` }}
+          >
             <div className={`flex items-center gap-1 border-b px-4 py-2 text-[12px] font-semibold ${isDarkMode ? 'border-[#334155] text-[#94A3B8]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
               <span>&lt;/&gt;</span>
               <span>실행 결과</span>
