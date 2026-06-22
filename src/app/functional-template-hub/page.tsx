@@ -17,7 +17,9 @@ import {
 } from '@/api/services/FunctionalTemplateService';
 import {
   fetchAiFeatureTemplate,
+  fetchAiFeatureTemplateStream,
   formatFeatureTemplateFramework,
+  type AiFeatureTemplateGenerateProgress,
   type AiFeatureTemplateGenerateRequest,
   type AiFeatureTemplateGenerateResult,
 } from '@/api/services/AiService';
@@ -54,8 +56,25 @@ export default function FunctionalTemplatesPage() {
     void loadTemplates();
   }, []);
 
-  const handleAIDesign = async (request: AiFeatureTemplateGenerateRequest) => {
-    const result = await fetchAiFeatureTemplate(request);
+  const handleAIDesign = async (
+    request: AiFeatureTemplateGenerateRequest,
+    onProgress?: (progress: AiFeatureTemplateGenerateProgress) => void,
+  ) => {
+    let result: AiFeatureTemplateGenerateResult;
+
+    try {
+      result = await fetchAiFeatureTemplateStream(request, onProgress);
+    } catch (streamError) {
+      console.warn('AI template stream generation failed. Falling back to JSON generate API.', streamError);
+      onProgress?.({
+        status: 'RUNNING',
+        step: 'fallback',
+        label: '기본 생성 API로 다시 시도 중입니다.',
+        progress: 20,
+      });
+      result = await fetchAiFeatureTemplate(request);
+    }
+
     setAiTemplateDraft({
       request,
       result,
