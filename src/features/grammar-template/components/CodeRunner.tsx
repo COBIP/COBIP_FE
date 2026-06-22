@@ -315,13 +315,13 @@ function ExplorerFolderNode({
 
   return (
     <div ref={containerRef}>
-      <div className="flex items-center justify-between group cursor-pointer hover:bg-gray-100 rounded-md px-2 py-1">
+      <div className="flex items-center justify-between group cursor-pointer rounded-md px-2 py-1 hover:bg-[#F8FAFC]">
         <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={() => onToggleFolder(path)}>
-          <span className="text-[10px] text-gray-500 transition-transform duration-150">
+          <span className="text-[10px] text-[#64748B] transition-transform duration-150">
             {node.isOpen ? '▼' : '▶'}
           </span>
           <span className="text-xs">📁</span>
-          <span className="text-xs text-gray-700 font-medium truncate">{node.name}</span>
+          <span className="truncate text-xs font-medium text-[#475569]">{node.name}</span>
         </div>
         <div className="relative">
           <button
@@ -329,7 +329,7 @@ function ExplorerFolderNode({
             className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-[#7C3AED] text-xs px-1 rounded hover:bg-[#F5F3FF] transition cursor-pointer"
           >+</button>
           {isMenuOpen && (
-            <div className="absolute right-0 top-5 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[100px]">
+            <div className="absolute right-0 top-5 z-50 min-w-[100px] rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg">
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddClick('file'); }}
                 className="w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-[#F5F3FF] hover:text-[#6D28D9] transition cursor-pointer"
@@ -357,7 +357,7 @@ function ExplorerFolderNode({
                 path={`${path}/${child.name}`}
               />
             ) : (
-              <div key={child.name} onClick={() => onOpenFile(`${path}/${child.name}`)} className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${`${path}/${child.name}` === activeFilePath ? 'bg-[#EDE9FE] text-[#6D28D9] font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <div key={child.name} onClick={() => onOpenFile(`${path}/${child.name}`)} className={`flex items-center gap-2 rounded-md px-2 py-1 text-xs cursor-pointer transition ${`${path}/${child.name}` === activeFilePath ? 'bg-[#EDE9FE] text-[#6D28D9] font-semibold' : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#334155]'}`}>
                 <span className="text-[10px]">📄</span>
                 <span>{child.name}</span>
               </div>
@@ -550,13 +550,13 @@ export function CodeRunner({
 
   if (executionSteps) {
     return (
-      <aside className="border-l border-gray-200 bg-white overflow-hidden shrink-0 relative" style={{ width: `${runnerWidth}px` }}>
+      <aside className="relative shrink-0 overflow-hidden border-l border-[#E2E8F0] bg-white" style={{ width: `${runnerWidth}px` }}>
         <div className="absolute -left-1 top-0 bottom-0 w-3 z-50 cursor-col-resize flex items-center justify-center group" onMouseDown={onRunnerResizeStart}>
-          <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-[#A78BFA] transition-colors" />
+          <div className="h-8 w-0.5 rounded-full bg-[#CBD5E1] transition-colors group-hover:bg-[#A78BFA]" />
         </div>
 
         <div className="flex h-full min-w-0" style={{ width: `${runnerWidth}px` }}>
-          <section className="min-w-0 flex-[1.45] overflow-hidden border-r border-gray-200 bg-slate-50">
+          <section className="min-w-0 flex-[1.45] overflow-hidden border-r border-[#E2E8F0] bg-[#F8FAFC]">
             <ExecutionFlowPanel
               steps={executionSteps}
               currentStepIndex={currentStepIndex}
@@ -568,25 +568,25 @@ export function CodeRunner({
             />
           </section>
 
-          <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-gray-50">
-            <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
+          <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#F8FAFC]">
+            <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900">코드 하이라이트</p>
-                <p className="truncate text-[11px] text-gray-500">{activeFilePath}</p>
+                <p className="text-sm font-semibold text-[#1E293B]">코드 하이라이트</p>
+                <p className="truncate text-[11px] text-[#64748B]">{activeFilePath}</p>
               </div>
               <span className="rounded-md bg-[#F5F3FF] px-2 py-1 text-[11px] font-semibold text-[#6D28D9]">
                 line {activeExecutionLine}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-1.5 shrink-0">
-              <div className="flex items-center gap-1.5 rounded-t border border-b-0 border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-700">
+            <div className="flex shrink-0 items-center gap-2 border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-1.5">
+              <div className="flex items-center gap-1.5 rounded-t border border-b-0 border-[#DDD6FE] bg-white px-2 py-0.5 text-xs font-semibold text-[#6D28D9]">
                 <span className="text-[10px]">📄</span>
                 {activeFilePath.split('/').pop()}
               </div>
             </div>
 
-            <div className="relative flex-1 overflow-hidden bg-gray-50">
+            <div className="relative flex-1 overflow-hidden bg-white">
               <CodeHighlightOverlay
                 sourceCode={activeCode}
                 highlightRange={activeCodeHighlightRange}
@@ -594,7 +594,7 @@ export function CodeRunner({
                 scrollLeft={editorScrollLeft}
               />
               <textarea
-                className="relative z-10 h-full w-full resize-none bg-transparent p-4 font-mono text-sm text-gray-800 outline-none"
+                className="relative z-10 h-full w-full resize-none bg-transparent p-4 font-mono text-sm text-[#1E293B] outline-none"
                 style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
                 value={activeCode}
                 onChange={(e) => setFileContents((prev) => ({ ...prev, [activeFilePath]: e.target.value }))}
@@ -609,18 +609,18 @@ export function CodeRunner({
   }
 
   return (
-    <aside className="border-l border-gray-200 bg-gray-50 overflow-hidden shrink-0 relative" style={{ width: `${runnerWidth}px` }}>
+    <aside className="relative shrink-0 overflow-hidden border-l border-[#E2E8F0] bg-[#F8FAFC]" style={{ width: `${runnerWidth}px` }}>
       {/* 리사이즈 핸들 */}
       <div className="absolute -left-1 top-0 bottom-0 w-3 z-30 cursor-col-resize flex items-center justify-center group" onMouseDown={onRunnerResizeStart}>
-        <div className="w-0.5 h-8 bg-gray-300 rounded-full group-hover:bg-[#A78BFA] transition-colors" />
+        <div className="h-8 w-0.5 rounded-full bg-[#CBD5E1] transition-colors group-hover:bg-[#A78BFA]" />
       </div>
 
       <div className="h-full flex flex-col" style={{ width: `${runnerWidth}px` }}>
         {/* 실행 환경 헤더 */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-white shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white px-4 py-2.5">
           <div className="flex items-center gap-2">
             <Play className="w-4 h-4 text-[#7C3AED]" />
-            <span className="text-sm font-semibold text-gray-800">코드 실행기</span>
+            <span className="text-sm font-semibold text-[#1E293B]">코드 실행기</span>
           </div>
         </div>
 
@@ -628,7 +628,7 @@ export function CodeRunner({
         <div className="flex flex-1 overflow-hidden">
           {/* 왼쪽: 파일 탐색기 */}
           <div className="flex flex-col shrink-0 overflow-hidden" style={{ width: `${explorerWidth}px` }}>
-            <div className="px-3 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-100/50 shrink-0">탐색기</div>
+            <div className="shrink-0 border-b border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#64748B]">탐색기</div>
             <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
               {explorerTree.map((node) =>
                 node.type === 'folder' ? (
@@ -643,7 +643,7 @@ export function CodeRunner({
                     path={node.name}
                   />
                 ) : (
-                  <div key={node.name} onClick={() => onOpenFile(node.name)} className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs cursor-pointer transition ${node.name === activeFilePath ? 'bg-[#EDE9FE] text-[#6D28D9] font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <div key={node.name} onClick={() => onOpenFile(node.name)} className={`flex items-center gap-2 rounded-md px-2 py-1 text-xs cursor-pointer transition ${node.name === activeFilePath ? 'bg-[#EDE9FE] text-[#6D28D9] font-semibold' : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#334155]'}`}>
                     <span className="text-[10px]">📄</span>
                     <span>{node.name}</span>
                   </div>
@@ -655,7 +655,7 @@ export function CodeRunner({
                   <input autoFocus value={rootInputValue} onChange={(e) => setRootInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleRootConfirm(); if (e.key === 'Escape') { setIsRootInputOpen(false); setRootInputValue(''); } }} onBlur={handleRootConfirm} className="flex-1 text-xs bg-white border border-[#C4B5FD] rounded px-1.5 py-0.5 outline-none text-gray-700" placeholder="폴더명" />
                 </div>
               ) : (
-                <button onClick={() => { setIsRootInputOpen(true); setRootInputValue(''); }} className="w-full flex items-center gap-1.5 px-2 py-1 text-xs text-gray-400 hover:text-[#7C3AED] hover:bg-gray-100 rounded-md transition cursor-pointer mt-1">
+                <button onClick={() => { setIsRootInputOpen(true); setRootInputValue(''); }} className="mt-1 flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs text-[#94A3B8] transition hover:bg-[#F8FAFC] hover:text-[#7C3AED] cursor-pointer">
                   <span>+</span><span>폴더 추가</span>
                 </button>
               )}
@@ -665,22 +665,22 @@ export function CodeRunner({
           {/* 리사이즈 핸들 (파일트리 ↔ 코드) */}
           <div className="w-0.5 cursor-col-resize shrink-0 relative group" onMouseDown={onExplorerResizeStart}>
             <div className="absolute inset-0 -left-1 -right-1" />
-            <div className="w-full h-full bg-gray-200 group-hover:bg-[#A78BFA] transition-colors" />
+            <div className="h-full w-full bg-[#CBD5E1] transition-colors group-hover:bg-[#A78BFA]" />
           </div>
 
           {/* 오른쪽: 코드 편집 + 실행 */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* 파일 타이틀 바 */}
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 shrink-0">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white rounded-t border border-gray-200 border-b-0 text-xs text-gray-700 font-medium">
+            <div className="flex shrink-0 items-center gap-2 border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-1.5">
+              <div className="flex items-center gap-1.5 rounded-t border border-b-0 border-[#DDD6FE] bg-white px-2 py-0.5 text-xs font-semibold text-[#6D28D9]">
                 <span className="text-[10px]">🐍</span>
                 {activeFilePath.split('/').pop()}
-                <button className="ml-1 text-gray-400 hover:text-gray-600 text-[10px] leading-none">✕</button>
+                <button className="ml-1 text-[10px] leading-none text-[#94A3B8] hover:text-[#475569]">✕</button>
               </div>
             </div>
 
             {/* 코드 에디터 */}
-            <div className="relative flex-1 bg-gray-50 overflow-hidden">
+            <div className="relative flex-1 overflow-hidden bg-white">
               <CodeHighlightOverlay
                 sourceCode={activeCode}
                 highlightRange={activeCodeHighlightRange}
@@ -688,7 +688,7 @@ export function CodeRunner({
                 scrollLeft={editorScrollLeft}
               />
               <textarea
-                className="relative z-10 w-full h-full bg-transparent text-gray-800 p-4 text-sm font-mono resize-none outline-none"
+                className="relative z-10 h-full w-full resize-none bg-transparent p-4 font-mono text-sm text-[#1E293B] outline-none"
                 style={{ lineHeight: `${CODE_EDITOR_LINE_HEIGHT}px` }}
                 value={activeCode}
                 onChange={(e) => setFileContents((prev) => ({ ...prev, [activeFilePath]: e.target.value }))}
@@ -700,11 +700,11 @@ export function CodeRunner({
             {/* 가로 리사이즈 핸들 */}
             <div className="h-0.5 cursor-row-resize shrink-0 relative group" onMouseDown={onOutputResizeStart}>
               <div className="absolute inset-0 -top-1 -bottom-1" />
-              <div className="w-full h-full bg-gray-200 group-hover:bg-[#F5F3FF]0 transition-colors" />
+              <div className="h-full w-full bg-[#CBD5E1] transition-colors group-hover:bg-[#A78BFA]" />
             </div>
 
             {/* 하단 도구 모음 */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-white shrink-0">
+            <div className="flex shrink-0 items-center gap-2 border-t border-[#E2E8F0] bg-white px-4 py-2">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleRun}
@@ -721,7 +721,7 @@ export function CodeRunner({
                 <button
                   onClick={handleExecutionFlow}
                   disabled={isFlowLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-[11px] font-medium rounded-md border border-gray-200 hover:bg-gray-50 hover:border-[#DDD6FE] hover:text-[#7C3AED] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 rounded-md border border-[#E2E8F0] bg-white px-3 py-1.5 text-[11px] font-medium text-[#475569] transition hover:border-[#DDD6FE] hover:bg-[#F5F3FF] hover:text-[#7C3AED] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isFlowLoading ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -762,9 +762,9 @@ export function CodeRunner({
             </div>
 
                         {/* 출력 영역 */}
-                        <div className="border-t border-gray-200 bg-gray-50 overflow-y-auto shrink-0" style={{ height: `${outputHeight}px` }}>
-                          <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 border-b border-gray-200 sticky top-0">
-                            <span className="text-[10px] text-gray-500 font-medium">출력</span>
+                        <div className="shrink-0 overflow-y-auto border-t border-[#E2E8F0] bg-[#F8FAFC]" style={{ height: `${outputHeight}px` }}>
+                          <div className="sticky top-0 flex items-center gap-2 border-b border-[#E2E8F0] bg-white px-4 py-1.5">
+                            <span className="text-[10px] font-semibold text-[#64748B]">출력</span>
                           </div>
                                                     <div className="p-3">
                             {errorMessage ? (

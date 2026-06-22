@@ -781,8 +781,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
               <h1 className="text-2xl font-bold text-gray-900 mb-6">{template?.title}</h1>
               {template?.chapters && template.chapters.length > 0 && currentChapterIndex < template.chapters.length && (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">{template.chapters[currentChapterIndex].title}</h2>
-                  <div className="mb-6 flex flex-wrap gap-3 border-b border-gray-200">
+                  <h2 className="mb-4 text-xl font-bold text-[#1E293B]">{template.chapters[currentChapterIndex].title}</h2>
+                  <div className="mb-6 flex flex-wrap gap-1 border-b border-[#E2E8F0]">
                     {([
                       ['theory', '이론'],
                       ['problems', '문제'],
@@ -795,7 +795,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                         className={`border-b-2 px-4 py-3 text-sm font-semibold transition ${
                           activeContentTab === tab
                             ? 'border-[#7C3AED] text-[#7C3AED]'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                            : 'border-transparent text-[#64748B] hover:text-[#334155]'
                         }`}
                       >
                         {label}
@@ -809,14 +809,14 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'problems' ? (
                     <div className="space-y-4">
-                      <div className="rounded-xl border border-[#EDE9FE] bg-gradient-to-br from-[#F5F3FF] via-white to-[#F5F3FF] p-5 shadow-sm">
+                      <div className="rounded-lg border border-[#E2E8F0] bg-white p-5 shadow-sm">
                         <div className="flex items-start gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-bold text-white">
                             Q
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-[#6D28D9]">문제 안내</h3>
-                            <p className="mt-2 text-sm leading-6 text-gray-700">
+                            <h3 className="text-lg font-bold text-[#1E293B]">문제 안내</h3>
+                            <p className="mt-2 text-sm leading-6 text-[#475569]">
                               이 챕터의 문제 목록입니다. 문제를 선택하거나 풀이하는 인터랙션은 다음 단계에서 더 확장할 수 있습니다.
                             </p>
                           </div>
@@ -833,14 +833,14 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                             return (
                             <div
                               key={mission.id}
-                              className={`rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md ${
+                              className={`rounded-lg border p-5 shadow-sm transition hover:shadow-md ${
                                 hasSolved
-                                  ? 'border-emerald-200 bg-emerald-50/60 shadow-emerald-100'
+                                  ? 'border-emerald-200 bg-emerald-50 shadow-emerald-100'
                                   : hasFailed
-                                    ? 'border-amber-200 bg-amber-50/60 shadow-amber-100'
+                                    ? 'border-rose-200 bg-rose-50 shadow-rose-100'
                                     : isSelected
-                                      ? 'border-[#DDD6FE] bg-[#F5F3FF]/50 shadow-[#EDE9FE] hover:border-[#C4B5FD]'
-                                      : 'border-gray-200 hover:border-[#DDD6FE]'
+                                      ? 'border-[#C4B5FD] bg-[#F5F3FF] shadow-[#EDE9FE] hover:border-[#A78BFA]'
+                                      : 'border-[#E2E8F0] bg-white hover:border-[#DDD6FE]'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -852,15 +852,15 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <span className="rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-semibold text-[#6D28D9]">
                                       문제
                                     </span>
-                                    <p className="text-base font-bold text-gray-900">{mission.title}</p>
+                                    <p className="min-w-0 flex-1 text-base font-bold text-[#1E293B]">{mission.title}</p>
                                   </div>
                                   {mission.description ? (
-                                    <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
+                                    <p className="mt-4 break-words text-sm leading-7 text-[#475569]">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-4 rounded-lg border border-[#EDE9FE] bg-[#F5F3FF] px-4 py-4">
+                                    <div className="mt-4 rounded-lg border border-[#DDD6FE] bg-[#F5F3FF] px-4 py-4">
                                       <p className="text-xs font-semibold uppercase tracking-wide text-[#8B5CF6]">가이드</p>
-                                      <p className="mt-2 text-sm leading-6 text-[#6D28D9]">{mission.guideContent}</p>
+                                      <p className="mt-2 break-words text-sm leading-6 text-[#6D28D9]">{mission.guideContent}</p>
                                     </div>
                                   ) : null}
                                 </div>
@@ -874,7 +874,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                         className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold ${
                                           hasSolved
                                             ? 'bg-emerald-600 text-white'
-                                            : 'bg-amber-500 text-white'
+                                            : 'bg-rose-500 text-white'
                                         }`}
                                       >
                                         {hasSolved ? '정답' : '다시 시도'}
@@ -906,8 +906,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                 <div
                                   className={`mt-4 rounded-lg border px-4 py-4 ${
                                     hasSolved
-                                      ? 'border-emerald-200 bg-white/90'
-                                      : 'border-amber-200 bg-white/90'
+                                      ? 'border-emerald-200 bg-white'
+                                      : 'border-rose-200 bg-white'
                                   }`}
                                 >
                                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -916,14 +916,14 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                         hasSolved
                                           ? 'bg-emerald-100 text-emerald-700'
-                                          : 'bg-amber-100 text-amber-700'
+                                          : 'bg-rose-100 text-rose-700'
                                       }`}
                                     >
                                       {submissionStatusLabel}
                                     </span>
                                   </div>
                                   {submissionSummaryMessage ? (
-                                    <p className="mt-3 text-sm leading-6 text-slate-700">{submissionSummaryMessage}</p>
+                                    <p className="mt-3 break-words text-sm leading-6 text-slate-700">{submissionSummaryMessage}</p>
                                   ) : null}
                                   {submissionResult ? (
                                     <p className="mt-2 text-xs font-medium text-slate-500">
@@ -951,9 +951,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           )})}
                         </div>
                       ) : (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
-                          <p className="text-sm font-semibold text-gray-700">등록된 문제가 없습니다.</p>
-                          <p className="mt-2 text-sm text-gray-500">어드민에서 문제를 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
+                        <div className="rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-10 text-center">
+                          <p className="text-sm font-semibold text-[#334155]">등록된 문제가 없습니다.</p>
+                          <p className="mt-2 text-sm text-[#64748B]">어드민에서 문제를 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
                         </div>
                       )}
                     </div>
@@ -961,33 +961,33 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
 
                   {activeContentTab === 'missions' ? (
                     <div className="space-y-4">
-                      <div className="rounded-xl border border-[#EDE9FE] bg-gradient-to-br from-[#F5F3FF] via-white to-[#F5F3FF] p-5 shadow-sm">
+                      <div className="rounded-lg border border-[#E2E8F0] bg-white p-5 shadow-sm">
                         <div className="flex items-start gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED] text-sm font-bold text-white">
                             M
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-[#6D28D9]">미션 안내</h3>
-                            <p className="mt-2 text-sm leading-6 text-gray-700">
+                            <h3 className="text-lg font-bold text-[#1E293B]">미션 안내</h3>
+                            <p className="mt-2 text-sm leading-6 text-[#475569]">
                               이 챕터의 미션 목록입니다. 현재는 콘텐츠 확인 중심으로 연결했고, 추후 진행 상태/제출 흐름을 확장할 수 있습니다.
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="rounded-lg border border-[#E2E8F0] bg-white p-5 shadow-sm">
                         <div className="flex items-center justify-between gap-4">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-3">
                               <div>
-                                <p className="text-sm font-bold text-slate-900">미션 진행 현황</p>
-                                <p className="mt-1 text-xs text-slate-500">0 / {missionItems.length} 완료</p>
+                                <p className="text-sm font-bold text-[#1E293B]">미션 진행 현황</p>
+                                <p className="mt-1 text-xs text-[#64748B]">0 / {missionItems.length} 완료</p>
                               </div>
                               <span className="shrink-0 text-sm font-bold text-[#7C3AED]">0%</span>
                             </div>
                             <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
                               <div
-                                className="h-full rounded-full bg-gradient-to-r from-[#F5F3FF]0 to-[#8B5CF6]"
+                                className="h-full rounded-full bg-[#7C3AED]"
                                 style={{ width: '0%' }}
                               />
                             </div>
@@ -1005,14 +1005,14 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                             return (
                             <div
                               key={mission.id}
-                              className={`rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md ${
+                              className={`rounded-lg border p-5 shadow-sm transition hover:shadow-md ${
                                 hasSolved
-                                  ? 'border-emerald-200 bg-emerald-50/60 shadow-emerald-100'
+                                  ? 'border-emerald-200 bg-emerald-50 shadow-emerald-100'
                                   : hasFailed
-                                    ? 'border-amber-200 bg-amber-50/60 shadow-amber-100'
+                                    ? 'border-rose-200 bg-rose-50 shadow-rose-100'
                                     : isSelected
-                                      ? 'border-[#DDD6FE] bg-[#F5F3FF]/50 shadow-[#EDE9FE] hover:border-[#C4B5FD]'
-                                      : 'border-gray-200 hover:border-[#DDD6FE]'
+                                      ? 'border-[#C4B5FD] bg-[#F5F3FF] shadow-[#EDE9FE] hover:border-[#A78BFA]'
+                                      : 'border-[#E2E8F0] bg-white hover:border-[#DDD6FE]'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -1024,15 +1024,15 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                     <span className="rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-semibold text-[#6D28D9]">
                                       실습
                                     </span>
-                                    <p className="text-base font-bold text-gray-900">{mission.title}</p>
+                                    <p className="min-w-0 flex-1 text-base font-bold text-[#1E293B]">{mission.title}</p>
                                   </div>
                                   {mission.description ? (
-                                    <p className="mt-4 text-sm leading-7 text-gray-700">{mission.description}</p>
+                                    <p className="mt-4 break-words text-sm leading-7 text-[#475569]">{mission.description}</p>
                                   ) : null}
                                   {mission.guideContent ? (
-                                    <div className="mt-4 rounded-lg border border-[#EDE9FE] bg-[#F5F3FF] px-4 py-4">
+                                    <div className="mt-4 rounded-lg border border-[#DDD6FE] bg-[#F5F3FF] px-4 py-4">
                                       <p className="text-xs font-semibold uppercase tracking-wide text-[#8B5CF6]">가이드</p>
-                                      <p className="mt-2 text-sm leading-6 text-[#6D28D9]">{mission.guideContent}</p>
+                                      <p className="mt-2 break-words text-sm leading-6 text-[#6D28D9]">{mission.guideContent}</p>
                                     </div>
                                   ) : null}
                                 </div>
@@ -1046,7 +1046,7 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                         className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold ${
                                           hasSolved
                                             ? 'bg-emerald-600 text-white'
-                                            : 'bg-amber-500 text-white'
+                                            : 'bg-rose-500 text-white'
                                         }`}
                                       >
                                         {hasSolved ? '정답' : '다시 시도'}
@@ -1078,8 +1078,8 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                 <div
                                   className={`mt-4 rounded-lg border px-4 py-4 ${
                                     hasSolved
-                                      ? 'border-emerald-200 bg-white/90'
-                                      : 'border-amber-200 bg-white/90'
+                                      ? 'border-emerald-200 bg-white'
+                                      : 'border-rose-200 bg-white'
                                   }`}
                                 >
                                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1088,14 +1088,14 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                         hasSolved
                                           ? 'bg-emerald-100 text-emerald-700'
-                                          : 'bg-amber-100 text-amber-700'
+                                          : 'bg-rose-100 text-rose-700'
                                       }`}
                                     >
                                       {submissionStatusLabel}
                                     </span>
                                   </div>
                                   {submissionSummaryMessage ? (
-                                    <p className="mt-3 text-sm leading-6 text-slate-700">{submissionSummaryMessage}</p>
+                                    <p className="mt-3 break-words text-sm leading-6 text-slate-700">{submissionSummaryMessage}</p>
                                   ) : null}
                                   {submissionResult ? (
                                     <p className="mt-2 text-xs font-medium text-slate-500">
@@ -1123,9 +1123,9 @@ export function GrammarDetailView({ templateId, onBack }: GrammarDetailViewProps
                           )})}
                         </div>
                       ) : (
-                        <div className="rounded-xl border border-dashed border-gray-300 bg-gradient-to-br from-white to-gray-50 p-10 text-center shadow-sm">
-                          <p className="text-sm font-semibold text-gray-700">등록된 미션이 없습니다.</p>
-                          <p className="mt-2 text-sm text-gray-500">어드민에서 미션을 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
+                        <div className="rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-10 text-center">
+                          <p className="text-sm font-semibold text-[#334155]">등록된 미션이 없습니다.</p>
+                          <p className="mt-2 text-sm text-[#64748B]">어드민에서 미션을 추가하면 이 영역에 카드 형태로 표시됩니다.</p>
                         </div>
                       )}
                     </div>
