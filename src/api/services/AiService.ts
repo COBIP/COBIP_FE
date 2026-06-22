@@ -211,6 +211,14 @@ export type AiFeatureTemplateGenerateResult = {
   source: 'ollama' | 'fallback';
 };
 
+export type AiFeatureTemplateGenerateProgress = {
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | string;
+  step: string;
+  label: string;
+  progress: number;
+  errorMessage?: string | null;
+};
+
 export type AiFeatureTemplateRegenerateSectionRequest = AiFeatureTemplateGenerateRequest & {
   templateId?: number | null;
   section: AiFeatureTemplateSection;
@@ -781,6 +789,100 @@ export async function fetchAiFeatureTemplate(
 
   const result = await parseAiResponse<AiApiResponse<unknown>>(response);
   return mapGenerateResult(result.data);
+}
+
+function parseSseMessage(rawMessage: string) {
+  const lines = rawMessage.split(/\r?\n/);
+  let eventName = 'message';
+  const dataLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith('event:')) {
+      eventName = line.slice('event:'.length).trim();
+      continue;
+    }
+
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice('data:'.length).trimStart());
+    }
+  }
+
+  if (dataLines.length === 0) return null;
+
+  return {
+    eventName,
+    data: JSON.parse(dataLines.join('\n')) as unknown,
+  };
+}
+
+function mapGenerateProgress(value: unknown): AiFeatureTemplateGenerateProgress {
+  const data = checkRecord(value) ? value : {};
+  const progress = Number(data.progress ?? 0);
+
+  return {
+    status: String(data.status ?? 'RUNNING'),
+    step: String(data.step ?? ''),
+    label: String(data.label ?? 'AI 템플릿을 생성 중입니다.'),
+    progress: Number.isFinite(progress) ? Math.min(100, Math.max(0, progress)) : 0,
+    errorMessage: typeof data.errorMessage === 'string' ? data.errorMessage : null,
+  };
+}
+
+export async function fetchAiFeatureTemplateStream(
+  request: AiFeatureTemplateGenerateRequest,
+  onProgress?: (progress: AiFeatureTemplateGenerateProgress) => void,
+): Promise<AiFeatureTemplateGenerateResult> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/feature-template/generate/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    },
+    body: JSON.stringify(buildGeneratePayload(request)),
+  });
+
+  if (!response.ok) {
+    throw new Error(`AI 템플릿 스트림 생성에 실패했습니다. (${response.status})`);
+  }
+
+  if (!response.body) {
+    throw new Error('AI 템플릿 스트림 응답을 읽을 수 없습니다.');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { value, done: isDone } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !isDone });
+    const messages = buffer.split(/\r?\n\r?\n/);
+    buffer = messages.pop() ?? '';
+
+    for (const rawMessage of messages) {
+      const message = parseSseMessage(rawMessage);
+      if (!message) continue;
+
+      if (message.eventName === 'progress') {
+        onProgress?.(mapGenerateProgress(message.data));
+        continue;
+      }
+
+      if (message.eventName === 'complete') {
+        onProgress?.(mapGenerateProgress(message.data));
+        return mapGenerateResult(message.data);
+      }
+
+      if (message.eventName === 'error') {
+        const progress = mapGenerateProgress(message.data);
+        throw new Error(progress.errorMessage ?? progress.label ?? 'AI 템플릿 생성에 실패했습니다.');
+      }
+    }
+
+    if (isDone) break;
+  }
+
+  throw new Error('AI 템플릿 생성 완료 이벤트를 받지 못했습니다.');
 }
 
 export async function fetchAiFeatureTemplateSection(

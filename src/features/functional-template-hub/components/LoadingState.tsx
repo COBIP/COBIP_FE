@@ -1,28 +1,35 @@
-import { LOADING_STEPS } from '@/features/functional-template-hub/Constants';
-
 interface LoadingStateProps {
-  currentStep: number;
+  label: string;
+  progress: number;
+  step?: string;
+  status?: string;
 }
 
-export function LoadingState({ currentStep }: LoadingStateProps) {
+export function LoadingState({ label, progress, step, status }: LoadingStateProps) {
+  const normalizedProgress = Math.min(100, Math.max(0, progress));
+
   return (
     <div className="mt-6 space-y-3 pt-4">
-      {/* 프로그레스 바 */}
+      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-[#64748B]">
+        <span>{step ? `현재 단계: ${step}` : 'AI 생성 진행 중'}</span>
+        <span>{Math.round(normalizedProgress)}%</span>
+      </div>
+
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E2E8F0]">
         <div
-          className="h-full rounded-full bg-[#7C3AED] transition-all duration-300"
+          className="h-full rounded-full bg-[#7C3AED] transition-all duration-500"
           style={{
-            width: `${((currentStep + 1) / LOADING_STEPS.length) * 100}%`,
+            width: `${normalizedProgress}%`,
           }}
         />
       </div>
 
-      {/* 로딩 메시지 */}
       <div className="flex items-center gap-3 rounded-lg bg-[#F8FAFC] p-3">
         <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C3AED]" />
-        <p className="text-sm font-medium text-[#475569]">
-          <span className="animate-fade">{LOADING_STEPS[currentStep]}</span>
-        </p>
+        <div>
+          <p className="text-sm font-medium text-[#475569]">{label}</p>
+          {status ? <p className="mt-0.5 text-xs text-[#94A3B8]">{status}</p> : null}
+        </div>
       </div>
     </div>
   );

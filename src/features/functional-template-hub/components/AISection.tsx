@@ -1,17 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BrainCircuit, Sparkles, Zap } from 'lucide-react';
-import { RECOMMENDED_FEATURES, LOADING_STEPS } from '@/features/functional-template-hub/Constants';
+import { RECOMMENDED_FEATURES } from '@/features/functional-template-hub/Constants';
 import { LoadingState } from '@/features/functional-template-hub/components/LoadingState';
 import {
   formatFeatureTemplateFramework,
   type AiFeatureTemplateDifficulty,
+  type AiFeatureTemplateGenerateProgress,
   type AiFeatureTemplateGenerateRequest,
 } from '@/api/services/AiService';
 
 interface AISectionProps {
-  onGenerate: (request: AiFeatureTemplateGenerateRequest) => Promise<void>;
+  onGenerate: (
+    request: AiFeatureTemplateGenerateRequest,
+    onProgress?: (progress: AiFeatureTemplateGenerateProgress) => void,
+  ) => Promise<void>;
 }
 
 const difficultyOptions: Array<{ value: AiFeatureTemplateDifficulty; label: string }> = [
@@ -32,18 +36,8 @@ export function AISection({ onGenerate }: AISectionProps) {
   const [framework, setFramework] = useState('Spring Boot');
   const [level, setLevel] = useState<AiFeatureTemplateDifficulty>('intermediate');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentLoadingStep, setCurrentLoadingStep] = useState(0);
+  const [generationProgress, setGenerationProgress] = useState<AiFeatureTemplateGenerateProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isLoading) return;
-
-    const interval = setInterval(() => {
-      setCurrentLoadingStep((prev) => (prev + 1) % LOADING_STEPS.length);
-    }, 800);
-
-    return () => clearInterval(interval);
-  }, [isLoading]);
 
   const handleGenerate = async () => {
     const nextFeatureName = featureName.trim();
@@ -59,7 +53,12 @@ export function AISection({ onGenerate }: AISectionProps) {
     try {
       setError(null);
       setIsLoading(true);
-      setCurrentLoadingStep(0);
+      setGenerationProgress({
+        status: 'RUNNING',
+        step: 'start',
+        label: 'AI 템플릿 생성을 시작합니다.',
+        progress: 5,
+      });
 
       await onGenerate({
         featureName: nextFeatureName,
@@ -72,7 +71,7 @@ export function AISection({ onGenerate }: AISectionProps) {
         includeMissions: true,
         includeInterview: true,
         referenceContext: null,
-      });
+      }, setGenerationProgress);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'AI 템플릿 생성에 실패했습니다.');
     } finally {
@@ -187,7 +186,14 @@ export function AISection({ onGenerate }: AISectionProps) {
             </div>
           )}
 
-          {isLoading && <LoadingState currentStep={currentLoadingStep} />}
+          {isLoading && (
+            <LoadingState
+              label={generationProgress?.label ?? 'AI 템플릿을 생성 중입니다.'}
+              progress={generationProgress?.progress ?? 5}
+              step={generationProgress?.step}
+              status={generationProgress?.status}
+            />
+          )}
         </div>
       </div>
     </section>
