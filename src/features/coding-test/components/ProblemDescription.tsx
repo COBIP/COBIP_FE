@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { MarkdownTextView } from '@/features/functional-template/components/MarkdownTextView';
 import type { CodingWorkbookProblemSummaryResponse } from '@/types/CodingWorkbookTypes';
 import type {
     CodingProblemContentBlock,
@@ -37,9 +38,18 @@ const normalizeProblemText = (text: string) => (
 );
 
 const collectText = (block: CodingProblemContentBlock): string => {
+    if (block.type === 'hardBreak') return '\n';
     if (block.text) return normalizeProblemText(block.text);
     return block.content?.map(collectText).join('') ?? '';
 };
+
+const renderMarkdown = (text: string, key?: string | number) => (
+    <MarkdownTextView
+        key={key}
+        content={text}
+        className="text-base leading-7 text-gray-800 [&_code]:border [&_code]:border-gray-100 [&_pre]:border [&_pre]:border-gray-200 [&_pre]:bg-gray-50"
+    />
+);
 
 const renderContent = (content: CodingProblemJson) => {
     if (!content) {
@@ -47,7 +57,7 @@ const renderContent = (content: CodingProblemJson) => {
     }
 
     if (typeof content === 'string') {
-        return <p className="whitespace-pre-wrap leading-7">{normalizeProblemText(content)}</p>;
+        return renderMarkdown(normalizeProblemText(content));
     }
 
     const blocks = Array.isArray(content) ? content : content.content ?? [content];
@@ -77,7 +87,7 @@ const renderContent = (content: CodingProblemJson) => {
             );
         }
 
-        return <p key={index} className="mb-4 whitespace-pre-wrap leading-7">{text}</p>;
+        return renderMarkdown(text, index);
     });
 };
 
