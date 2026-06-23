@@ -104,7 +104,7 @@ export function AISection({ onGenerate }: AISectionProps) {
               <Sparkles size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-[#7C3AED]" />
               <input
                 type="text"
-                placeholder="예: JWT 로그인, Redis 기반 장바구니, OAuth 소셜 로그인"
+                placeholder="예: 로그인, 게시판, 가위바위보"
                 value={featureName}
                 onChange={(e) => setFeatureName(e.target.value)}
                 onKeyDown={(e) => {
