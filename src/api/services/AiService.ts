@@ -1,4 +1,4 @@
-const AI_API_BASE_URL = (process.env.NEXT_PUBLIC_AI_API_BASE_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+const AI_API_BASE_URL = '/ai-proxy';
 const SPRING_BOOT_FRAMEWORK = 'Spring Boot';
 
 function formatValidationDetail(detail: unknown) {
